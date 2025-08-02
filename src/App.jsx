@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Section from "./components/Section";
 
 export default function ThetaFrame() {
   const [identity, setIdentity] = useState("");
@@ -11,8 +12,14 @@ export default function ThetaFrame() {
   const [nonNegotiables, setNonNegotiables] = useState(["", ""]);
   const [recovery, setRecovery] = useState("");
   const [activeIndex, setActiveIndex] = useState(null);
-  const [selectedDailyEmojis, setSelectedDailyEmojis] = useState({});
-  const [selectedWeeklyEmojis, setSelectedWeeklyEmojis] = useState({});
+  const [selectedDailyEmojis, setSelectedDailyEmojis] = useState(() => {
+    const stored = localStorage.getItem("thetaframe-daily-emojis");
+    return stored ? JSON.parse(stored) : {};
+  });
+  const [selectedWeeklyEmojis, setSelectedWeeklyEmojis] = useState(() => {
+    const stored = localStorage.getItem("thetaframe-weekly-emojis");
+    return stored ? JSON.parse(stored) : {};
+  });
   const [view, setView] = useState("daily");
   const [visionGoals, setVisionGoals] = useState(["", "", ""]);
   const [visionSteps, setVisionSteps] = useState(["", "", ""]);
@@ -61,6 +68,14 @@ export default function ThetaFrame() {
 
     fetchData();
   }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem("thetaframe-daily-emojis", JSON.stringify(selectedDailyEmojis));
+  }, [selectedDailyEmojis]);
+
+  useEffect(() => {
+    localStorage.setItem("thetaframe-weekly-emojis", JSON.stringify(selectedWeeklyEmojis));
+  }, [selectedWeeklyEmojis]);
 
   const handleListChange = (listSetter, index, value) => {
     const updated = [...listSetter];
@@ -131,123 +146,36 @@ export default function ThetaFrame() {
     );
   };
 
-  const renderDailyFrame = () => (
-    <div className="bg-white shadow-md rounded-xl p-6 grid gap-6">
-      <div>
-        <label className="font-medium text-sm sm:text-base">🧠 If you could reprogram one belief about yourself today, what would it be?</label>
-        <p className="text-xs text-gray-500 mb-2">Use this to activate your desired identity. Speak it in present tense and let it guide your actions.</p>
-        <input
-          className="border rounded-md p-2 w-full"
-          value={identity}
-          onChange={(e) => setIdentity(e.target.value)}
-          placeholder="I am..."
-        />
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">✅ Top 3 Actions</label>
-        <p className="text-xs text-gray-500 mb-2">What 3 things would make today feel like a win? Use emojis to emotionally anchor each one.</p>
-        {renderEditableList(top3, setTop3, 'top3')}
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">⚡ Micro-Moves</label>
-        <p className="text-xs text-gray-500 mb-2">Tiny tasks that build momentum. Choose actions that are frictionless, fast, and forward-moving.</p>
-        {renderEditableList(micros, setMicros, 'micros')}
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">🌀 Reward</label>
-        <input
-          className="border rounded-md p-2 w-full"
-          value={reward}
-          onChange={(e) => setReward(e.target.value)}
-          placeholder="Reward for completing your day"
-        />
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">🌙 Reflection</label>
-        <textarea
-          className="border rounded-md p-2 w-full"
-          value={reflection}
-          onChange={(e) => setReflection(e.target.value)}
-          placeholder="End of day notes, emotions, insights..."
-        />
-      </div>
-    </div>
-  );
+  const handleSave = async () => {
+  const payload = {
+    view,
+    identity,
+    top3,
+    micros,
+    reward,
+    reflection,
+    weeklyTheme,
+    weeklySteps,
+    nonNegotiables,
+    recovery,
+    visionGoals,
+    visionSteps
+  };
 
-  const renderWeeklyRhythm = () => (
-    <div className="bg-white shadow-md rounded-xl p-6 grid gap-6">
-      <div>
-        <label className="font-medium text-sm sm:text-base">📌 Weekly Intent / Theme</label>
-        <input
-          className="border rounded-md p-2 w-full"
-          value={weeklyTheme}
-          onChange={(e) => setWeeklyTheme(e.target.value)}
-          placeholder="This week I..."
-        />
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">👣 3 Small Steps To Take Towards Your Big Vision</label>
-        {renderEditableList(weeklySteps, setWeeklySteps, 'weeklySteps')}
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">🔒 Non-Negotiables</label>
-        {renderEditableList(nonNegotiables, setNonNegotiables, 'nonNegotiables')}
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">🛁 Recovery Plan</label>
-        <input
-          className="border rounded-md p-2 w-full"
-          value={recovery}
-          onChange={(e) => setRecovery(e.target.value)}
-          placeholder="Walk in nature, night off, music session..."
-        />
-      </div>
-    </div>
-  );
+  try {
+    const res = await fetch('/api/saveFrame', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.success) alert('✅ Frame saved to Google Sheet!');
+    else alert('⚠️ Save failed');
+  } catch (err) {
+    console.error(err);
+    alert('⚠️ Save error');
+  }
+};
 
-  const renderVisionTracker = () => (
-    <div className="bg-white shadow-md rounded-xl p-6 grid gap-6">
-      <div>
-        <label className="font-medium text-sm sm:text-base">🌅 Vision Goals</label>
-        {renderEditableList(visionGoals, setVisionGoals, 'visionGoals')}
-      </div>
-      <div>
-        <label className="font-medium text-sm sm:text-base">🏗️ Key Steps</label>
-        {renderEditableList(visionSteps, setVisionSteps, 'visionSteps')}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="p-4 sm:p-6 grid gap-6 max-w-3xl mx-auto">
-      {view === "daily" && (
-        <div className="text-right">
-          <button
-            onClick={() => alert("Saving today’s frame... (this will eventually write to your sheet or localStorage)")}
-            className="text-sm px-3 py-1 border border-black rounded hover:bg-black hover:text-white transition"
-          >
-            💾 Save Today’s Frame
-          </button>
-        </div>
-      )}
-<h1 className="text-2xl sm:text-3xl font-bold text-center">🌊 ThetaFrame</h1>
-      <p className="text-center text-sm text-gray-500 -mt-4">
-        A daily interface for subconscious reprogramming. Use this tool during your morning theta state (or while calm and reflective) to align your identity and actions with the future you're creating.
-      </p>
-
-      <div className="flex justify-center gap-4 my-4">
-        <button onClick={() => setView("daily")} className={`px-4 py-2 rounded-md ${view === "daily" ? "bg-black text-white" : "bg-gray-200"}`}>
-          Daily Frame
-        </button>
-        <button onClick={() => setView("weekly")} className={`px-4 py-2 rounded-md ${view === "weekly" ? "bg-black text-white" : "bg-gray-200"}`}>
-          Weekly Rhythm
-        </button>
-        <button onClick={() => setView("vision")} className={`px-4 py-2 rounded-md ${view === "vision" ? "bg-black text-white" : "bg-gray-200"}`}>
-          Vision Tracker
-        </button>
-      </div>
-
-      {view === "daily" ? renderDailyFrame() : view === "weekly" ? renderWeeklyRhythm() : renderVisionTracker()}
-    </div>
-  );
+// renderDailyFrame and others are now moved to Section component file or organized separately
 }
