@@ -1,15 +1,12 @@
 // src/components/Section.jsx
 import React from "react";
 
-export default function Section({ label, description, children }) {
+export default function Section({ label, children }) {
   return (
-    <div>
-      <label className="font-medium text-sm sm:text-base">{label}</label>
-      {description && (
-        <p className="text-xs text-gray-500 mb-2">{description}</p>
-      )}
-      {children}
-    </div>
+    <section className="bg-white rounded-2xl shadow p-6 mb-8">
+      <h2 className="text-2xl font-semibold mb-4">{label}</h2>
+      <div className="space-y-6">{children}</div>
+    </section>
   );
 }
 

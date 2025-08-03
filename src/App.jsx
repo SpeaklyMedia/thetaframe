@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Section from "./components/Section";
 import EmojiPicker from "./components/EmojiPicker";
 
@@ -17,23 +17,22 @@ export default function ThetaFrame() {
   const [nonNegotiables, setNonNegotiables] = useState(["", ""]);
   const [recovery, setRecovery] = useState("");
 
+  // ─── VISION TRACKER STATE ──────────────────────────────────────────────
+  const [visionGoals, setVisionGoals] = useState(["", "", ""]);
+  const [visionSteps, setVisionSteps] = useState(["", "", ""]);
+
   // ─── EMOJI STATE ───────────────────────────────────────────────────────
   const [selectedDailyEmojis, setSelectedDailyEmojis] = useState(() => {
-    const s = localStorage.getItem("thetaframe-daily-emojis");
-    return s ? JSON.parse(s) : {};
+    const saved = localStorage.getItem("thetaframe-daily-emojis");
+    return saved ? JSON.parse(saved) : {};
   });
   const [selectedWeeklyEmojis, setSelectedWeeklyEmojis] = useState(() => {
-    const s = localStorage.getItem("thetaframe-weekly-emojis");
-    return s ? JSON.parse(s) : {};
+    const saved = localStorage.getItem("thetaframe-weekly-emojis");
+    return saved ? JSON.parse(saved) : {};
   });
 
   // ─── VIEW STATE ────────────────────────────────────────────────────────
   const [view, setView] = useState("daily");
-  const [activeIndex, setActiveIndex] = useState(null);
-
-  // ─── VISION TRACKER STATE ──────────────────────────────────────────────
-  const [visionGoals, setVisionGoals] = useState(["", "", ""]);
-  const [visionSteps, setVisionSteps] = useState(["", "", ""]);
 
   // ─── FETCH GOOGLE SHEET ─────────────────────────────────────────────────
   useEffect(() => {
@@ -48,48 +47,45 @@ export default function ThetaFrame() {
       const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(
         sheetName
       )}`;
-
       try {
         const res = await fetch(url);
         const text = await res.text();
-        const json = JSON.parse(text.substring(47).slice(0, -2));
-        const rows = json.table.rows;
+        const data = JSON.parse(text.substring(47).slice(0, -2));
+        const rows = data.table.rows;
 
         if (view === "daily") {
           const day = new Date().toLocaleString("en-US", { weekday: "long" });
-          const todayRow = rows.find((r) => r.c[0]?.v === day);
-          if (todayRow) {
-            setIdentity(todayRow.c[1]?.v || "");
-            setTop3((todayRow.c[2]?.v || "").split("\n"));
-            setMicros((todayRow.c[3]?.v || "").split("\n"));
-            setReward(todayRow.c[4]?.v || "");
-            setReflection(todayRow.c[5]?.v || "");
+          const today = rows.find((r) => r.c[0]?.v === day);
+          if (today) {
+            setIdentity(today.c[1]?.v || "");
+            setTop3((today.c[2]?.v || "").split("\n"));
+            setMicros((today.c[3]?.v || "").split("\n"));
+            setReward(today.c[4]?.v || "");
+            setReflection(today.c[5]?.v || "");
           }
         } else if (view === "weekly") {
-          const weekRow = rows[1];
-          if (weekRow) {
-            setWeeklyTheme(weekRow.c[0]?.v || "");
-            setWeeklySteps((weekRow.c[1]?.v || "").split("\n"));
-            setNonNegotiables((weekRow.c[2]?.v || "").split("\n"));
-            setRecovery(weekRow.c[3]?.v || "");
+          const row = rows[1];
+          if (row) {
+            setWeeklyTheme(row.c[0]?.v || "");
+            setWeeklySteps((row.c[1]?.v || "").split("\n"));
+            setNonNegotiables((row.c[2]?.v || "").split("\n"));
+            setRecovery(row.c[3]?.v || "");
           }
         } else {
-          const visionRow = rows[1];
-          if (visionRow) {
-            setVisionGoals((visionRow.c[0]?.v || "").split("\n"));
-            setVisionSteps((visionRow.c[1]?.v || "").split("\n"));
+          const row = rows[1];
+          if (row) {
+            setVisionGoals((row.c[0]?.v || "").split("\n"));
+            setVisionSteps((row.c[1]?.v || "").split("\n"));
           }
         }
       } catch (err) {
-        console.error("Google Sheet fetch error:", err);
-      } finally {
-        setActiveIndex(null);
+        console.error("Fetch error:", err);
       }
     }
     fetchData();
   }, [view]);
 
-  // ─── SYNC EMOJIS ───────────────────────────────────────────────────────
+  // ─── PERSIST EMOJIS ─────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem(
       "thetaframe-daily-emojis",
@@ -106,265 +102,271 @@ export default function ThetaFrame() {
 
   // ─── RENDER ────────────────────────────────────────────────────────────
   return (
-    <div className="thetaframe-app p-4">
-      {/* Tab buttons */}
-      <nav className="mb-4">
-        {["daily", "weekly", "vision"].map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`mr-2 px-3 py-1 rounded ${
-              view === v ? "font-bold underline" : "opacity-75"
-            }`}
-          >
-            {v.charAt(0).toUpperCase() + v.slice(1)}
-          </button>
-        ))}
-      </nav>
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto max-w-3xl p-4">
+        {/* Navigation Tabs */}
+        <nav className="mb-8 flex space-x-4">
+          {['daily', 'weekly', 'vision'].map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-4 py-2 rounded ${
+                view === v
+                  ? 'font-bold underline text-gray-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </button>
+          ))}
+        </nav>
 
-      {/* Daily */}
-      {view === "daily" && (
-        <Section label="Daily Frame">
-          <div className="space-y-6">
-            {/* Identity */}
-            <div>
-              <label>Identity:</label>
-              <input
-                className="block w-full mt-1"
-                value={identity}
-                onChange={(e) => setIdentity(e.target.value)}
-              />
-              <EmojiPicker
-                label="Mood:"
-                emojis={["✨", "🌅", "💫"]}
-                selected={selectedDailyEmojis.identity}
-                onSelect={(emo) =>
-                  setSelectedDailyEmojis((prev) => ({ ...prev, identity: emo }))
-                }
-              />
-            </div>
-
-            {/* Top 3 */}
-            <div>
-              <label>Top 3:</label>
-              {top3.map((t, i) => (
+        {/* Daily View */}
+        {view === 'daily' && (
+          <Section label="Daily Frame">
+            <div className="space-y-6">
+              {/* Identity */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Identity:</label>
                 <input
-                  key={i}
-                  className="block w-full mt-1"
-                  value={t}
-                  onChange={(e) => {
-                    const c = [...top3];
-                    c[i] = e.target.value;
-                    setTop3(c);
-                  }}
+                  className="border rounded p-2 w-full"
+                  value={identity}
+                  onChange={(e) => setIdentity(e.target.value)}
                 />
-              ))}
-              <EmojiPicker
-                label="Priority Vibe:"
-                emojis={["🎯", "✅", "🔝"]}
-                selected={selectedDailyEmojis.top3}
-                onSelect={(emo) =>
-                  setSelectedDailyEmojis((prev) => ({ ...prev, top3: emo }))
-                }
-              />
-            </div>
+                <EmojiPicker
+                  label="Mood:"
+                  emojis={["✨", "🌅", "💫"]}
+                  selected={selectedDailyEmojis.identity}
+                  onSelect={(emo) =>
+                    setSelectedDailyEmojis((prev) => ({ ...prev, identity: emo }))
+                  }
+                />
+              </div>
 
-            {/* Micros */}
-            <div>
-              <label>Micros:</label>
-              {micros.map((m, i) => (
+              {/* Top 3 */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Top 3:</label>
+                {top3.map((t, i) => (
+                  <input
+                    key={i}
+                    className="border rounded p-2 w-full mb-1"
+                    value={t}
+                    onChange={(e) => {
+                      const c = [...top3];
+                      c[i] = e.target.value;
+                      setTop3(c);
+                    }}
+                  />
+                ))}
+                <EmojiPicker
+                  label="Priority Vibe:"
+                  emojis={["🎯", "✅", "🔝"]}
+                  selected={selectedDailyEmojis.top3}
+                  onSelect={(emo) =>
+                    setSelectedDailyEmojis((prev) => ({ ...prev, top3: emo }))
+                  }
+                />
+              </div>
+
+              {/* Micros */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Micros:</label>
+                {micros.map((m, i) => (
+                  <input
+                    key={i}
+                    className="border rounded p-2 w-full mb-1"
+                    value={m}
+                    onChange={(e) => {
+                      const c = [...micros];
+                      c[i] = e.target.value;
+                      setMicros(c);
+                    }}
+                  />
+                ))}
+                <EmojiPicker
+                  label="Micro Vibe:"
+                  emojis={["⚙️", "🐜", "🏃"]}
+                  selected={selectedDailyEmojis.micros}
+                  onSelect={(emo) =>
+                    setSelectedDailyEmojis((prev) => ({ ...prev, micros: emo }))
+                  }
+                />
+              </div>
+
+              {/* Reward */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Reward:</label>
                 <input
-                  key={i}
-                  className="block w-full mt-1"
-                  value={m}
-                  onChange={(e) => {
-                    const c = [...micros];
-                    c[i] = e.target.value;
-                    setMicros(c);
-                  }}
+                  className="border rounded p-2 w-full"
+                  value={reward}
+                  onChange={(e) => setReward(e.target.value)}
                 />
-              ))}
-              <EmojiPicker
-                label="Micro Vibe:"
-                emojis={["⚙️", "🐜", "🏃"]}
-                selected={selectedDailyEmojis.micros}
-                onSelect={(emo) =>
-                  setSelectedDailyEmojis((prev) => ({ ...prev, micros: emo }))
-                }
-              />
-            </div>
+                <EmojiPicker
+                  label="Reward Vibe:"
+                  emojis={["🏆", "🎁", "🍫"]}
+                  selected={selectedDailyEmojis.reward}
+                  onSelect={(emo) =>
+                    setSelectedDailyEmojis((prev) => ({ ...prev, reward: emo }))
+                  }
+                />
+              </div>
 
-            {/* Reward */}
-            <div>
-              <label>Reward:</label>
-              <input
-                className="block w-full mt-1"
-                value={reward}
-                onChange={(e) => setReward(e.target.value)}
-              />
-              <EmojiPicker
-                label="Reward Vibe:"
-                emojis={["🏆", "🎁", "🍫"]}
-                selected={selectedDailyEmojis.reward}
-                onSelect={(emo) =>
-                  setSelectedDailyEmojis((prev) => ({ ...prev, reward: emo }))
-                }
-              />
+              {/* Reflection */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Reflection:</label>
+                <textarea
+                  className="border rounded p-2 w-full"
+                  rows={3}
+                  value={reflection}
+                  onChange={(e) => setReflection(e.target.value)}
+                />
+                <EmojiPicker
+                  label="Reflection Vibe:"
+                  emojis={["🤔", "📝", "🌙"]}
+                  selected={selectedDailyEmojis.reflection}
+                  onSelect={(emo) =>
+                    setSelectedDailyEmojis((prev) => ({ ...prev, reflection: emo }))
+                  }
+                />
+              </div>
             </div>
+          </Section>
+        )}
 
-            {/* Reflection */}
-            <div>
-              <label>Reflection:</label>
-              <textarea
-                className="block w-full mt-1"
-                rows={3}
-                value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
-              />
-              <EmojiPicker
-                label="Reflection Vibe:"
-                emojis={["🤔", "📝", "🌙"]}
-                selected={selectedDailyEmojis.reflection}
-                onSelect={(emo) =>
-                  setSelectedDailyEmojis((prev) => ({ ...prev, reflection: emo }))
-                }
-              />
-            </div>
-          </div>
-        </Section>
-      )}
-
-      {/* Weekly */}
-      {view === "weekly" && (
-        <Section label="Weekly Rhythm">
-          <div className="space-y-6">
-            {/* Theme */}
-            <div>
-              <label>Theme:</label>
-              <input
-                className="block w-full mt-1"
-                value={weeklyTheme}
-                onChange={(e) => setWeeklyTheme(e.target.value)}
-              />
-              <EmojiPicker
-                label="Theme Mood:"
-                emojis={["🗓️", "🔮", "🧭"]}
-                selected={selectedWeeklyEmojis.theme}
-                onSelect={(emo) =>
-                  setSelectedWeeklyEmojis((prev) => ({ ...prev, theme: emo }))
-                }
-              />
-            </div>
-
-            {/* Key Steps */}
-            <div>
-              <label>Key Steps:</label>
-              {weeklySteps.map((s, i) => (
+        {/* Weekly View */}
+        {view === 'weekly' && (
+          <Section label="Weekly Rhythm">
+            <div className="space-y-6">
+              {/* Theme */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Theme:</label>
                 <input
-                  key={i}
-                  className="block w-full mt-1"
-                  value={s}
-                  onChange={(e) => {
-                    const c = [...weeklySteps];
-                    c[i] = e.target.value;
-                    setWeeklySteps(c);
-                  }}
+                  className="border rounded p-2 w-full"
+                  value={weeklyTheme}
+                  onChange={(e) => setWeeklyTheme(e.target.value)}
                 />
-              ))}
-              <EmojiPicker
-                label="Steps Mood:"
-                emojis={["👣", "🪜", "➡️"]}
-                selected={selectedWeeklyEmojis.steps}
-                onSelect={(emo) =>
-                  setSelectedWeeklyEmojis((prev) => ({ ...prev, steps: emo }))
-                }
-              />
-            </div>
+                <EmojiPicker
+                  label="Theme Mood:"
+                  emojis={["🗓️", "🔮", "🧭"]}
+                  selected={selectedWeeklyEmojis.theme}
+                  onSelect={(emo) =>
+                    setSelectedWeeklyEmojis((prev) => ({ ...prev, theme: emo }))
+                  }
+                />
+              </div>
 
-            {/* Non-negotiables */}
-            <div>
-              <label>Non-negotiables:</label>
-              {nonNegotiables.map((n, i) => (
+              {/* Key Steps */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Key Steps:</label>
+                {weeklySteps.map((s, i) => (
+                  <input
+                    key={i}
+                    className="border rounded p-2 w-full mb-1"
+                    value={s}
+                    onChange={(e) => {
+                      const c = [...weeklySteps];
+                      c[i] = e.target.value;
+                      setWeeklySteps(c);
+                    }}
+                  />
+                ))}
+                <EmojiPicker
+                  label="Steps Mood:"
+                  emojis={["👣", "🪜", "➡️"]}
+                  selected={selectedWeeklyEmojis.steps}
+                  onSelect={(emo) =>
+                    setSelectedWeeklyEmojis((prev) => ({ ...prev, steps: emo }))
+                  }
+                />
+              </div>
+
+              {/* Non-negotiables */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Non-negotiables:</label>
+                {nonNegotiables.map((n, i) => (
+                  <input
+                    key={i}
+                    className="border rounded p-2 w-full mb-1"
+                    value={n}
+                    onChange={(e) => {
+                      const c = [...nonNegotiables];
+                      c[i] = e.target.value;
+                      setNonNegotiables(c);
+                    }}
+                  />
+                ))}
+                <EmojiPicker
+                  label="Non-neg Mood:"
+                  emojis={["🛡️", "🚫", "🤝"]}
+                  selected={selectedWeeklyEmojis.nonNegotiables}
+                  onSelect={(emo) =>
+                    setSelectedWeeklyEmojis((prev) => ({ ...prev, nonNegotiables: emo }))
+                  }
+                />
+              </div>
+
+              {/* Recovery */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Recovery:</label>
                 <input
-                  key={i}
-                  className="block w-full mt-1"
-                  value={n}
-                  onChange={(e) => {
-                    const c = [...nonNegotiables];
-                    c[i] = e.target.value;
-                    setNonNegotiables(c);
-                  }}
+                  className="border rounded p-2 w-full"
+                  value={recovery}
+                  onChange={(e) => setRecovery(e.target.value)}
                 />
-              ))}
-              <EmojiPicker
-                label="Non-neg Mood:"
-                emojis={["🛡️", "🚫", "🤝"]}
-                selected={selectedWeeklyEmojis.nonNegotiables}
-                onSelect={(emo) =>
-                  setSelectedWeeklyEmojis((prev) => ({ ...prev, nonNegotiables: emo }))
-                }
-              />
-            </div>
-
-            {/* Recovery */}
-            <div>
-              <label>Recovery:</label>
-              <input
-                className="block w-full mt-1"
-                value={recovery}
-                onChange={(e) => setRecovery(e.target.value)}
-              />
-              <EmojiPicker
-                label="Recovery Mood:"
-                emojis={["😴", "🛁", "🧘"]}
-                selected={selectedWeeklyEmojis.recovery}
-                onSelect={(emo) =>
-                  setSelectedWeeklyEmojis((prev) => ({ ...prev, recovery: emo }))
-                }
-              />
-            </div>
-          </div>
-        </Section>
-      )}
-
-      {/* Vision */}
-      {view === "vision" && (
-        <Section label="Vision Tracker">
-          <div className="space-y-6">
-            {/* Goals */}
-            <div>
-              <label>Goals:</label>
-              {visionGoals.map((g, i) => (
-                <input
-                  key={i}
-                  className="block w-full mt-1"
-                  value={g}
-                  onChange={(e) => {
-                    const c = [...visionGoals];
-                    c[i] = e.target.value; setVisionGoals(c);
-                  }}
+                <EmojiPicker
+                  label="Recovery Mood:"
+                  emojis={["😴", "🛁", "🧘"]}
+                  selected={selectedWeeklyEmojis.recovery}
+                  onSelect={(emo) =>
+                    setSelectedWeeklyEmojis((prev) => ({ ...prev, recovery: emo }))
+                  }
                 />
-              ))}  
+              </div>
             </div>
+          </Section>
+        )}
 
-            {/* Action Steps */}
-            <div>
-              <label>Action Steps:</label>
-              {visionSteps.map((s, i) => (
-                <input
-                  key={i}
-                  className="block w-full mt-1"
-                  value={s}
-                  onChange={(e) => {
-                    const c = [...visionSteps];
-                    c[i] = e.target.value; setVisionSteps(c);
-                  }}
-                />
-              ))}  
+        {/* Vision View */}
+        {view === 'vision' && (
+          <Section label="Vision Tracker">
+            <div className="space-y-6">
+              {/* Goals */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Goals:</label>
+                {visionGoals.map((g, i) => (
+                  <input
+                    key={i}
+                    className="border rounded p-2 w-full mb-1"
+                    value={g}
+                    onChange={(e) => {
+                      const c = [...visionGoals];
+                      c[i] = e.target.value;
+                      setVisionGoals(c);
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Action Steps */}
+              <div className="flex flex-col">
+                <label className="font-medium mb-1">Action Steps:</label>
+                {visionSteps.map((s, i) => (
+                  <input
+                    key={i}
+                    className="border rounded p-2 w-full mb-1"
+                    value={s}
+                    onChange={(e) => {
+                      const c = [...visionSteps];
+                      c[i] = e.target.value;
+                      setVisionSteps(c);
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </Section>
-      )}
+          </Section>
+        )}
+      </div>
     </div>
   );
 }
