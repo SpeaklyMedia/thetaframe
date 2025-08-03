@@ -10,21 +10,12 @@ export default function ThetaFrame() {
   const [micros, setMicros] = useState(["", "", ""]);
   const [reward, setReward] = useState("");
   const [reflection, setReflection] = useState("");
-
   // ─── WEEKLY RHYTHM STATE ───────────────────────────────────────────────
   const [weeklyTheme, setWeeklyTheme] = useState("");
   const [weeklySteps, setWeeklySteps] = useState(["", "", ""]);
   const [nonNegotiables, setNonNegotiables] = useState(["", ""]);
   const [recovery, setRecovery] = useState("");
-
-  // ─── VISION TRACKER STATE ──────────────────────────────────────────────
-  const [visionGoals, setVisionGoals] = useState(["", "", ""]);
-  const [visionSteps, setVisionSteps] = useState(["", "", ""]);
-
-  // ─── APP STATE ─────────────────────────────────────────────────────────
   const [activeIndex, setActiveIndex] = useState(null);
-  const [view, setView] = useState("daily");
-
   const [selectedDailyEmojis, setSelectedDailyEmojis] = useState(() => {
     const stored = localStorage.getItem("thetaframe-daily-emojis");
     return stored ? JSON.parse(stored) : {};
@@ -33,23 +24,35 @@ export default function ThetaFrame() {
     const stored = localStorage.getItem("thetaframe-weekly-emojis");
     return stored ? JSON.parse(stored) : {};
   });
+  const [view, setView] = useState("daily");
+  // ─── VISION TRACKER STATE ──────────────────────────────────────────────
+  const [visionGoals, setVisionGoals] = useState(["", "", ""]);
+  const [visionSteps, setVisionSteps] = useState(["", "", ""]);
 
   // ─── FETCH DATA FROM GOOGLE SHEETS ─────────────────────────────────────
   useEffect(() => {
     async function fetchData() {
       const sheetId = "10apZA63eEHOz310nuDXYMxHem9DN83S5";
-      const sheetName = view === "daily" ? "Daily Frame" : view === "weekly" ? "Weekly Rhythm" : "Vision Tracker";
-      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+      const sheetName =
+        view === "daily"
+          ? "Daily Frame"
+          : view === "weekly"
+          ? "Weekly Rhythm"
+          : "Vision Tracker";
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(
+        sheetName
+      )}`;
 
       try {
         const res = await fetch(url);
         const text = await res.text();
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
-        const day = new Date().toLocaleString("en-US", { weekday: "long" });
+        console.log("Fetched rows:", rows);
 
         if (view === "daily") {
-          const todayRow = rows.find(row => row.c[0]?.v === day);
+          const day = new Date().toLocaleString("en-US", { weekday: "long" });
+          const todayRow = rows.find((row) => row.c[0]?.v === day);
           if (todayRow) {
             setIdentity(todayRow.c[1]?.v || "");
             setTop3((todayRow.c[2]?.v || "").split("\n"));
@@ -74,22 +77,29 @@ export default function ThetaFrame() {
         }
       } catch (err) {
         console.error("Google Sheet fetch error:", err);
+      } finally {
+        setActiveIndex(null);
       }
-
-      setActiveIndex(null);
     }
 
     fetchData();
   }, [view]);
 
-  // ─── SYNC TO LOCAL STORAGE ────────────────────────────────────────────
+  // ─── SYNC DAILY EMOJIS TO LOCAL STORAGE ───────────────────────────────
   useEffect(() => {
-    localStorage.setItem("thetaframe-daily-emojis", JSON.stringify(selectedDailyEmojis));
+    localStorage.setItem(
+      "thetaframe-daily-emojis",
+      JSON.stringify(selectedDailyEmojis)
+    );
   }, [selectedDailyEmojis]);
 
+  // ─── SYNC WEEKLY EMOJIS TO LOCAL STORAGE ──────────────────────────────
   useEffect(() => {
-    localStorage.setItem("thetaframe-weekly-emojis", JSON.stringify(selectedWeeklyEmojis));
+    localStorage.setItem(
+      "thetaframe-weekly-emojis",
+      JSON.stringify(selectedWeeklyEmojis)
+    );
   }, [selectedWeeklyEmojis]);
 
-  // ...rest of component continues with render functions and UI logic
+  // ... rest of your component (rendering Sections, buttons to switch `view`, etc.) remains unchanged
 }
