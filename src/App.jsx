@@ -10,12 +10,21 @@ export default function ThetaFrame() {
   const [micros, setMicros] = useState(["", "", ""]);
   const [reward, setReward] = useState("");
   const [reflection, setReflection] = useState("");
+
   // ─── WEEKLY RHYTHM STATE ───────────────────────────────────────────────
   const [weeklyTheme, setWeeklyTheme] = useState("");
   const [weeklySteps, setWeeklySteps] = useState(["", "", ""]);
   const [nonNegotiables, setNonNegotiables] = useState(["", ""]);
   const [recovery, setRecovery] = useState("");
+
+  // ─── VISION TRACKER STATE ──────────────────────────────────────────────
+  const [visionGoals, setVisionGoals] = useState(["", "", ""]);
+  const [visionSteps, setVisionSteps] = useState(["", "", ""]);
+
+  // ─── APP STATE ─────────────────────────────────────────────────────────
   const [activeIndex, setActiveIndex] = useState(null);
+  const [view, setView] = useState("daily");
+
   const [selectedDailyEmojis, setSelectedDailyEmojis] = useState(() => {
     const stored = localStorage.getItem("thetaframe-daily-emojis");
     return stored ? JSON.parse(stored) : {};
@@ -24,10 +33,6 @@ export default function ThetaFrame() {
     const stored = localStorage.getItem("thetaframe-weekly-emojis");
     return stored ? JSON.parse(stored) : {};
   });
-  const [view, setView] = useState("daily");
-  // ─── VISION TRACKER STATE ──────────────────────────────────────────────
-  const [visionGoals, setVisionGoals] = useState(["", "", ""]);
-  const [visionSteps, setVisionSteps] = useState(["", "", ""]);
 
   // ─── FETCH DATA FROM GOOGLE SHEETS ─────────────────────────────────────
   useEffect(() => {
@@ -41,7 +46,6 @@ export default function ThetaFrame() {
         const text = await res.text();
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
-        console.log("Fetched rows:", rows);
         const day = new Date().toLocaleString("en-US", { weekday: "long" });
 
         if (view === "daily") {
@@ -57,22 +61,16 @@ export default function ThetaFrame() {
           const weekRow = rows[1];
           if (weekRow) {
             setWeeklyTheme(weekRow.c[0]?.v || "");
-            setWeeklySteps((weekRow.c[1]?.v || "").split("
-"));
-            setNonNegotiables((weekRow.c[2]?.v || "").split("
-"));
+            setWeeklySteps((weekRow.c[1]?.v || "").split("\n"));
+            setNonNegotiables((weekRow.c[2]?.v || "").split("\n"));
             setRecovery(weekRow.c[3]?.v || "");
           }
-        }
         } else if (view === "vision") {
           const visionRow = rows[1];
           if (visionRow) {
-            setVisionGoals((visionRow.c[0]?.v || "").split("
-"));
-            setVisionSteps((visionRow.c[1]?.v || "").split("
-"));
+            setVisionGoals((visionRow.c[0]?.v || "").split("\n"));
+            setVisionSteps((visionRow.c[1]?.v || "").split("\n"));
           }
-        }
         }
       } catch (err) {
         console.error("Google Sheet fetch error:", err);
@@ -84,12 +82,14 @@ export default function ThetaFrame() {
     fetchData();
   }, [view]);
 
-  // ─── SYNC DAILY EMOJIS TO LOCAL STORAGE ───────────────────────────────
+  // ─── SYNC TO LOCAL STORAGE ────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem("thetaframe-daily-emojis", JSON.stringify(selectedDailyEmojis));
   }, [selectedDailyEmojis]);
 
-  // ─── SYNC WEEKLY EMOJIS TO LOCAL STORAGE ──────────────────────────────
   useEffect(() => {
     localStorage.setItem("thetaframe-weekly-emojis", JSON.stringify(selectedWeeklyEmojis));
   }, [selectedWeeklyEmojis]);
+
+  // ...rest of component continues with render functions and UI logic
+}
