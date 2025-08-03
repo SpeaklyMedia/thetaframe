@@ -1,8 +1,8 @@
-// ─── IMPORTS ───────────────────────────────────────────────────────────
+// src/App.jsx
 import { useEffect, useState } from "react";
 import Section from "./components/Section";
+import EmojiPicker from "./components/EmojiPicker";
 
-// ─── MAIN COMPONENT ─────────────────────────────────────────────────────
 export default function ThetaFrame() {
   // ─── DAILY FRAME STATE ──────────────────────────────────────────────────
   const [identity, setIdentity] = useState("");
@@ -17,14 +17,14 @@ export default function ThetaFrame() {
   const [nonNegotiables, setNonNegotiables] = useState(["", ""]);
   const [recovery, setRecovery] = useState("");
 
-  // ─── EMOJI SELECTION STATE ─────────────────────────────────────────────
+  // ─── EMOJI STATE ───────────────────────────────────────────────────────
   const [selectedDailyEmojis, setSelectedDailyEmojis] = useState(() => {
-    const stored = localStorage.getItem("thetaframe-daily-emojis");
-    return stored ? JSON.parse(stored) : {};
+    const s = localStorage.getItem("thetaframe-daily-emojis");
+    return s ? JSON.parse(s) : {};
   });
   const [selectedWeeklyEmojis, setSelectedWeeklyEmojis] = useState(() => {
-    const stored = localStorage.getItem("thetaframe-weekly-emojis");
-    return stored ? JSON.parse(stored) : {};
+    const s = localStorage.getItem("thetaframe-weekly-emojis");
+    return s ? JSON.parse(s) : {};
   });
 
   // ─── VIEW STATE ────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export default function ThetaFrame() {
   const [visionGoals, setVisionGoals] = useState(["", "", ""]);
   const [visionSteps, setVisionSteps] = useState(["", "", ""]);
 
-  // ─── FETCH DATA FROM GOOGLE SHEETS ─────────────────────────────────────
+  // ─── FETCH GOOGLE SHEET ─────────────────────────────────────────────────
   useEffect(() => {
     async function fetchData() {
       const sheetId = "10apZA63eEHOz310nuDXYMxHem9DN83S5";
@@ -73,7 +73,7 @@ export default function ThetaFrame() {
             setNonNegotiables((weekRow.c[2]?.v || "").split("\n"));
             setRecovery(weekRow.c[3]?.v || "");
           }
-        } else if (view === "vision") {
+        } else {
           const visionRow = rows[1];
           if (visionRow) {
             setVisionGoals((visionRow.c[0]?.v || "").split("\n"));
@@ -86,11 +86,10 @@ export default function ThetaFrame() {
         setActiveIndex(null);
       }
     }
-
     fetchData();
   }, [view]);
 
-  // ─── PERSIST EMOJIS ────────────────────────────────────────────────────
+  // ─── SYNC EMOJIS ───────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem(
       "thetaframe-daily-emojis",
@@ -108,14 +107,14 @@ export default function ThetaFrame() {
   // ─── RENDER ────────────────────────────────────────────────────────────
   return (
     <div className="thetaframe-app p-4">
-      {/* View Switcher */}
+      {/* Tab buttons */}
       <nav className="mb-4">
-        {['daily', 'weekly', 'vision'].map((v) => (
+        {["daily", "weekly", "vision"].map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
             className={`mr-2 px-3 py-1 rounded ${
-              view === v ? 'font-bold underline' : 'opacity-75'
+              view === v ? "font-bold underline" : "opacity-75"
             }`}
           >
             {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -123,10 +122,11 @@ export default function ThetaFrame() {
         ))}
       </nav>
 
-      {/* Daily Frame */}
-      {view === 'daily' && (
-        <Section title="Daily Frame">
-          <div className="space-y-3">
+      {/* Daily */}
+      {view === "daily" && (
+        <Section label="Daily Frame">
+          <div className="space-y-6">
+            {/* Identity */}
             <div>
               <label>Identity:</label>
               <input
@@ -134,8 +134,17 @@ export default function ThetaFrame() {
                 value={identity}
                 onChange={(e) => setIdentity(e.target.value)}
               />
+              <EmojiPicker
+                label="Mood:"
+                emojis={["✨", "🌅", "💫"]}
+                selected={selectedDailyEmojis.identity}
+                onSelect={(emo) =>
+                  setSelectedDailyEmojis((prev) => ({ ...prev, identity: emo }))
+                }
+              />
             </div>
 
+            {/* Top 3 */}
             <div>
               <label>Top 3:</label>
               {top3.map((t, i) => (
@@ -143,17 +152,24 @@ export default function ThetaFrame() {
                   key={i}
                   className="block w-full mt-1"
                   value={t}
-                  onChange={(e) =>
-                    setTop3((arr) => {
-                      const copy = [...arr];
-                      copy[i] = e.target.value;
-                      return copy;
-                    })
-                  }
+                  onChange={(e) => {
+                    const c = [...top3];
+                    c[i] = e.target.value;
+                    setTop3(c);
+                  }}
                 />
               ))}
+              <EmojiPicker
+                label="Priority Vibe:"
+                emojis={["🎯", "✅", "🔝"]}
+                selected={selectedDailyEmojis.top3}
+                onSelect={(emo) =>
+                  setSelectedDailyEmojis((prev) => ({ ...prev, top3: emo }))
+                }
+              />
             </div>
 
+            {/* Micros */}
             <div>
               <label>Micros:</label>
               {micros.map((m, i) => (
@@ -161,17 +177,24 @@ export default function ThetaFrame() {
                   key={i}
                   className="block w-full mt-1"
                   value={m}
-                  onChange={(e) =>
-                    setMicros((arr) => {
-                      const copy = [...arr];
-                      copy[i] = e.target.value;
-                      return copy;
-                    })
-                  }
+                  onChange={(e) => {
+                    const c = [...micros];
+                    c[i] = e.target.value;
+                    setMicros(c);
+                  }}
                 />
               ))}
+              <EmojiPicker
+                label="Micro Vibe:"
+                emojis={["⚙️", "🐜", "🏃"]}
+                selected={selectedDailyEmojis.micros}
+                onSelect={(emo) =>
+                  setSelectedDailyEmojis((prev) => ({ ...prev, micros: emo }))
+                }
+              />
             </div>
 
+            {/* Reward */}
             <div>
               <label>Reward:</label>
               <input
@@ -179,8 +202,17 @@ export default function ThetaFrame() {
                 value={reward}
                 onChange={(e) => setReward(e.target.value)}
               />
+              <EmojiPicker
+                label="Reward Vibe:"
+                emojis={["🏆", "🎁", "🍫"]}
+                selected={selectedDailyEmojis.reward}
+                onSelect={(emo) =>
+                  setSelectedDailyEmojis((prev) => ({ ...prev, reward: emo }))
+                }
+              />
             </div>
 
+            {/* Reflection */}
             <div>
               <label>Reflection:</label>
               <textarea
@@ -189,15 +221,24 @@ export default function ThetaFrame() {
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
               />
+              <EmojiPicker
+                label="Reflection Vibe:"
+                emojis={["🤔", "📝", "🌙"]}
+                selected={selectedDailyEmojis.reflection}
+                onSelect={(emo) =>
+                  setSelectedDailyEmojis((prev) => ({ ...prev, reflection: emo }))
+                }
+              />
             </div>
           </div>
         </Section>
       )}
 
-      {/* Weekly Rhythm */}
-      {view === 'weekly' && (
-        <Section title="Weekly Rhythm">
-          <div className="space-y-3">
+      {/* Weekly */}
+      {view === "weekly" && (
+        <Section label="Weekly Rhythm">
+          <div className="space-y-6">
+            {/* Theme */}
             <div>
               <label>Theme:</label>
               <input
@@ -205,8 +246,17 @@ export default function ThetaFrame() {
                 value={weeklyTheme}
                 onChange={(e) => setWeeklyTheme(e.target.value)}
               />
+              <EmojiPicker
+                label="Theme Mood:"
+                emojis={["🗓️", "🔮", "🧭"]}
+                selected={selectedWeeklyEmojis.theme}
+                onSelect={(emo) =>
+                  setSelectedWeeklyEmojis((prev) => ({ ...prev, theme: emo }))
+                }
+              />
             </div>
 
+            {/* Key Steps */}
             <div>
               <label>Key Steps:</label>
               {weeklySteps.map((s, i) => (
@@ -214,17 +264,24 @@ export default function ThetaFrame() {
                   key={i}
                   className="block w-full mt-1"
                   value={s}
-                  onChange={(e) =>
-                    setWeeklySteps((arr) => {
-                      const copy = [...arr];
-                      copy[i] = e.target.value;
-                      return copy;
-                    })
-                  }
+                  onChange={(e) => {
+                    const c = [...weeklySteps];
+                    c[i] = e.target.value;
+                    setWeeklySteps(c);
+                  }}
                 />
               ))}
+              <EmojiPicker
+                label="Steps Mood:"
+                emojis={["👣", "🪜", "➡️"]}
+                selected={selectedWeeklyEmojis.steps}
+                onSelect={(emo) =>
+                  setSelectedWeeklyEmojis((prev) => ({ ...prev, steps: emo }))
+                }
+              />
             </div>
 
+            {/* Non-negotiables */}
             <div>
               <label>Non-negotiables:</label>
               {nonNegotiables.map((n, i) => (
@@ -232,17 +289,24 @@ export default function ThetaFrame() {
                   key={i}
                   className="block w-full mt-1"
                   value={n}
-                  onChange={(e) =>
-                    setNonNegotiables((arr) => {
-                      const copy = [...arr];
-                      copy[i] = e.target.value;
-                      return copy;
-                    })
-                  }
+                  onChange={(e) => {
+                    const c = [...nonNegotiables];
+                    c[i] = e.target.value;
+                    setNonNegotiables(c);
+                  }}
                 />
               ))}
+              <EmojiPicker
+                label="Non-neg Mood:"
+                emojis={["🛡️", "🚫", "🤝"]}
+                selected={selectedWeeklyEmojis.nonNegotiables}
+                onSelect={(emo) =>
+                  setSelectedWeeklyEmojis((prev) => ({ ...prev, nonNegotiables: emo }))
+                }
+              />
             </div>
 
+            {/* Recovery */}
             <div>
               <label>Recovery:</label>
               <input
@@ -250,15 +314,24 @@ export default function ThetaFrame() {
                 value={recovery}
                 onChange={(e) => setRecovery(e.target.value)}
               />
+              <EmojiPicker
+                label="Recovery Mood:"
+                emojis={["😴", "🛁", "🧘"]}
+                selected={selectedWeeklyEmojis.recovery}
+                onSelect={(emo) =>
+                  setSelectedWeeklyEmojis((prev) => ({ ...prev, recovery: emo }))
+                }
+              />
             </div>
           </div>
         </Section>
       )}
 
-      {/* Vision Tracker */}
-      {view === 'vision' && (
-        <Section title="Vision Tracker">
-          <div className="space-y-3">
+      {/* Vision */}
+      {view === "vision" && (
+        <Section label="Vision Tracker">
+          <div className="space-y-6">
+            {/* Goals */}
             <div>
               <label>Goals:</label>
               {visionGoals.map((g, i) => (
@@ -266,17 +339,15 @@ export default function ThetaFrame() {
                   key={i}
                   className="block w-full mt-1"
                   value={g}
-                  onChange={(e) =>
-                    setVisionGoals((arr) => {
-                      const copy = [...arr];
-                      copy[i] = e.target.value;
-                      return copy;
-                    })
-                  }
+                  onChange={(e) => {
+                    const c = [...visionGoals];
+                    c[i] = e.target.value; setVisionGoals(c);
+                  }}
                 />
-              ))}
+              ))}  
             </div>
 
+            {/* Action Steps */}
             <div>
               <label>Action Steps:</label>
               {visionSteps.map((s, i) => (
@@ -284,15 +355,12 @@ export default function ThetaFrame() {
                   key={i}
                   className="block w-full mt-1"
                   value={s}
-                  onChange={(e) =>
-                    setVisionSteps((arr) => {
-                      const copy = [...arr];
-                      copy[i] = e.target.value;
-                      return copy;
-                    })
-                  }
+                  onChange={(e) => {
+                    const c = [...visionSteps];
+                    c[i] = e.target.value; setVisionSteps(c);
+                  }}
                 />
-              ))}
+              ))}  
             </div>
           </div>
         </Section>
