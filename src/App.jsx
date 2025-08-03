@@ -177,5 +177,127 @@ export default function ThetaFrame() {
   }
 };
 
-// renderDailyFrame and others are now moved to Section component file or organized separately
+const renderDailyFrame = () => (
+  <div className="bg-white shadow-md rounded-xl p-6 grid gap-6">
+    <Section
+      label="🧠 If you could reprogram one belief about yourself today, what would it be?"
+      description="Use this to activate your desired identity. Speak it in present tense and let it guide your actions."
+    >
+      <input
+        className="border rounded-md p-2 w-full"
+        value={identity}
+        onChange={(e) => setIdentity(e.target.value)}
+        placeholder="I am..."
+      />
+    </Section>
+
+    <Section
+      label="✅ Top 3 Actions"
+      description="What 3 things would make today feel like a win? Use emojis to emotionally anchor each one."
+    >
+      {renderEditableList(top3, setTop3, 'top3')}
+    </Section>
+
+    <Section
+      label="⚡ Micro-Moves"
+      description="Tiny tasks that build momentum. Choose actions that are frictionless, fast, and forward-moving."
+    >
+      {renderEditableList(micros, setMicros, 'micros')}
+    </Section>
+
+    <Section label="🔀 Reward">
+      <input
+        className="border rounded-md p-2 w-full"
+        value={reward}
+        onChange={(e) => setReward(e.target.value)}
+        placeholder="Reward for completing your day"
+      />
+    </Section>
+
+    <Section label="🌙 Reflection">
+      <textarea
+        className="border rounded-md p-2 w-full"
+        value={reflection}
+        onChange={(e) => setReflection(e.target.value)}
+        placeholder="End of day notes, emotions, insights..."
+      />
+    </Section>
+  </div>
+);
+
+const renderWeeklyRhythm = () => (
+  <div className="bg-white shadow-md rounded-xl p-6 grid gap-6">
+    <Section label="📌 Weekly Intent / Theme">
+      <input
+        className="border rounded-md p-2 w-full"
+        value={weeklyTheme}
+        onChange={(e) => setWeeklyTheme(e.target.value)}
+        placeholder="This week I..."
+      />
+    </Section>
+
+    <Section label="👣 3 Small Steps To Take Towards Your Big Vision">
+      {renderEditableList(weeklySteps, setWeeklySteps, 'weeklySteps')}
+    </Section>
+
+    <Section label="🔒 Non-Negotiables">
+      {renderEditableList(nonNegotiables, setNonNegotiables, 'nonNegotiables')}
+    </Section>
+
+    <Section label="🚱 Recovery Plan">
+      <input
+        className="border rounded-md p-2 w-full"
+        value={recovery}
+        onChange={(e) => setRecovery(e.target.value)}
+        placeholder="Walk in nature, night off, music session..."
+      />
+    </Section>
+  </div>
+);
+
+const renderVisionTracker = () => (
+  <div className="bg-white shadow-md rounded-xl p-6 grid gap-6">
+    <Section label="🌅 Vision Goals">
+      {renderEditableList(visionGoals, setVisionGoals, 'visionGoals')}
+    </Section>
+
+    <Section label="🏗️ Key Steps">
+      {renderEditableList(visionSteps, setVisionSteps, 'visionSteps')}
+    </Section>
+  </div>
+);
+
+return (
+  <div className="p-4 sm:p-6 grid gap-6 max-w-3xl mx-auto">
+    <h1 className="text-2xl sm:text-3xl font-bold text-center">🌊 ThetaFrame
+    </h1>
+    <p className="text-center text-sm text-gray-500 -mt-4">
+      A daily interface for subconscious reprogramming. Use this tool during your morning theta state (or while calm and reflective) to align your identity and actions with the future you're creating.
+    </p>
+
+    <div className="flex justify-center gap-4 my-4">
+      <button onClick={() => setView("daily")} className={`px-4 py-2 rounded-md ${view === "daily" ? "bg-black text-white" : "bg-gray-200"}`}>
+        Daily Frame
+      </button>
+      <button onClick={() => setView("weekly")} className={`px-4 py-2 rounded-md ${view === "weekly" ? "bg-black text-white" : "bg-gray-200"}`}>
+        Weekly Rhythm
+      </button>
+      <button onClick={() => setView("vision")} className={`px-4 py-2 rounded-md ${view === "vision" ? "bg-black text-white" : "bg-gray-200"}`}>
+        Vision Tracker
+      </button>
+    </div>
+
+    <div className="text-right">
+      <button
+        onClick={handleSave}
+        className="text-sm px-3 py-1 border border-black rounded hover:bg-black hover:text-white transition"
+      >
+        📅 Save Frame to Sheet
+      </button>
+    </div>
+
+    {view === "daily" ? renderDailyFrame() : view === "weekly" ? renderWeeklyRhythm() : renderVisionTracker()}
+  </div>
+);
 }
+
