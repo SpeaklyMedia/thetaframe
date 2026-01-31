@@ -111,6 +111,14 @@ export default function ThetaFrame() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="app-container">
+        <header className="mb-4 space-y-2">
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
+            ThetaFrame
+          </h1>
+          <p className="text-sm text-slate-600">
+            🌊 A theta-state workspace for calm focus, weekly direction, and long-range goals.
+          </p>
+        </header>
         {/* Navigation Tabs */}
         <nav className="mb-6 flex flex-wrap gap-2 sticky top-0 z-10 bg-slate-50/90 py-3 backdrop-blur">
           {['daily', 'weekly', 'vision'].map((v) => (
