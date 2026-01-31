@@ -30,6 +30,8 @@ export default function ThetaFrame() {
     const saved = localStorage.getItem("thetaframe-weekly-emojis");
     return saved ? JSON.parse(saved) : {};
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // ─── VIEW STATE ────────────────────────────────────────────────────────
   const [view, setView] = useState("daily");
@@ -37,6 +39,8 @@ export default function ThetaFrame() {
   // ─── FETCH GOOGLE SHEET ─────────────────────────────────────────────────
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
+      setError("");
       const sheetId = "10apZA63eEHOz310nuDXYMxHem9DN83S5";
       const sheetName =
         view === "daily"
@@ -78,8 +82,11 @@ export default function ThetaFrame() {
             setVisionSteps((row.c[1]?.v || "").split("\n"));
           }
         }
+        setLoading(false);
       } catch (err) {
         console.error("Fetch error:", err);
+        setError("Unable to load data. Check your connection and try again.");
+        setLoading(false);
       }
     }
     fetchData();
@@ -102,24 +109,29 @@ export default function ThetaFrame() {
 
   // ─── RENDER ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="container mx-auto max-w-3xl p-4">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="app-container">
         {/* Navigation Tabs */}
-        <nav className="mb-8 flex space-x-4">
+        <nav className="mb-6 flex flex-wrap gap-2 sticky top-0 z-10 bg-slate-50/90 py-3 backdrop-blur">
           {['daily', 'weekly', 'vision'].map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-4 py-2 rounded ${
-                view === v
-                  ? 'font-bold underline text-gray-900'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`app-chip ${view === v ? "app-chip-active" : ""}`}
             >
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
         </nav>
+
+        {loading && (
+          <div className="mb-4 text-sm text-slate-500">Loading data…</div>
+        )}
+        {error && (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
 
         {/* Daily View */}
         {view === 'daily' && (
@@ -127,9 +139,11 @@ export default function ThetaFrame() {
             <div className="space-y-6">
               {/* Identity */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Identity:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Identity:</label>
                 <input
-                  className="border rounded p-2 w-full"
+                  className="app-input"
+                  placeholder="Describe today's identity"
+                  aria-label="Identity"
                   value={identity}
                   onChange={(e) => setIdentity(e.target.value)}
                 />
@@ -145,11 +159,13 @@ export default function ThetaFrame() {
 
               {/* Top 3 */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Top 3:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Top 3:</label>
                 {top3.map((t, i) => (
                   <input
                     key={i}
-                    className="border rounded p-2 w-full mb-1"
+                    className="app-input mb-1"
+                    placeholder={`Top priority ${i + 1}`}
+                    aria-label={`Top priority ${i + 1}`}
                     value={t}
                     onChange={(e) => {
                       const c = [...top3];
@@ -170,11 +186,13 @@ export default function ThetaFrame() {
 
               {/* Micros */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Micros:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Micros:</label>
                 {micros.map((m, i) => (
                   <input
                     key={i}
-                    className="border rounded p-2 w-full mb-1"
+                    className="app-input mb-1"
+                    placeholder={`Micro action ${i + 1}`}
+                    aria-label={`Micro action ${i + 1}`}
                     value={m}
                     onChange={(e) => {
                       const c = [...micros];
@@ -195,9 +213,11 @@ export default function ThetaFrame() {
 
               {/* Reward */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Reward:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Reward:</label>
                 <input
-                  className="border rounded p-2 w-full"
+                  className="app-input"
+                  placeholder="Reward yourself"
+                  aria-label="Reward"
                   value={reward}
                   onChange={(e) => setReward(e.target.value)}
                 />
@@ -213,10 +233,12 @@ export default function ThetaFrame() {
 
               {/* Reflection */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Reflection:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Reflection:</label>
                 <textarea
-                  className="border rounded p-2 w-full"
+                  className="app-input app-textarea"
                   rows={3}
+                  placeholder="Quick reflection"
+                  aria-label="Reflection"
                   value={reflection}
                   onChange={(e) => setReflection(e.target.value)}
                 />
@@ -239,9 +261,11 @@ export default function ThetaFrame() {
             <div className="space-y-6">
               {/* Theme */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Theme:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Theme:</label>
                 <input
-                  className="border rounded p-2 w-full"
+                  className="app-input"
+                  placeholder="Weekly theme"
+                  aria-label="Weekly theme"
                   value={weeklyTheme}
                   onChange={(e) => setWeeklyTheme(e.target.value)}
                 />
@@ -257,11 +281,13 @@ export default function ThetaFrame() {
 
               {/* Key Steps */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Key Steps:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Key Steps:</label>
                 {weeklySteps.map((s, i) => (
                   <input
                     key={i}
-                    className="border rounded p-2 w-full mb-1"
+                    className="app-input mb-1"
+                    placeholder={`Key step ${i + 1}`}
+                    aria-label={`Key step ${i + 1}`}
                     value={s}
                     onChange={(e) => {
                       const c = [...weeklySteps];
@@ -282,11 +308,13 @@ export default function ThetaFrame() {
 
               {/* Non-negotiables */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Non-negotiables:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Non-negotiables:</label>
                 {nonNegotiables.map((n, i) => (
                   <input
                     key={i}
-                    className="border rounded p-2 w-full mb-1"
+                    className="app-input mb-1"
+                    placeholder={`Non-negotiable ${i + 1}`}
+                    aria-label={`Non-negotiable ${i + 1}`}
                     value={n}
                     onChange={(e) => {
                       const c = [...nonNegotiables];
@@ -307,9 +335,11 @@ export default function ThetaFrame() {
 
               {/* Recovery */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Recovery:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Recovery:</label>
                 <input
-                  className="border rounded p-2 w-full"
+                  className="app-input"
+                  placeholder="Recovery focus"
+                  aria-label="Recovery"
                   value={recovery}
                   onChange={(e) => setRecovery(e.target.value)}
                 />
@@ -332,11 +362,13 @@ export default function ThetaFrame() {
             <div className="space-y-6">
               {/* Goals */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Goals:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Goals:</label>
                 {visionGoals.map((g, i) => (
                   <input
                     key={i}
-                    className="border rounded p-2 w-full mb-1"
+                    className="app-input mb-1"
+                    placeholder={`Vision goal ${i + 1}`}
+                    aria-label={`Vision goal ${i + 1}`}
                     value={g}
                     onChange={(e) => {
                       const c = [...visionGoals];
@@ -349,11 +381,13 @@ export default function ThetaFrame() {
 
               {/* Action Steps */}
               <div className="flex flex-col">
-                <label className="font-medium mb-1">Action Steps:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">Action Steps:</label>
                 {visionSteps.map((s, i) => (
                   <input
                     key={i}
-                    className="border rounded p-2 w-full mb-1"
+                    className="app-input mb-1"
+                    placeholder={`Action step ${i + 1}`}
+                    aria-label={`Action step ${i + 1}`}
                     value={s}
                     onChange={(e) => {
                       const c = [...visionSteps];

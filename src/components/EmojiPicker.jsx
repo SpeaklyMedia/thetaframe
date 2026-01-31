@@ -19,16 +19,18 @@ export default function EmojiPicker({
 
   return (
     <div className="emoji-picker flex flex-col space-y-2 my-2">
-      {label && <span className="font-medium">{label}</span>}
+      {label && <span className="text-sm font-medium text-slate-700">{label}</span>}
 
       {/* Preset buttons */}
-      <div className="flex space-x-2">
+      <div className="flex flex-wrap gap-2">
         {emojis.map((e, idx) => (
           <button
             key={idx}
+            type="button"
             onClick={() => onSelect(e)}
-            className={`text-2xl focus:outline-none ${
-              selected === e ? "scale-125" : "opacity-60"
+            aria-label={`Select emoji ${e}`}
+            className={`app-emoji-button ${
+              selected === e ? "app-emoji-active scale-110" : "opacity-70"
             }`}
           >
             {e}
@@ -37,16 +39,17 @@ export default function EmojiPicker({
       </div>
 
       {/* Freeform input */}
-      <form onSubmit={handleCustomSubmit} className="flex items-center space-x-2">
+      <form onSubmit={handleCustomSubmit} className="flex items-center gap-2">
         <input
           type="text"
           maxLength={2}
           placeholder="🔥"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
-          className="w-12 text-xl text-center border rounded"
+          aria-label="Custom emoji"
+          className="app-input w-12 px-2 text-center text-xl"
         />
-        <button type="submit" className="px-2 py-1 border rounded">
+        <button type="submit" className="app-button">
           Use
         </button>
       </form>
