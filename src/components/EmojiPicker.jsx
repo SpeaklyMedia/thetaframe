@@ -4,15 +4,15 @@ import { useState } from "react";
 export default function EmojiPicker({
   emojis = ["😀", "😐", "😞"], // presets
   selected,
-  onSelect,
+  onSelect = () => {},
   label,
 }) {
   const [custom, setCustom] = useState("");
 
-  const handleCustomSubmit = (e) => {
-    e.preventDefault();
-    if (custom.trim()) {
-      onSelect(custom.trim());
+  const commitCustom = () => {
+    const value = custom.trim();
+    if (value) {
+      onSelect(value);
       setCustom("");
     }
   };
@@ -29,6 +29,8 @@ export default function EmojiPicker({
             type="button"
             onClick={() => onSelect(e)}
             aria-label={`Select emoji ${e}`}
+            aria-pressed={selected === e}
+            title={`Select ${e}`}
             className={`app-emoji-button ${
               selected === e ? "app-emoji-active scale-110" : "opacity-70"
             }`}
@@ -39,20 +41,25 @@ export default function EmojiPicker({
       </div>
 
       {/* Freeform input */}
-      <form onSubmit={handleCustomSubmit} className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <input
           type="text"
-          maxLength={2}
+          maxLength={4}
           placeholder="🔥"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
+          onBlur={commitCustom}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitCustom();
+            }
+          }}
           aria-label="Custom emoji"
           className="app-input w-12 px-2 text-center text-xl"
         />
-        <button type="submit" className="app-button">
-          Use
-        </button>
-      </form>
+        <span className="text-xs text-slate-500">Tap enter or blur to apply</span>
+      </div>
     </div>
   );
 }

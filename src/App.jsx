@@ -4,6 +4,7 @@ import Section from "./components/Section";
 import EmojiPicker from "./components/EmojiPicker";
 
 export default function ThetaFrame() {
+  const withEmoji = (emoji, text) => (emoji ? `${emoji} ${text}` : text);
   // ─── DAILY FRAME STATE ──────────────────────────────────────────────────
   const [identity, setIdentity] = useState("");
   const [top3, setTop3] = useState(["", "", ""]);
@@ -166,7 +167,7 @@ export default function ThetaFrame() {
               {/* Identity */}
               <div className="flex flex-col">
                 <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="daily-identity">
-                  Identity:
+                  {withEmoji(selectedDailyEmojis.identity, "Identity:")}
                 </label>
                 <input
                   id="daily-identity"
@@ -188,7 +189,9 @@ export default function ThetaFrame() {
 
               {/* Top 3 */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Top 3:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">
+                  {withEmoji(selectedDailyEmojis.top3, "Top 3:")}
+                </label>
                 {top3.map((t, i) => (
                   <input
                     key={i}
@@ -216,7 +219,9 @@ export default function ThetaFrame() {
 
               {/* Micros */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Micros:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">
+                  {withEmoji(selectedDailyEmojis.micros, "Micros:")}
+                </label>
                 {micros.map((m, i) => (
                   <input
                     key={i}
@@ -245,7 +250,7 @@ export default function ThetaFrame() {
               {/* Reward */}
               <div className="flex flex-col">
                 <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="daily-reward">
-                  Reward:
+                  {withEmoji(selectedDailyEmojis.reward, "Reward:")}
                 </label>
                 <input
                   id="daily-reward"
@@ -268,7 +273,7 @@ export default function ThetaFrame() {
               {/* Reflection */}
               <div className="flex flex-col">
                 <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="daily-reflection">
-                  Reflection:
+                  {withEmoji(selectedDailyEmojis.reflection, "Reflection:")}
                 </label>
                 <textarea
                   id="daily-reflection"
@@ -299,7 +304,7 @@ export default function ThetaFrame() {
               {/* Theme */}
               <div className="flex flex-col">
                 <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="weekly-theme">
-                  Theme:
+                  {withEmoji(selectedWeeklyEmojis.theme, "Theme:")}
                 </label>
                 <input
                   id="weekly-theme"
@@ -321,7 +326,9 @@ export default function ThetaFrame() {
 
               {/* Key Steps */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Key Steps:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">
+                  {withEmoji(selectedWeeklyEmojis.steps, "Key Steps:")}
+                </label>
                 {weeklySteps.map((s, i) => (
                   <input
                     key={i}
@@ -349,7 +356,9 @@ export default function ThetaFrame() {
 
               {/* Non-negotiables */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Non-negotiables:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700">
+                  {withEmoji(selectedWeeklyEmojis.nonNegotiables, "Non-negotiables:")}
+                </label>
                 {nonNegotiables.map((n, i) => (
                   <input
                     key={i}
@@ -378,7 +387,7 @@ export default function ThetaFrame() {
               {/* Recovery */}
               <div className="flex flex-col">
                 <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="weekly-recovery">
-                  Recovery:
+                  {withEmoji(selectedWeeklyEmojis.recovery, "Recovery:")}
                 </label>
                 <input
                   id="weekly-recovery"
