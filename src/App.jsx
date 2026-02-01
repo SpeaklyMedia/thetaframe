@@ -23,12 +23,20 @@ export default function ThetaFrame() {
 
   // ─── EMOJI STATE ───────────────────────────────────────────────────────
   const [selectedDailyEmojis, setSelectedDailyEmojis] = useState(() => {
-    const saved = localStorage.getItem("thetaframe-daily-emojis");
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem("thetaframe-daily-emojis");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
   });
   const [selectedWeeklyEmojis, setSelectedWeeklyEmojis] = useState(() => {
-    const saved = localStorage.getItem("thetaframe-weekly-emojis");
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem("thetaframe-weekly-emojis");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -94,17 +102,25 @@ export default function ThetaFrame() {
 
   // ─── PERSIST EMOJIS ─────────────────────────────────────────────────────
   useEffect(() => {
-    localStorage.setItem(
-      "thetaframe-daily-emojis",
-      JSON.stringify(selectedDailyEmojis)
-    );
+    try {
+      localStorage.setItem(
+        "thetaframe-daily-emojis",
+        JSON.stringify(selectedDailyEmojis)
+      );
+    } catch {
+      // Ignore storage errors (private mode, blocked storage).
+    }
   }, [selectedDailyEmojis]);
 
   useEffect(() => {
-    localStorage.setItem(
-      "thetaframe-weekly-emojis",
-      JSON.stringify(selectedWeeklyEmojis)
-    );
+    try {
+      localStorage.setItem(
+        "thetaframe-weekly-emojis",
+        JSON.stringify(selectedWeeklyEmojis)
+      );
+    } catch {
+      // Ignore storage errors (private mode, blocked storage).
+    }
   }, [selectedWeeklyEmojis]);
 
   // ─── RENDER ────────────────────────────────────────────────────────────
@@ -124,7 +140,9 @@ export default function ThetaFrame() {
           {['daily', 'weekly', 'vision'].map((v) => (
             <button
               key={v}
+              type="button"
               onClick={() => setView(v)}
+              aria-pressed={view === v}
               className={`app-chip ${view === v ? "app-chip-active" : ""}`}
             >
               {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -147,8 +165,11 @@ export default function ThetaFrame() {
             <div className="space-y-6">
               {/* Identity */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Identity:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="daily-identity">
+                  Identity:
+                </label>
                 <input
+                  id="daily-identity"
                   className="app-input"
                   placeholder="Describe today's identity"
                   aria-label="Identity"
@@ -171,6 +192,7 @@ export default function ThetaFrame() {
                 {top3.map((t, i) => (
                   <input
                     key={i}
+                    id={`daily-top3-${i + 1}`}
                     className="app-input mb-1"
                     placeholder={`Top priority ${i + 1}`}
                     aria-label={`Top priority ${i + 1}`}
@@ -198,6 +220,7 @@ export default function ThetaFrame() {
                 {micros.map((m, i) => (
                   <input
                     key={i}
+                    id={`daily-micro-${i + 1}`}
                     className="app-input mb-1"
                     placeholder={`Micro action ${i + 1}`}
                     aria-label={`Micro action ${i + 1}`}
@@ -221,8 +244,11 @@ export default function ThetaFrame() {
 
               {/* Reward */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Reward:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="daily-reward">
+                  Reward:
+                </label>
                 <input
+                  id="daily-reward"
                   className="app-input"
                   placeholder="Reward yourself"
                   aria-label="Reward"
@@ -241,8 +267,11 @@ export default function ThetaFrame() {
 
               {/* Reflection */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Reflection:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="daily-reflection">
+                  Reflection:
+                </label>
                 <textarea
+                  id="daily-reflection"
                   className="app-input app-textarea"
                   rows={3}
                   placeholder="Quick reflection"
@@ -269,8 +298,11 @@ export default function ThetaFrame() {
             <div className="space-y-6">
               {/* Theme */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Theme:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="weekly-theme">
+                  Theme:
+                </label>
                 <input
+                  id="weekly-theme"
                   className="app-input"
                   placeholder="Weekly theme"
                   aria-label="Weekly theme"
@@ -293,6 +325,7 @@ export default function ThetaFrame() {
                 {weeklySteps.map((s, i) => (
                   <input
                     key={i}
+                    id={`weekly-step-${i + 1}`}
                     className="app-input mb-1"
                     placeholder={`Key step ${i + 1}`}
                     aria-label={`Key step ${i + 1}`}
@@ -320,6 +353,7 @@ export default function ThetaFrame() {
                 {nonNegotiables.map((n, i) => (
                   <input
                     key={i}
+                    id={`weekly-nonneg-${i + 1}`}
                     className="app-input mb-1"
                     placeholder={`Non-negotiable ${i + 1}`}
                     aria-label={`Non-negotiable ${i + 1}`}
@@ -343,8 +377,11 @@ export default function ThetaFrame() {
 
               {/* Recovery */}
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">Recovery:</label>
+                <label className="mb-1 text-sm font-medium text-slate-700" htmlFor="weekly-recovery">
+                  Recovery:
+                </label>
                 <input
+                  id="weekly-recovery"
                   className="app-input"
                   placeholder="Recovery focus"
                   aria-label="Recovery"
@@ -374,6 +411,7 @@ export default function ThetaFrame() {
                 {visionGoals.map((g, i) => (
                   <input
                     key={i}
+                    id={`vision-goal-${i + 1}`}
                     className="app-input mb-1"
                     placeholder={`Vision goal ${i + 1}`}
                     aria-label={`Vision goal ${i + 1}`}
@@ -393,6 +431,7 @@ export default function ThetaFrame() {
                 {visionSteps.map((s, i) => (
                   <input
                     key={i}
+                    id={`vision-step-${i + 1}`}
                     className="app-input mb-1"
                     placeholder={`Action step ${i + 1}`}
                     aria-label={`Action step ${i + 1}`}
