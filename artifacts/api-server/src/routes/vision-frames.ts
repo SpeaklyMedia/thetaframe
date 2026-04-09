@@ -10,6 +10,7 @@ import {
   UpsertVisionFrameResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { serializeDates } from "../lib/serialize";
 
 const router: IRouter = Router();
 
@@ -38,7 +39,7 @@ router.get("/vision-frames", requireAuth, async (req: Request, res: Response): P
     return;
   }
 
-  res.json(GetVisionFrameCollectionResponse.parse(frame));
+  res.json(GetVisionFrameCollectionResponse.parse(serializeDates(frame)));
 });
 
 router.post("/vision-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -51,7 +52,7 @@ router.post("/vision-frames", requireAuth, async (req: Request, res: Response): 
   }
 
   const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
-  res.json(CreateVisionFrameResponse.parse(frame));
+  res.json(CreateVisionFrameResponse.parse(serializeDates(frame)));
 });
 
 router.get("/vision-frames/me", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -67,7 +68,7 @@ router.get("/vision-frames/me", requireAuth, async (req: Request, res: Response)
     return;
   }
 
-  res.json(GetVisionFrameResponse.parse(frame));
+  res.json(GetVisionFrameResponse.parse(serializeDates(frame)));
 });
 
 router.put("/vision-frames/me", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -80,7 +81,7 @@ router.put("/vision-frames/me", requireAuth, async (req: Request, res: Response)
   }
 
   const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
-  res.json(UpsertVisionFrameResponse.parse(frame));
+  res.json(UpsertVisionFrameResponse.parse(serializeDates(frame)));
 });
 
 export default router;

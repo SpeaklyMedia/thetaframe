@@ -13,6 +13,7 @@ import {
   GetRecentDailyFramesResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { serializeDates } from "../lib/serialize";
 
 const router: IRouter = Router();
 
@@ -25,7 +26,7 @@ router.get("/daily-frames", requireAuth, async (req: Request, res: Response): Pr
     .where(eq(dailyFramesTable.userId, userId))
     .orderBy(desc(dailyFramesTable.date));
 
-  res.json(ListDailyFramesResponse.parse(frames));
+  res.json(ListDailyFramesResponse.parse(frames.map(serializeDates)));
 });
 
 router.post("/daily-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -65,7 +66,7 @@ router.post("/daily-frames", requireAuth, async (req: Request, res: Response): P
     })
     .returning();
 
-  res.json(CreateDailyFrameResponse.parse(frame));
+  res.json(CreateDailyFrameResponse.parse(serializeDates(frame)));
 });
 
 router.get("/daily-frames/recent", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -78,7 +79,7 @@ router.get("/daily-frames/recent", requireAuth, async (req: Request, res: Respon
     .orderBy(desc(dailyFramesTable.date))
     .limit(7);
 
-  res.json(GetRecentDailyFramesResponse.parse(frames));
+  res.json(GetRecentDailyFramesResponse.parse(frames.map(serializeDates)));
 });
 
 router.get("/daily-frames/:date", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -105,7 +106,7 @@ router.get("/daily-frames/:date", requireAuth, async (req: Request, res: Respons
     return;
   }
 
-  res.json(GetDailyFrameResponse.parse(frame));
+  res.json(GetDailyFrameResponse.parse(serializeDates(frame)));
 });
 
 router.put("/daily-frames/:date", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -151,7 +152,7 @@ router.put("/daily-frames/:date", requireAuth, async (req: Request, res: Respons
     })
     .returning();
 
-  res.json(UpsertDailyFrameResponse.parse(frame));
+  res.json(UpsertDailyFrameResponse.parse(serializeDates(frame)));
 });
 
 export default router;

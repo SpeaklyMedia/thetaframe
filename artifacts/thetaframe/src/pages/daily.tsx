@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import {
   useGetDailyFrame,
   useUpsertDailyFrame,
-  getGetDailyFrameQueryKey
+  getGetDailyFrameQueryKey,
 } from "@workspace/api-client-react";
 import { getTodayDateString } from "@/lib/dates";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getEmotionColorClass } from "@/lib/colors";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, AlertTriangle, CheckCircle } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { SkipProtocol } from "@/components/skip-protocol";
 
 const COLOUR_LABELS: Record<DailyFrameColourState, string> = {
   green: "Green — Calm & Ready",
@@ -28,7 +29,7 @@ export default function DailyPage() {
   const date = getTodayDateString();
   const queryClient = useQueryClient();
   const { data: frame, isLoading } = useGetDailyFrame(date, {
-    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date) }
+    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date) },
   });
   const upsert = useUpsertDailyFrame();
 
@@ -37,9 +38,6 @@ export default function DailyPage() {
   const [tierB, setTierB] = useState<TierTask[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
   const [microWin, setMicroWin] = useState("");
-  const [skipProtocolUsed, setSkipProtocolUsed] = useState(false);
-  const [skipProtocolChoice, setSkipProtocolChoice] = useState<"micro-win" | "intentional-recovery" | null>(null);
-  const [showSkipPrompt, setShowSkipPrompt] = useState(false);
 
   const initRef = useRef<number | null>(null);
 
@@ -51,36 +49,34 @@ export default function DailyPage() {
       setTierB((frame.tierB as TierTask[]) || []);
       setTimeBlocks((frame.timeBlocks as TimeBlock[]) || []);
       setMicroWin(frame.microWin || "");
-      setSkipProtocolUsed(frame.skipProtocolUsed);
-      setSkipProtocolChoice((frame.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null);
     }
   }, [frame]);
 
-  const save = useCallback((updates: Partial<{
-    colourState: DailyFrameColourState;
-    tierA: TierTask[];
-    tierB: TierTask[];
-    timeBlocks: TimeBlock[];
-    microWin: string;
-    skipProtocolUsed: boolean;
-    skipProtocolChoice: "micro-win" | "intentional-recovery" | null;
-  }>) => {
-    const payload = {
-      colourState: updates.colourState ?? colourState,
-      tierA: updates.tierA ?? tierA,
-      tierB: updates.tierB ?? tierB,
-      timeBlocks: updates.timeBlocks ?? timeBlocks,
-      microWin: updates.microWin ?? microWin,
-      skipProtocolUsed: updates.skipProtocolUsed ?? skipProtocolUsed,
-      skipProtocolChoice: updates.skipProtocolChoice !== undefined ? updates.skipProtocolChoice : skipProtocolChoice,
-    };
-
-    upsert.mutate({ date, data: payload }, {
-      onSuccess: (newFrame) => {
-        queryClient.setQueryData(getGetDailyFrameQueryKey(date), newFrame);
-      }
-    });
-  }, [date, colourState, tierA, tierB, timeBlocks, microWin, skipProtocolUsed, skipProtocolChoice, upsert, queryClient]);
+  const save = useCallback(
+    (updates: Partial<{
+      colourState: DailyFrameColourState;
+      tierA: TierTask[];
+      tierB: TierTask[];
+      timeBlocks: TimeBlock[];
+      microWin: string;
+    }>) => {
+      const payload = {
+        colourState: updates.colourState ?? colourState,
+        tierA: updates.tierA ?? tierA,
+        tierB: updates.tierB ?? tierB,
+        timeBlocks: updates.timeBlocks ?? timeBlocks,
+        microWin: updates.microWin ?? microWin,
+        skipProtocolUsed: frame?.skipProtocolUsed ?? false,
+        skipProtocolChoice: (frame?.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null,
+      };
+      upsert.mutate({ date, data: payload }, {
+        onSuccess: (newFrame) => {
+          queryClient.setQueryData(getGetDailyFrameQueryKey(date), newFrame);
+        },
+      });
+    },
+    [date, colourState, tierA, tierB, timeBlocks, microWin, frame, upsert, queryClient]
+  );
 
   if (isLoading) {
     return (
@@ -156,18 +152,6 @@ export default function DailyPage() {
     save({ timeBlocks: updated });
   };
 
-  const triggerSkipProtocol = () => {
-    setSkipProtocolUsed(true);
-    setShowSkipPrompt(true);
-    save({ skipProtocolUsed: true });
-  };
-
-  const chooseSkipProtocol = (choice: "micro-win" | "intentional-recovery") => {
-    setSkipProtocolChoice(choice);
-    setShowSkipPrompt(false);
-    save({ skipProtocolUsed: true, skipProtocolChoice: choice });
-  };
-
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
@@ -199,59 +183,8 @@ export default function DailyPage() {
           )}
         </header>
 
-        {/* Skip Protocol */}
-        {!skipProtocolUsed ? (
-          <div className="bg-card border rounded-2xl p-5 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-medium text-sm">Feeling like skipping today?</p>
-              <p className="text-xs text-muted-foreground mt-1">Trigger the Skip Protocol — choose a gentle path forward.</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={triggerSkipProtocol}
-              data-testid="button-skip-protocol"
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Skip Protocol
-            </Button>
-          </div>
-        ) : (
-          <div className="bg-card border rounded-2xl p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <p className="font-medium text-sm">Skip Protocol activated</p>
-            </div>
-            {showSkipPrompt && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Choose your path:</p>
-                <div className="flex gap-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => chooseSkipProtocol("micro-win")}
-                    data-testid="button-skip-choice-micro-win"
-                  >
-                    Micro-Win
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => chooseSkipProtocol("intentional-recovery")}
-                    data-testid="button-skip-choice-recovery"
-                  >
-                    Intentional Recovery
-                  </Button>
-                </div>
-              </div>
-            )}
-            {skipProtocolChoice && !showSkipPrompt && (
-              <p className="text-sm text-muted-foreground">
-                Path chosen: <span className="font-medium capitalize">{skipProtocolChoice.replace("-", " ")}</span>
-              </p>
-            )}
-          </div>
-        )}
+        {/* Skip Protocol — shared component */}
+        <SkipProtocol />
 
         {/* Tier A & B */}
         <div className="grid gap-6 md:grid-cols-2">
@@ -336,7 +269,7 @@ export default function DailyPage() {
           </div>
           <div className="space-y-3" data-testid="time-blocks-list">
             {timeBlocks.length === 0 && (
-              <p className="text-sm text-muted-foreground italic">No time blocks yet. Add one to schedule your day.</p>
+              <p className="text-sm text-muted-foreground italic">No time blocks yet.</p>
             )}
             {timeBlocks.map(block => (
               <div key={block.id} className="flex items-center gap-3 group">
@@ -373,7 +306,7 @@ export default function DailyPage() {
         {/* Micro-Win */}
         <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
           <h2 className="text-xl font-semibold">Micro-Win</h2>
-          <p className="text-sm text-muted-foreground">Record one small victory from today — anything counts.</p>
+          <p className="text-sm text-muted-foreground">Record one small victory from today.</p>
           <Textarea
             value={microWin}
             onChange={(e) => setMicroWin(e.target.value)}

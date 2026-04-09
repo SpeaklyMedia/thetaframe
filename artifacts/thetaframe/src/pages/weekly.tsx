@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Layout } from "@/components/layout";
+import { SkipProtocol } from "@/components/skip-protocol";
 import { 
   useGetWeeklyFrame, 
   useUpsertWeeklyFrame, 
@@ -95,6 +96,8 @@ export default function WeeklyPage() {
           <h1 className="text-3xl font-bold tracking-tight">Weekly Rhythm</h1>
           <p className="text-muted-foreground">Set your intention for the week of {new Date(weekStart).toLocaleDateString()}</p>
         </header>
+
+        <SkipProtocol />
 
         <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
           <h2 className="text-xl font-semibold">Weekly Theme</h2>

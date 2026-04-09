@@ -12,6 +12,7 @@ import {
   UpsertWeeklyFrameResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { serializeDates } from "../lib/serialize";
 
 const router: IRouter = Router();
 
@@ -24,7 +25,7 @@ router.get("/weekly-frames", requireAuth, async (req: Request, res: Response): P
     .where(eq(weeklyFramesTable.userId, userId))
     .orderBy(desc(weeklyFramesTable.weekStart));
 
-  res.json(ListWeeklyFramesResponse.parse(frames));
+  res.json(ListWeeklyFramesResponse.parse(frames.map(serializeDates)));
 });
 
 router.post("/weekly-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -58,7 +59,7 @@ router.post("/weekly-frames", requireAuth, async (req: Request, res: Response): 
     })
     .returning();
 
-  res.json(CreateWeeklyFrameResponse.parse(frame));
+  res.json(CreateWeeklyFrameResponse.parse(serializeDates(frame)));
 });
 
 router.get("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -85,7 +86,7 @@ router.get("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
     return;
   }
 
-  res.json(GetWeeklyFrameResponse.parse(frame));
+  res.json(GetWeeklyFrameResponse.parse(serializeDates(frame)));
 });
 
 router.put("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -125,7 +126,7 @@ router.put("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
     })
     .returning();
 
-  res.json(UpsertWeeklyFrameResponse.parse(frame));
+  res.json(UpsertWeeklyFrameResponse.parse(serializeDates(frame)));
 });
 
 export default router;

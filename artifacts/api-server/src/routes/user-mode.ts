@@ -7,6 +7,7 @@ import {
   UpsertUserModeResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { serializeDates } from "../lib/serialize";
 
 const router: IRouter = Router();
 
@@ -23,7 +24,7 @@ router.get("/user-mode", requireAuth, async (req: Request, res: Response): Promi
     return;
   }
 
-  res.json(GetUserModeResponse.parse(mode));
+  res.json(GetUserModeResponse.parse(serializeDates(mode)));
 });
 
 router.put("/user-mode", requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -52,7 +53,7 @@ router.put("/user-mode", requireAuth, async (req: Request, res: Response): Promi
     })
     .returning();
 
-  res.json(UpsertUserModeResponse.parse(mode));
+  res.json(UpsertUserModeResponse.parse(serializeDates(mode)));
 });
 
 export default router;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Layout } from "@/components/layout";
+import { SkipProtocol } from "@/components/skip-protocol";
 import { 
   useGetVisionFrame, 
   useUpsertVisionFrame, 
@@ -84,6 +85,8 @@ export default function VisionPage() {
           <h1 className="text-3xl font-bold tracking-tight">Vision Tracker</h1>
           <p className="text-muted-foreground">The big picture, broken down.</p>
         </header>
+
+        <SkipProtocol />
 
         <div className="grid gap-8 md:grid-cols-2">
           <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
