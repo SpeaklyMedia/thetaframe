@@ -448,7 +448,7 @@ function Next90DaysPanel() {
       </div>
       <div className="space-y-2">
         {data.entries.map((e) => (
-          <div key={e.id} className="flex items-center gap-3 text-sm" data-testid={`next-90-item-${e.id}`}>
+          <div key={`${e.tab}-${e.id}`} className="flex items-center gap-3 text-sm" data-testid={`next-90-item-${e.tab}-${e.id}`}>
             <span className="font-medium font-mono text-xs w-24 shrink-0">{e.dueDate}</span>
             <span className="capitalize text-xs text-muted-foreground w-20 shrink-0">{e.tab}</span>
             <span className="truncate">{e.name}</span>
