@@ -15,6 +15,9 @@ function detectEnvironment(): string {
   return "development";
 }
 
+const ALL_MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
+const ALL_ENVIRONMENTS = ["development", "staging", "production"] as const;
+
 router.get("/me/permissions", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
   const environment = detectEnvironment();
@@ -22,15 +25,24 @@ router.get("/me/permissions", requireAuth, async (req: Request, res: Response): 
   const perms = await db
     .select()
     .from(accessPermissionsTable)
-    .where(
-      and(
-        eq(accessPermissionsTable.userId, userId),
-        eq(accessPermissionsTable.environment, environment),
-      ),
-    );
+    .where(eq(accessPermissionsTable.userId, userId));
 
+  if (perms.length === 0) {
+    const rows = ALL_MODULES.flatMap((module) =>
+      ALL_ENVIRONMENTS.map((env) => ({ userId, module, environment: env })),
+    );
+    await db.insert(accessPermissionsTable).values(rows).onConflictDoNothing();
+
+    res.json({
+      modules: ALL_MODULES as unknown as string[],
+      environment,
+    });
+    return;
+  }
+
+  const envPerms = perms.filter((p) => p.environment === environment);
   res.json({
-    modules: perms.map((p) => p.module),
+    modules: envPerms.map((p) => p.module),
     environment,
   });
 });

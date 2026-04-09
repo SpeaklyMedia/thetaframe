@@ -2,7 +2,7 @@ import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wo
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk, useUser } from "@clerk/react";
 import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
@@ -19,7 +19,6 @@ import ReachPage from "@/pages/reach";
 import AdminPage from "@/pages/admin";
 import AccessDeniedPage from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
-import { usePermissions } from "@/hooks/usePermissions";
 
 const queryClient = new QueryClient();
 
@@ -78,24 +77,9 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
-function GatedRoute({ component: Component, module }: { component: React.ComponentType; module: string }) {
-  const { hasModule, isLoading } = usePermissions();
-  if (isLoading) return <PageSkeleton />;
-  return (
-    <>
-      <Show when="signed-in">
-        {hasModule(module) ? <Component /> : <AccessDeniedPage />}
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/" />
-      </Show>
-    </>
-  );
-}
-
 function AdminRoute() {
-  const { isAdmin, isLoading } = usePermissions();
-  if (isLoading) return <PageSkeleton />;
+  const { user } = useUser();
+  const isAdmin = (user?.publicMetadata as Record<string, unknown>)?.role === "admin";
   return (
     <>
       <Show when="signed-in">
@@ -138,8 +122,8 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/"
+      signInFallbackRedirectUrl="/daily"
+      signUpFallbackRedirectUrl="/daily"
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
@@ -156,22 +140,22 @@ function ClerkProviderWithRoutes() {
               <Route path="/sign-up/*?" component={SignUpPage} />
 
               <Route path="/daily">
-                <GatedRoute component={DailyPage} module="daily" />
+                <ProtectedRoute component={DailyPage} />
               </Route>
               <Route path="/weekly">
-                <GatedRoute component={WeeklyPage} module="weekly" />
+                <ProtectedRoute component={WeeklyPage} />
               </Route>
               <Route path="/vision">
-                <GatedRoute component={VisionPage} module="vision" />
+                <ProtectedRoute component={VisionPage} />
               </Route>
               <Route path="/bizdev">
-                <GatedRoute component={BizdevPage} module="bizdev" />
+                <ProtectedRoute component={BizdevPage} />
               </Route>
               <Route path="/life-ledger">
-                <GatedRoute component={LifeLedgerPage} module="life-ledger" />
+                <ProtectedRoute component={LifeLedgerPage} />
               </Route>
               <Route path="/reach">
-                <GatedRoute component={ReachPage} module="reach" />
+                <ProtectedRoute component={ReachPage} />
               </Route>
               <Route path="/admin">
                 <AdminRoute />
