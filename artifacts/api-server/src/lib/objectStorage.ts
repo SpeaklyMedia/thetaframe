@@ -298,6 +298,21 @@ async function signViaReplitSidecar({
   return data.signed_url;
 }
 
+function mapMethodToGcsAction(method: string): "read" | "write" | "delete" | "resumable" {
+  switch (method.toUpperCase()) {
+    case "GET":
+    case "HEAD":
+      return "read";
+    case "PUT":
+    case "POST":
+      return "write";
+    case "DELETE":
+      return "delete";
+    default:
+      throw new Error(`Unsupported HTTP method for GCS signed URL: ${method}`);
+  }
+}
+
 async function signViaGcs({
   bucketName,
   objectName,
@@ -315,7 +330,7 @@ async function signViaGcs({
 
   const [url] = await file.getSignedUrl({
     version: "v4",
-    action: method.toLowerCase() as "read" | "write" | "delete",
+    action: mapMethodToGcsAction(method),
     expires,
   });
 
