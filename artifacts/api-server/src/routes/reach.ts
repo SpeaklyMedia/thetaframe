@@ -50,6 +50,20 @@ router.post("/reach/files", requireAuth, async (req: Request, res: Response): Pr
     return;
   }
 
+  let objectFile;
+  try {
+    objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+  } catch (err) {
+    if (err instanceof ObjectNotFoundError) {
+      await db.delete(pendingUploadsTable).where(eq(pendingUploadsTable.id, pending.id));
+      res.status(422).json({ error: "Uploaded object not found in storage. Please re-upload the file." });
+      return;
+    }
+    throw err;
+  }
+
+  void objectFile;
+
   await db
     .delete(pendingUploadsTable)
     .where(eq(pendingUploadsTable.id, pending.id));
