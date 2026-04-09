@@ -68,8 +68,16 @@ function serializePreset(preset: typeof accessPresetsTable.$inferSelect) {
 
 router.get("/admin/users", requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    const clerkUsersResponse = await clerkClient.users.getUserList({ limit: 200 });
-    const clerkUsers = clerkUsersResponse.data;
+    const allClerkUsers = [];
+    let offset = 0;
+    const pageSize = 100;
+    while (true) {
+      const page = await clerkClient.users.getUserList({ limit: pageSize, offset });
+      allClerkUsers.push(...page.data);
+      if (page.data.length < pageSize) break;
+      offset += pageSize;
+    }
+    const clerkUsers = allClerkUsers;
 
     const userIds = clerkUsers.map((u) => u.id);
     const allPerms = userIds.length > 0
