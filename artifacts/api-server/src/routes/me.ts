@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import { db } from "@workspace/db";
 import { accessPermissionsTable } from "@workspace/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.get("/me/permissions", requireAuth, async (req: Request, res: Response): 
     await db.insert(accessPermissionsTable).values(rows).onConflictDoNothing();
 
     res.json({
-      modules: ALL_MODULES as unknown as string[],
+      modules: [...ALL_MODULES],
       environment,
     });
     return;
