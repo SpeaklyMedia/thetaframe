@@ -12,7 +12,7 @@ import {
   UpsertWeeklyFrameResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { serializeDates } from "../lib/serialize";
+import { serializeDates, isValidDateString } from "../lib/serialize";
 
 const router: IRouter = Router();
 
@@ -70,6 +70,10 @@ router.get("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!isValidDateString(params.data.weekStart)) {
+    res.status(400).json({ error: "weekStart must be in YYYY-MM-DD format." });
+    return;
+  }
 
   const [frame] = await db
     .select()
@@ -95,6 +99,10 @@ router.put("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
   const params = UpsertWeeklyFrameParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!isValidDateString(params.data.weekStart)) {
+    res.status(400).json({ error: "weekStart must be in YYYY-MM-DD format." });
     return;
   }
 

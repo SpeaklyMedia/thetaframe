@@ -55,6 +55,8 @@ export default function VisionPage() {
     });
   }, [goals, nextSteps, upsert, queryClient]);
 
+  const isNewFrame = !isLoading && !frame;
+
   if (isLoading) {
     return (
       <Layout>
@@ -87,6 +89,12 @@ export default function VisionPage() {
         </header>
 
         <SkipProtocol />
+
+        {isNewFrame && (
+          <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-vision">
+            No vision frame yet. Start by naming what you're building towards — it autosaves as you go.
+          </div>
+        )}
 
         <div className="grid gap-8 md:grid-cols-2">
           <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">

@@ -108,6 +108,8 @@ export default function WeeklyPage() {
     });
   }, [weekStart, theme, steps, nonNegotiables, recoveryPlan, upsert, queryClient]);
 
+  const isNewFrame = !isLoading && !frame;
+
   if (isLoading) {
     return (
       <Layout>
@@ -146,6 +148,12 @@ export default function WeeklyPage() {
         </header>
 
         <SkipProtocol />
+
+        {isNewFrame && (
+          <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-weekly">
+            Fresh week, fresh slate. Set your rhythm below — it autosaves as you go.
+          </div>
+        )}
 
         <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
           <h2 className="text-xl font-semibold">Weekly Theme</h2>

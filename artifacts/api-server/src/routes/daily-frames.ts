@@ -13,7 +13,7 @@ import {
   GetRecentDailyFramesResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { serializeDates } from "../lib/serialize";
+import { serializeDates, isValidDateString } from "../lib/serialize";
 
 const router: IRouter = Router();
 
@@ -95,6 +95,10 @@ router.get("/daily-frames/:date", requireAuth, async (req: Request, res: Respons
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!isValidDateString(params.data.date)) {
+    res.status(400).json({ error: "Date must be in YYYY-MM-DD format." });
+    return;
+  }
 
   const [frame] = await db
     .select()
@@ -120,6 +124,11 @@ router.put("/daily-frames/:date", requireAuth, async (req: Request, res: Respons
   const params = UpsertDailyFrameParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (!isValidDateString(params.data.date)) {
+    res.status(400).json({ error: "Date must be in YYYY-MM-DD format." });
     return;
   }
 
