@@ -79,6 +79,15 @@ export function Header() {
               <Link href="/vision" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-vision">
                 Vision Tracker
               </Link>
+              <Link href="/bizdev" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-bizdev">
+                BizDev
+              </Link>
+              <Link href="/life-ledger" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-life-ledger">
+                Life Ledger
+              </Link>
+              <Link href="/reach" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-reach">
+                REACH
+              </Link>
             </nav>
           )}
         </div>

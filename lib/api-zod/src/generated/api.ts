@@ -607,6 +607,415 @@ export const UpsertVisionFrameResponse = zod.object({
 });
 
 /**
+ * @summary List all brand leads for the current user
+ */
+export const ListBizdevBrandsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  brand: zod.string(),
+  phase: zod.enum(["COLD", "WARM", "HOT"]),
+  humanStatus: zod.string().nullish(),
+  nextAction: zod.string().nullish(),
+  nextTouchDate: zod.string().nullish(),
+  nextTouchChannel: zod.string().nullish(),
+  owner: zod.string().nullish(),
+  blocker: zod.string().nullish(),
+  moneyOpen: zod.number().nullish(),
+  moneyNotes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListBizdevBrandsResponse = zod.array(ListBizdevBrandsResponseItem);
+
+/**
+ * @summary Create a new brand lead
+ */
+export const CreateBizdevBrandBody = zod.object({
+  brand: zod.string(),
+  phase: zod.enum(["COLD", "WARM", "HOT"]),
+  humanStatus: zod.string().nullish(),
+  nextAction: zod.string().nullish(),
+  nextTouchDate: zod.string().nullish(),
+  nextTouchChannel: zod.string().nullish(),
+  owner: zod.string().nullish(),
+  blocker: zod.string().nullish(),
+  moneyOpen: zod.number().nullish(),
+  moneyNotes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get phase counts for the current user's leads
+ */
+export const GetBizdevSummaryResponse = zod.object({
+  counts: zod.object({
+    COLD: zod.number(),
+    WARM: zod.number(),
+    HOT: zod.number(),
+  }),
+  total: zod.number(),
+});
+
+/**
+ * @summary Get a single brand lead
+ */
+export const GetBizdevBrandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetBizdevBrandResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  brand: zod.string(),
+  phase: zod.enum(["COLD", "WARM", "HOT"]),
+  humanStatus: zod.string().nullish(),
+  nextAction: zod.string().nullish(),
+  nextTouchDate: zod.string().nullish(),
+  nextTouchChannel: zod.string().nullish(),
+  owner: zod.string().nullish(),
+  blocker: zod.string().nullish(),
+  moneyOpen: zod.number().nullish(),
+  moneyNotes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update a brand lead
+ */
+export const UpdateBizdevBrandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBizdevBrandBody = zod.object({
+  brand: zod.string(),
+  phase: zod.enum(["COLD", "WARM", "HOT"]),
+  humanStatus: zod.string().nullish(),
+  nextAction: zod.string().nullish(),
+  nextTouchDate: zod.string().nullish(),
+  nextTouchChannel: zod.string().nullish(),
+  owner: zod.string().nullish(),
+  blocker: zod.string().nullish(),
+  moneyOpen: zod.number().nullish(),
+  moneyNotes: zod.string().nullish(),
+});
+
+export const UpdateBizdevBrandResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  brand: zod.string(),
+  phase: zod.enum(["COLD", "WARM", "HOT"]),
+  humanStatus: zod.string().nullish(),
+  nextAction: zod.string().nullish(),
+  nextTouchDate: zod.string().nullish(),
+  nextTouchChannel: zod.string().nullish(),
+  owner: zod.string().nullish(),
+  blocker: zod.string().nullish(),
+  moneyOpen: zod.number().nullish(),
+  moneyNotes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a brand lead
+ */
+export const DeleteBizdevBrandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List entries for a Life Ledger tab
+ */
+export const ListLifeLedgerEntriesParams = zod.object({
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+});
+
+export const ListLifeLedgerEntriesResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListLifeLedgerEntriesResponse = zod.array(
+  ListLifeLedgerEntriesResponseItem,
+);
+
+/**
+ * @summary Create a Life Ledger entry
+ */
+export const CreateLifeLedgerEntryParams = zod.object({
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+});
+
+export const CreateLifeLedgerEntryBody = zod.object({
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+});
+
+/**
+ * @summary Get a single Life Ledger entry
+ */
+export const GetLifeLedgerEntryParams = zod.object({
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  id: zod.coerce.number(),
+});
+
+export const GetLifeLedgerEntryResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update a Life Ledger entry
+ */
+export const UpdateLifeLedgerEntryParams = zod.object({
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  id: zod.coerce.number(),
+});
+
+export const UpdateLifeLedgerEntryBody = zod.object({
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+});
+
+export const UpdateLifeLedgerEntryResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a Life Ledger entry
+ */
+export const DeleteLifeLedgerEntryParams = zod.object({
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get upcoming obligations across all tabs in the next 90 days
+ */
+export const GetNext90DaysResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      id: zod.number(),
+      tab: zod.string(),
+      name: zod.string(),
+      dueDate: zod.string(),
+      impactLevel: zod.string().nullish(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+  windowEnd: zod.string(),
+});
+
+/**
+ * @summary Subscription audit showing essential vs non-essential with costs
+ */
+export const GetSubscriptionAuditResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      isEssential: zod.boolean().nullish(),
+      billingCycle: zod.string().nullish(),
+      amount: zod.number().nullish(),
+      currency: zod.string().nullish(),
+      monthlyEquivalent: zod.number().nullish(),
+      annualEquivalent: zod.number().nullish(),
+    }),
+  ),
+  totalMonthlyEssential: zod.number(),
+  totalMonthlyNonEssential: zod.number(),
+  totalMonthly: zod.number(),
+});
+
+/**
+ * @summary List all uploaded files for the current user
+ */
+export const ListReachFilesResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  name: zod.string(),
+  fileType: zod.string().nullish(),
+  sizeBytes: zod.number().nullish(),
+  objectPath: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListReachFilesResponse = zod.array(ListReachFilesResponseItem);
+
+/**
+ * @summary Register an uploaded file (after presigned URL upload)
+ */
+export const CreateReachFileBody = zod.object({
+  name: zod.string(),
+  fileType: zod.string().nullish(),
+  sizeBytes: zod.number().nullish(),
+  objectPath: zod.string(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a file record and its stored object
+ */
+export const DeleteReachFileParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Request a presigned upload URL for direct GCS upload
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
+});
+
+/**
  * @summary Get the user's current mode and colour state
  */
 export const GetUserModeResponse = zod.object({

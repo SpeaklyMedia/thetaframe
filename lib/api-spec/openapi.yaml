@@ -18,6 +18,14 @@ tags:
     description: Vision tracker operations
   - name: user-mode
     description: User mode and colour state
+  - name: bizdev
+    description: BizDev brand/client CRM
+  - name: life-ledger
+    description: Life Ledger personal obligations tracker
+  - name: reach
+    description: REACH file bundle manager
+  - name: storage
+    description: Object storage uploads
 
 paths:
   /healthz:
@@ -282,6 +290,341 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VisionFrame"
+
+  /bizdev/brands:
+    get:
+      operationId: listBizdevBrands
+      tags: [bizdev]
+      summary: List all brand leads for the current user
+      responses:
+        "200":
+          description: List of brand leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BizdevBrand"
+    post:
+      operationId: createBizdevBrand
+      tags: [bizdev]
+      summary: Create a new brand lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BizdevBrandBody"
+      responses:
+        "201":
+          description: Created brand lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BizdevBrand"
+
+  /bizdev/brands/summary:
+    get:
+      operationId: getBizdevSummary
+      tags: [bizdev]
+      summary: Get phase counts for the current user's leads
+      responses:
+        "200":
+          description: Phase summary counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BizdevSummary"
+
+  /bizdev/brands/{id}:
+    get:
+      operationId: getBizdevBrand
+      tags: [bizdev]
+      summary: Get a single brand lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Brand lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BizdevBrand"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateBizdevBrand
+      tags: [bizdev]
+      summary: Update a brand lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BizdevBrandBody"
+      responses:
+        "200":
+          description: Updated brand lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BizdevBrand"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteBizdevBrand
+      tags: [bizdev]
+      summary: Delete a brand lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /life-ledger/{tab}:
+    get:
+      operationId: listLifeLedgerEntries
+      tags: [life-ledger]
+      summary: List entries for a Life Ledger tab
+      parameters:
+        - name: tab
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [people, events, financial, subscriptions, travel]
+      responses:
+        "200":
+          description: List of entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifeLedgerEntry"
+    post:
+      operationId: createLifeLedgerEntry
+      tags: [life-ledger]
+      summary: Create a Life Ledger entry
+      parameters:
+        - name: tab
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [people, events, financial, subscriptions, travel]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifeLedgerEntryBody"
+      responses:
+        "201":
+          description: Created entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LifeLedgerEntry"
+
+  /life-ledger/{tab}/{id}:
+    get:
+      operationId: getLifeLedgerEntry
+      tags: [life-ledger]
+      summary: Get a single Life Ledger entry
+      parameters:
+        - name: tab
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [people, events, financial, subscriptions, travel]
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Life Ledger entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LifeLedgerEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateLifeLedgerEntry
+      tags: [life-ledger]
+      summary: Update a Life Ledger entry
+      parameters:
+        - name: tab
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [people, events, financial, subscriptions, travel]
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifeLedgerEntryBody"
+      responses:
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LifeLedgerEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteLifeLedgerEntry
+      tags: [life-ledger]
+      summary: Delete a Life Ledger entry
+      parameters:
+        - name: tab
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [people, events, financial, subscriptions, travel]
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /life-ledger/next-90-days:
+    get:
+      operationId: getNext90Days
+      tags: [life-ledger]
+      summary: Get upcoming obligations across all tabs in the next 90 days
+      responses:
+        "200":
+          description: Upcoming obligations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Next90DaysResponse"
+
+  /life-ledger/subscription-audit:
+    get:
+      operationId: getSubscriptionAudit
+      tags: [life-ledger]
+      summary: Subscription audit showing essential vs non-essential with costs
+      responses:
+        "200":
+          description: Subscription audit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionAuditResponse"
+
+  /reach/files:
+    get:
+      operationId: listReachFiles
+      tags: [reach]
+      summary: List all uploaded files for the current user
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReachFile"
+    post:
+      operationId: createReachFile
+      tags: [reach]
+      summary: Register an uploaded file (after presigned URL upload)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReachFileBody"
+      responses:
+        "201":
+          description: Registered file record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReachFile"
+
+  /reach/files/{id}:
+    delete:
+      operationId: deleteReachFile
+      tags: [reach]
+      summary: Delete a file record and its stored object
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL for direct GCS upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
 
   /user-mode:
     get:
@@ -658,3 +1001,317 @@ components:
       required:
         - mode
         - colourState
+
+    BizdevBrand:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        brand:
+          type: string
+        phase:
+          type: string
+          enum: [COLD, WARM, HOT]
+        humanStatus:
+          type: ["string", "null"]
+        nextAction:
+          type: ["string", "null"]
+        nextTouchDate:
+          type: ["string", "null"]
+        nextTouchChannel:
+          type: ["string", "null"]
+        owner:
+          type: ["string", "null"]
+        blocker:
+          type: ["string", "null"]
+        moneyOpen:
+          type: ["number", "null"]
+        moneyNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - brand
+        - phase
+
+    BizdevBrandBody:
+      type: object
+      properties:
+        brand:
+          type: string
+        phase:
+          type: string
+          enum: [COLD, WARM, HOT]
+        humanStatus:
+          type: ["string", "null"]
+        nextAction:
+          type: ["string", "null"]
+        nextTouchDate:
+          type: ["string", "null"]
+        nextTouchChannel:
+          type: ["string", "null"]
+        owner:
+          type: ["string", "null"]
+        blocker:
+          type: ["string", "null"]
+        moneyOpen:
+          type: ["number", "null"]
+        moneyNotes:
+          type: ["string", "null"]
+      required:
+        - brand
+        - phase
+
+    BizdevPhaseCounts:
+      type: object
+      properties:
+        COLD:
+          type: integer
+        WARM:
+          type: integer
+        HOT:
+          type: integer
+      required:
+        - COLD
+        - WARM
+        - HOT
+
+    BizdevSummary:
+      type: object
+      properties:
+        counts:
+          $ref: "#/components/schemas/BizdevPhaseCounts"
+        total:
+          type: integer
+      required:
+        - counts
+        - total
+
+    LifeLedgerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        tab:
+          type: string
+          enum: [people, events, financial, subscriptions, travel]
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        impactLevel:
+          type: ["string", "null"]
+          enum: [low, medium, high, null]
+        reviewWindow:
+          type: ["string", "null"]
+          enum: [annual, quarterly, monthly, situational, null]
+        dueDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        amount:
+          type: ["number", "null"]
+        currency:
+          type: ["string", "null"]
+        isEssential:
+          type: ["boolean", "null"]
+        billingCycle:
+          type: ["string", "null"]
+          enum: [monthly, annual, null]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - tab
+        - name
+        - tags
+
+    LifeLedgerEntryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        impactLevel:
+          type: ["string", "null"]
+          enum: [low, medium, high, null]
+        reviewWindow:
+          type: ["string", "null"]
+          enum: [annual, quarterly, monthly, situational, null]
+        dueDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        amount:
+          type: ["number", "null"]
+        currency:
+          type: ["string", "null"]
+        isEssential:
+          type: ["boolean", "null"]
+        billingCycle:
+          type: ["string", "null"]
+          enum: [monthly, annual, null]
+      required:
+        - name
+        - tags
+
+    Next90DaysEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        tab:
+          type: string
+        name:
+          type: string
+        dueDate:
+          type: string
+        impactLevel:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - id
+        - tab
+        - name
+        - dueDate
+
+    Next90DaysResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Next90DaysEntry"
+        windowEnd:
+          type: string
+      required:
+        - entries
+        - windowEnd
+
+    SubscriptionAuditItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        isEssential:
+          type: ["boolean", "null"]
+        billingCycle:
+          type: ["string", "null"]
+        amount:
+          type: ["number", "null"]
+        currency:
+          type: ["string", "null"]
+        monthlyEquivalent:
+          type: ["number", "null"]
+        annualEquivalent:
+          type: ["number", "null"]
+      required:
+        - id
+        - name
+
+    SubscriptionAuditResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionAuditItem"
+        totalMonthlyEssential:
+          type: number
+        totalMonthlyNonEssential:
+          type: number
+        totalMonthly:
+          type: number
+      required:
+        - items
+        - totalMonthlyEssential
+        - totalMonthlyNonEssential
+        - totalMonthly
+
+    ReachFile:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        name:
+          type: string
+        fileType:
+          type: ["string", "null"]
+        sizeBytes:
+          type: ["integer", "null"]
+        objectPath:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - name
+        - objectPath
+
+    ReachFileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        fileType:
+          type: ["string", "null"]
+        sizeBytes:
+          type: ["integer", "null"]
+        objectPath:
+          type: string
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - objectPath
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required:
+        - name
+        - size
+        - contentType
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+      required:
+        - uploadURL
+        - objectPath

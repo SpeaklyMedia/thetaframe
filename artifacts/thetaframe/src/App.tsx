@@ -11,6 +11,9 @@ import SignUpPage from "@/pages/sign-up";
 import DailyPage from "@/pages/daily";
 import WeeklyPage from "@/pages/weekly";
 import VisionPage from "@/pages/vision";
+import BizdevPage from "@/pages/bizdev";
+import LifeLedgerPage from "@/pages/life-ledger";
+import ReachPage from "@/pages/reach";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -104,7 +107,16 @@ function ClerkProviderWithRoutes() {
             <Route path="/vision">
               <ProtectedRoute component={VisionPage} />
             </Route>
-            
+            <Route path="/bizdev">
+              <ProtectedRoute component={BizdevPage} />
+            </Route>
+            <Route path="/life-ledger">
+              <ProtectedRoute component={LifeLedgerPage} />
+            </Route>
+            <Route path="/reach">
+              <ProtectedRoute component={ReachPage} />
+            </Route>
+
             <Route component={NotFound} />
           </Switch>
           <Toaster />

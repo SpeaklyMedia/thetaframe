@@ -7,9 +7,9 @@ ThetaFrame is a unified personal daily OS designed for neurodivergent brains, bu
 ## Product Modules
 
 - **ThetaFrame Core** — Daily/Weekly/Vision frames, Emotional Color Model, Skip Protocol, Mode separation (Explore/Build/Release)
-- **Speakly BizDev CRM** — (Task #2, upcoming)
-- **Life Ledger** — Personal obligations tracker (Task #2, upcoming)
-- **REACH File Manager** — (Task #2, upcoming)
+- **BizDev** — Brand/client lead CRM with phase tracking (COLD/WARM/HOT), touch dates, blocker tracking, money pipeline
+- **Life Ledger** — Personal obligations tracker with 5 tabs (people/events/financial/subscriptions/travel), next-90-days view, subscription audit
+- **REACH** — File bundle manager with presigned URL uploads to GCS object storage, file deletion
 - **Admin Panel** — Per-user, per-module, per-environment access control (Task #3, upcoming)
 
 ## Emotional Color Model
@@ -55,6 +55,9 @@ cd artifacts/thetaframe && pnpm tsc --noEmit
 - `weekly_frames` — userId + weekStart (unique), theme, steps, non-negotiables, recovery plan
 - `vision_frames` — userId (unique), goals, next steps
 - `user_modes` — userId (unique), mode (explore/build/release), colour state
+- `bizdev_brands` — userId, brand, phase (COLD/WARM/HOT), human status, next action, touch date/channel, owner, blocker, money open/notes
+- `life_ledger` — userId, tab (people/events/financial/subscriptions/travel), name, tags (jsonb), impact level, review window, due date, notes, amount, currency, is_essential, billing_cycle
+- `reach_files` — userId, name, file_type, size_bytes, object_path, notes
 
 ## API Routes
 
@@ -69,6 +72,21 @@ All routes prefixed with `/api`:
 - `PUT /api/vision-frames/me` — upsert vision frame (auth required)
 - `GET /api/user-mode` — get user mode (auth required)
 - `PUT /api/user-mode` — upsert user mode (auth required)
+- `GET /api/bizdev/brands` — list brands (auth required)
+- `POST /api/bizdev/brands` — create brand (auth required)
+- `GET /api/bizdev/brands/summary` — phase counts (auth required)
+- `GET /api/bizdev/brands/:id` — get brand (auth required)
+- `PUT /api/bizdev/brands/:id` — update brand (auth required)
+- `DELETE /api/bizdev/brands/:id` — delete brand (auth required)
+- `GET /api/life-ledger/:tab` — list entries for tab (auth required)
+- `POST /api/life-ledger/:tab` — create entry (auth required)
+- `GET /api/life-ledger/next-90-days` — upcoming obligations (auth required)
+- `GET /api/life-ledger/subscription-audit` — subscription cost audit (auth required)
+- `GET /api/life-ledger/:tab/:id` / `PUT` / `DELETE` — CRUD (auth required)
+- `GET /api/reach/files` — list files (auth required)
+- `POST /api/reach/files` — register uploaded file (auth required)
+- `DELETE /api/reach/files/:id` — delete file and object (auth required)
+- `POST /api/storage/uploads/request-url` — get GCS presigned upload URL
 
 ## Frontend Pages
 
@@ -78,6 +96,9 @@ All routes prefixed with `/api`:
 - `/daily` — Daily Frame (protected)
 - `/weekly` — Weekly Rhythm (protected)
 - `/vision` — Vision Tracker (protected)
+- `/bizdev` — BizDev CRM (protected)
+- `/life-ledger` — Life Ledger (protected)
+- `/reach` — REACH File Manager (protected)
 
 ## Important Architecture Notes
 
@@ -95,3 +116,6 @@ All routes prefixed with `/api`:
 - `CLERK_PUBLISHABLE_KEY` — Clerk publishable key (auto-provisioned)
 - `VITE_CLERK_PUBLISHABLE_KEY` — Clerk publishable key for frontend (auto-provisioned)
 - `VITE_CLERK_PROXY_URL` — set automatically in production deployments
+- `DEFAULT_OBJECT_STORAGE_BUCKET_ID` — Replit object storage bucket ID (provisioned)
+- `PUBLIC_OBJECT_SEARCH_PATHS` — comma-separated GCS search paths for public objects
+- `PRIVATE_OBJECT_DIR` — GCS path for private uploaded objects (REACH files)

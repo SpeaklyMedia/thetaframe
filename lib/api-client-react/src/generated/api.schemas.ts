@@ -256,3 +256,291 @@ export interface UpsertUserModeBody {
   mode: UpsertUserModeBodyMode;
   colourState: UpsertUserModeBodyColourState;
 }
+
+export type BizdevBrandPhase =
+  (typeof BizdevBrandPhase)[keyof typeof BizdevBrandPhase];
+
+export const BizdevBrandPhase = {
+  COLD: "COLD",
+  WARM: "WARM",
+  HOT: "HOT",
+} as const;
+
+export interface BizdevBrand {
+  id: number;
+  userId: string;
+  brand: string;
+  phase: BizdevBrandPhase;
+  /** @nullable */
+  humanStatus?: string | null;
+  /** @nullable */
+  nextAction?: string | null;
+  /** @nullable */
+  nextTouchDate?: string | null;
+  /** @nullable */
+  nextTouchChannel?: string | null;
+  /** @nullable */
+  owner?: string | null;
+  /** @nullable */
+  blocker?: string | null;
+  /** @nullable */
+  moneyOpen?: number | null;
+  /** @nullable */
+  moneyNotes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type BizdevBrandBodyPhase =
+  (typeof BizdevBrandBodyPhase)[keyof typeof BizdevBrandBodyPhase];
+
+export const BizdevBrandBodyPhase = {
+  COLD: "COLD",
+  WARM: "WARM",
+  HOT: "HOT",
+} as const;
+
+export interface BizdevBrandBody {
+  brand: string;
+  phase: BizdevBrandBodyPhase;
+  /** @nullable */
+  humanStatus?: string | null;
+  /** @nullable */
+  nextAction?: string | null;
+  /** @nullable */
+  nextTouchDate?: string | null;
+  /** @nullable */
+  nextTouchChannel?: string | null;
+  /** @nullable */
+  owner?: string | null;
+  /** @nullable */
+  blocker?: string | null;
+  /** @nullable */
+  moneyOpen?: number | null;
+  /** @nullable */
+  moneyNotes?: string | null;
+}
+
+export interface BizdevPhaseCounts {
+  COLD: number;
+  WARM: number;
+  HOT: number;
+}
+
+export interface BizdevSummary {
+  counts: BizdevPhaseCounts;
+  total: number;
+}
+
+export type LifeLedgerEntryTab =
+  (typeof LifeLedgerEntryTab)[keyof typeof LifeLedgerEntryTab];
+
+export const LifeLedgerEntryTab = {
+  people: "people",
+  events: "events",
+  financial: "financial",
+  subscriptions: "subscriptions",
+  travel: "travel",
+} as const;
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEntryImpactLevel =
+  | (typeof LifeLedgerEntryImpactLevel)[keyof typeof LifeLedgerEntryImpactLevel]
+  | null;
+
+export const LifeLedgerEntryImpactLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEntryReviewWindow =
+  | (typeof LifeLedgerEntryReviewWindow)[keyof typeof LifeLedgerEntryReviewWindow]
+  | null;
+
+export const LifeLedgerEntryReviewWindow = {
+  annual: "annual",
+  quarterly: "quarterly",
+  monthly: "monthly",
+  situational: "situational",
+} as const;
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEntryBillingCycle =
+  | (typeof LifeLedgerEntryBillingCycle)[keyof typeof LifeLedgerEntryBillingCycle]
+  | null;
+
+export const LifeLedgerEntryBillingCycle = {
+  monthly: "monthly",
+  annual: "annual",
+} as const;
+
+export interface LifeLedgerEntry {
+  id: number;
+  userId: string;
+  tab: LifeLedgerEntryTab;
+  name: string;
+  tags: string[];
+  /** @nullable */
+  impactLevel?: LifeLedgerEntryImpactLevel;
+  /** @nullable */
+  reviewWindow?: LifeLedgerEntryReviewWindow;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  currency?: string | null;
+  /** @nullable */
+  isEssential?: boolean | null;
+  /** @nullable */
+  billingCycle?: LifeLedgerEntryBillingCycle;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEntryBodyImpactLevel =
+  | (typeof LifeLedgerEntryBodyImpactLevel)[keyof typeof LifeLedgerEntryBodyImpactLevel]
+  | null;
+
+export const LifeLedgerEntryBodyImpactLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEntryBodyReviewWindow =
+  | (typeof LifeLedgerEntryBodyReviewWindow)[keyof typeof LifeLedgerEntryBodyReviewWindow]
+  | null;
+
+export const LifeLedgerEntryBodyReviewWindow = {
+  annual: "annual",
+  quarterly: "quarterly",
+  monthly: "monthly",
+  situational: "situational",
+} as const;
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEntryBodyBillingCycle =
+  | (typeof LifeLedgerEntryBodyBillingCycle)[keyof typeof LifeLedgerEntryBodyBillingCycle]
+  | null;
+
+export const LifeLedgerEntryBodyBillingCycle = {
+  monthly: "monthly",
+  annual: "annual",
+} as const;
+
+export interface LifeLedgerEntryBody {
+  name: string;
+  tags: string[];
+  /** @nullable */
+  impactLevel?: LifeLedgerEntryBodyImpactLevel;
+  /** @nullable */
+  reviewWindow?: LifeLedgerEntryBodyReviewWindow;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  currency?: string | null;
+  /** @nullable */
+  isEssential?: boolean | null;
+  /** @nullable */
+  billingCycle?: LifeLedgerEntryBodyBillingCycle;
+}
+
+export interface Next90DaysEntry {
+  id: number;
+  tab: string;
+  name: string;
+  dueDate: string;
+  /** @nullable */
+  impactLevel?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface Next90DaysResponse {
+  entries: Next90DaysEntry[];
+  windowEnd: string;
+}
+
+export interface SubscriptionAuditItem {
+  id: number;
+  name: string;
+  /** @nullable */
+  isEssential?: boolean | null;
+  /** @nullable */
+  billingCycle?: string | null;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  currency?: string | null;
+  /** @nullable */
+  monthlyEquivalent?: number | null;
+  /** @nullable */
+  annualEquivalent?: number | null;
+}
+
+export interface SubscriptionAuditResponse {
+  items: SubscriptionAuditItem[];
+  totalMonthlyEssential: number;
+  totalMonthlyNonEssential: number;
+  totalMonthly: number;
+}
+
+export interface ReachFile {
+  id: number;
+  userId: string;
+  name: string;
+  /** @nullable */
+  fileType?: string | null;
+  /** @nullable */
+  sizeBytes?: number | null;
+  objectPath: string;
+  /** @nullable */
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ReachFileBody {
+  name: string;
+  /** @nullable */
+  fileType?: string | null;
+  /** @nullable */
+  sizeBytes?: number | null;
+  objectPath: string;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface RequestUploadUrlBody {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
