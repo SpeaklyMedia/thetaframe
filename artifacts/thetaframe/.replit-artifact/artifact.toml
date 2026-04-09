@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "ThetaFrame"
+version = "1.0.0"
+id = "artifacts/thetaframe"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18081
+
+[services.development]
+run = "pnpm --filter @workspace/thetaframe run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/thetaframe", "run", "build" ]
+publicDir = "artifacts/thetaframe/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18081"
+BASE_PATH = "/"
