@@ -450,6 +450,7 @@ export default function BizdevPage() {
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Owner</th>
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Blocker</th>
                   <ColHeader field="moneyOpen" label="$ Open" />
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Money Notes</th>
                   <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
@@ -471,6 +472,7 @@ export default function BizdevPage() {
                     <td className="px-3 py-3 font-mono whitespace-nowrap">
                       {brand.moneyOpen != null ? `$${brand.moneyOpen.toLocaleString()}` : ""}
                     </td>
+                    <td className="px-3 py-3 text-muted-foreground max-w-[160px] truncate" title={brand.moneyNotes ?? ""}>{brand.moneyNotes ?? ""}</td>
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button
