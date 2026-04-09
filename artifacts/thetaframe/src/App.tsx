@@ -132,7 +132,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-up/*?" component={SignUpPage} />
 
             <Route path="/daily">
-              <ProtectedRoute component={DailyPage} />
+              <GatedRoute component={DailyPage} module="daily" />
             </Route>
             <Route path="/weekly">
               <GatedRoute component={WeeklyPage} module="weekly" />

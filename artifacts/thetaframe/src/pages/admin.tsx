@@ -54,6 +54,20 @@ function PermissionBadges({ permissions }: { permissions: PermissionEntry[] }) {
   );
 }
 
+function formatRelativeTime(ts: number | null | undefined): string {
+  if (!ts) return "never";
+  const ms = Date.now() - ts;
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
 function UserListItem({ user, onClick, isSelected }: { user: AdminUser; onClick: () => void; isSelected: boolean }) {
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
   return (
@@ -76,6 +90,9 @@ function UserListItem({ user, onClick, isSelected }: { user: AdminUser; onClick:
             {user.role === "admin" && (
               <span className="px-1.5 py-0 rounded text-xs bg-primary/10 text-primary font-medium shrink-0">admin</span>
             )}
+            <span className="text-xs text-muted-foreground ml-auto shrink-0" data-testid={`last-active-${user.id}`}>
+              {formatRelativeTime(user.lastActiveAt)}
+            </span>
           </div>
           <div className="text-xs text-muted-foreground truncate">{user.email}</div>
           <div className="mt-1">

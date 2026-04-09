@@ -32,9 +32,12 @@ const requireAdmin = async (req: Request, res: Response, next: Function): Promis
   }
 };
 
+const VALID_MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
+const VALID_ENVIRONMENTS = ["development", "staging", "production"] as const;
+
 const PermissionEntrySchema = z.object({
-  module: z.string(),
-  environment: z.string(),
+  module: z.enum(VALID_MODULES),
+  environment: z.enum(VALID_ENVIRONMENTS),
 });
 
 const PutUserPermissionsBody = z.object({

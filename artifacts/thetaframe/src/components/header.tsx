@@ -24,6 +24,7 @@ const MODE_LABELS: Record<Mode, string> = {
 };
 
 const MODULE_NAV = [
+  { module: "daily", href: "/daily", label: "Daily Frame", testId: "link-daily" },
   { module: "weekly", href: "/weekly", label: "Weekly Rhythm", testId: "link-weekly" },
   { module: "vision", href: "/vision", label: "Vision Tracker", testId: "link-vision" },
   { module: "bizdev", href: "/bizdev", label: "BizDev", testId: "link-bizdev" },
@@ -80,9 +81,6 @@ export function Header() {
 
           {user && (
             <nav className="hidden md:flex items-center gap-1" data-testid="main-nav">
-              <Link href="/daily" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-daily">
-                Daily Frame
-              </Link>
               {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
                 <Link
                   key={item.module}
