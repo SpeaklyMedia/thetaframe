@@ -29,7 +29,7 @@ export default function DailyPage() {
   const date = getTodayDateString();
   const queryClient = useQueryClient();
   const { data: frame, isLoading } = useGetDailyFrame(date, {
-    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date) },
+    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date), retry: 0 },
   });
   const upsert = useUpsertDailyFrame();
 
@@ -95,13 +95,21 @@ export default function DailyPage() {
     save({ colourState: color });
   };
 
-  const updateTierTask = (tier: "A" | "B", id: string, text: string, completed: boolean) => {
+  const updateTierTaskText = (tier: "A" | "B", id: string, text: string) => {
     if (tier === "A") {
-      const updated = tierA.map(t => t.id === id ? { ...t, text, completed } : t);
+      setTierA(prev => prev.map(t => t.id === id ? { ...t, text } : t));
+    } else {
+      setTierB(prev => prev.map(t => t.id === id ? { ...t, text } : t));
+    }
+  };
+
+  const toggleTierTask = (tier: "A" | "B", id: string, completed: boolean) => {
+    if (tier === "A") {
+      const updated = tierA.map(t => t.id === id ? { ...t, completed } : t);
       setTierA(updated);
       save({ tierA: updated });
     } else {
-      const updated = tierB.map(t => t.id === id ? { ...t, text, completed } : t);
+      const updated = tierB.map(t => t.id === id ? { ...t, completed } : t);
       setTierB(updated);
       save({ tierB: updated });
     }
@@ -140,10 +148,10 @@ export default function DailyPage() {
     save({ timeBlocks: updated });
   };
 
-  const updateTimeBlock = (id: string, field: "startTime" | "action", value: string) => {
+  const updateTimeBlockField = (id: string, field: "startTime" | "action", value: string, immediate = false) => {
     const updated = timeBlocks.map(b => b.id === id ? { ...b, [field]: value } : b);
     setTimeBlocks(updated);
-    save({ timeBlocks: updated });
+    if (immediate) save({ timeBlocks: updated });
   };
 
   const removeTimeBlock = (id: string) => {
@@ -199,13 +207,13 @@ export default function DailyPage() {
                 <div key={task.id} className="flex items-start gap-3 group">
                   <Checkbox
                     checked={task.completed}
-                    onCheckedChange={(c) => updateTierTask("A", task.id, task.text, !!c)}
+                    onCheckedChange={(c) => toggleTierTask("A", task.id, !!c)}
                     className="mt-1"
                     data-testid={`checkbox-tier-a-${task.id}`}
                   />
                   <Input
                     value={task.text}
-                    onChange={(e) => updateTierTask("A", task.id, e.target.value, task.completed)}
+                    onChange={(e) => updateTierTaskText("A", task.id, e.target.value)}
                     onBlur={() => save({ tierA })}
                     placeholder="Focus task..."
                     className={`flex-1 border-transparent focus-visible:border-input bg-transparent ${task.completed ? "line-through text-muted-foreground" : ""}`}
@@ -232,13 +240,13 @@ export default function DailyPage() {
                 <div key={task.id} className="flex items-start gap-3 group">
                   <Checkbox
                     checked={task.completed}
-                    onCheckedChange={(c) => updateTierTask("B", task.id, task.text, !!c)}
+                    onCheckedChange={(c) => toggleTierTask("B", task.id, !!c)}
                     className="mt-1"
                     data-testid={`checkbox-tier-b-${task.id}`}
                   />
                   <Input
                     value={task.text}
-                    onChange={(e) => updateTierTask("B", task.id, e.target.value, task.completed)}
+                    onChange={(e) => updateTierTaskText("B", task.id, e.target.value)}
                     onBlur={() => save({ tierB })}
                     placeholder="Flexible task..."
                     className={`flex-1 border-transparent focus-visible:border-input bg-transparent ${task.completed ? "line-through text-muted-foreground" : ""}`}
@@ -276,14 +284,13 @@ export default function DailyPage() {
                 <input
                   type="time"
                   value={block.startTime}
-                  onChange={(e) => updateTimeBlock(block.id, "startTime", e.target.value)}
-                  onBlur={() => save({ timeBlocks })}
+                  onChange={(e) => updateTimeBlockField(block.id, "startTime", e.target.value, true)}
                   className="w-28 bg-background border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
                   data-testid={`input-time-block-start-${block.id}`}
                 />
                 <Input
                   value={block.action}
-                  onChange={(e) => updateTimeBlock(block.id, "action", e.target.value)}
+                  onChange={(e) => updateTimeBlockField(block.id, "action", e.target.value)}
                   onBlur={() => save({ timeBlocks })}
                   placeholder="What happens in this block..."
                   className="flex-1 bg-transparent border-transparent focus-visible:border-input"

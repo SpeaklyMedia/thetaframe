@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 export default function VisionPage() {
   const queryClient = useQueryClient();
   const { data: frame, isLoading } = useGetVisionFrame({ 
-    query: { queryKey: getGetVisionFrameQueryKey() } 
+    query: { queryKey: getGetVisionFrameQueryKey(), retry: 0 } 
   });
   const upsert = useUpsertVisionFrame();
 

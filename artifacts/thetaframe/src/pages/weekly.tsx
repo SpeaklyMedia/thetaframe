@@ -60,7 +60,7 @@ export default function WeeklyPage() {
   const weekStart = getMondayOfCurrentWeek();
   const queryClient = useQueryClient();
   const { data: frame, isLoading } = useGetWeeklyFrame(weekStart, { 
-    query: { enabled: !!weekStart, queryKey: getGetWeeklyFrameQueryKey(weekStart) } 
+    query: { enabled: !!weekStart, queryKey: getGetWeeklyFrameQueryKey(weekStart), retry: 0 } 
   });
   const upsert = useUpsertWeeklyFrame();
 

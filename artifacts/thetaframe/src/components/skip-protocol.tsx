@@ -13,7 +13,7 @@ export function SkipProtocol() {
   const date = getTodayDateString();
   const queryClient = useQueryClient();
   const { data: frame } = useGetDailyFrame(date, {
-    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date) },
+    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date), retry: 0 },
   });
   const upsert = useUpsertDailyFrame();
 
