@@ -101,7 +101,7 @@ export default function ReachPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pendingNotes, setPendingNotes] = useState<Record<string, string>>({});
-  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; file: File }>>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("All");
@@ -139,7 +139,10 @@ export default function ReachPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const selected = Array.from(e.target.files);
+    const selected = Array.from(e.target.files).map((file, i) => ({
+      id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
+      file,
+    }));
     setStagedFiles(selected);
     setUploadError(null);
   };
@@ -150,7 +153,7 @@ export default function ReachPage() {
     setUploadError(null);
 
     try {
-      for (const file of stagedFiles) {
+      for (const { id, file } of stagedFiles) {
         const { uploadURL, objectPath } = await requestUploadUrl.mutateAsync({
           data: { name: file.name, size: file.size, contentType: file.type || "application/octet-stream" },
         });
@@ -171,7 +174,7 @@ export default function ReachPage() {
             fileType: file.type || null,
             sizeBytes: file.size,
             objectPath,
-            notes: pendingNotes[file.name] || null,
+            notes: pendingNotes[id] || null,
           },
         });
       }
@@ -229,29 +232,29 @@ export default function ReachPage() {
           {stagedFiles.length > 0 && (
             <div className="space-y-3" data-testid="staged-files-list">
               <p className="text-sm font-medium">{stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""} selected</p>
-              {stagedFiles.map((f) => (
-                <div key={f.name} className="space-y-1.5" data-testid={`staged-file-${f.name}`}>
+              {stagedFiles.map(({ id, file }) => (
+                <div key={id} className="space-y-1.5" data-testid={`staged-file-${id}`}>
                   <div className="flex items-center gap-3 text-sm">
-                    {fileIcon(f.type)}
-                    <span className="font-medium flex-1 truncate">{f.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{formatBytes(f.size)}</span>
+                    {fileIcon(file.type)}
+                    <span className="font-medium flex-1 truncate">{file.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{formatBytes(file.size)}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setStagedFiles((prev) => prev.filter((x) => x.name !== f.name))}
-                      data-testid={`button-remove-staged-${f.name}`}
+                      onClick={() => setStagedFiles((prev) => prev.filter((x) => x.id !== id))}
+                      data-testid={`button-remove-staged-${id}`}
                     >
                       <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                     </Button>
                   </div>
                   <Textarea
-                    value={pendingNotes[f.name] ?? ""}
+                    value={pendingNotes[id] ?? ""}
                     onChange={(e) =>
-                      setPendingNotes((n) => ({ ...n, [f.name]: e.target.value }))
+                      setPendingNotes((n) => ({ ...n, [id]: e.target.value }))
                     }
                     placeholder="Optional note for this file..."
                     className="resize-none h-16 text-xs"
-                    data-testid={`textarea-notes-${f.name}`}
+                    data-testid={`textarea-notes-${id}`}
                   />
                 </div>
               ))}

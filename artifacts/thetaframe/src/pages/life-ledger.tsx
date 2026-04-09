@@ -34,10 +34,10 @@ type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "people", label: "People" },
-  { key: "events", label: "Events" },
-  { key: "financial", label: "Financial" },
+  { key: "events", label: "Events & Obligations" },
+  { key: "financial", label: "Financial Obligations" },
   { key: "subscriptions", label: "Subscriptions" },
-  { key: "travel", label: "Travel" },
+  { key: "travel", label: "Travel & Experiences" },
 ];
 
 const IMPACT_LEVELS = ["low", "medium", "high"];
