@@ -7,7 +7,7 @@ export default function SignUpPage() {
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl="/" />
       </div>
     </Layout>
   );
