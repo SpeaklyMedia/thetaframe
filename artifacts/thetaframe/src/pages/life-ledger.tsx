@@ -473,18 +473,16 @@ function SubscriptionAuditPanel() {
         <TrendingUp className="w-4 h-4 text-muted-foreground" />
         <h2 className="text-sm font-semibold">Subscription Audit</h2>
       </div>
-      <div className="grid grid-cols-3 gap-3 text-center">
+      <div className="grid grid-cols-2 gap-3 text-center">
         <div className="bg-muted rounded-xl p-3">
-          <div className="text-lg font-bold">${data.totalMonthlyEssential.toFixed(2)}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Essential/mo</div>
-        </div>
-        <div className="bg-muted rounded-xl p-3">
-          <div className="text-lg font-bold">${data.totalMonthlyNonEssential.toFixed(2)}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Non-essential/mo</div>
-        </div>
-        <div className="bg-muted rounded-xl p-3">
-          <div className="text-lg font-bold">${data.totalMonthly.toFixed(2)}</div>
+          <div className="text-base font-bold">${data.totalMonthly.toFixed(2)}</div>
           <div className="text-xs text-muted-foreground mt-0.5">Total/mo</div>
+          <div className="text-xs text-muted-foreground font-mono">${(data.totalMonthly * 12).toFixed(2)}/yr</div>
+        </div>
+        <div className="bg-muted rounded-xl p-3">
+          <div className="text-base font-bold">${data.totalMonthlyEssential.toFixed(2)}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Essential/mo</div>
+          <div className="text-xs text-muted-foreground font-mono">${(data.totalMonthlyEssential * 12).toFixed(2)}/yr</div>
         </div>
       </div>
       <div className="space-y-1">
@@ -495,8 +493,14 @@ function SubscriptionAuditPanel() {
               {item.isEssential != null && (
                 <span>{item.isEssential ? "Essential" : "Optional"}</span>
               )}
+              {item.billingCycle && (
+                <span className="capitalize">{item.billingCycle}</span>
+              )}
               {item.monthlyEquivalent != null && (
                 <span className="font-mono">${item.monthlyEquivalent.toFixed(2)}/mo</span>
+              )}
+              {item.annualEquivalent != null && (
+                <span className="font-mono">${item.annualEquivalent.toFixed(2)}/yr</span>
               )}
             </div>
           </div>
