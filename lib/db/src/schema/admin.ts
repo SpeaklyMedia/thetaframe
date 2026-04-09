@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, jsonb, unique } from "drizzle-orm/pg-core";
 
 export const accessPermissionsTable = pgTable("access_permissions", {
   id: serial("id").primaryKey(),
@@ -7,7 +7,9 @@ export const accessPermissionsTable = pgTable("access_permissions", {
   environment: text("environment").notNull(),
   grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
   grantedBy: text("granted_by").notNull(),
-});
+}, (t) => [
+  unique("uq_access_permissions_user_module_env").on(t.userId, t.module, t.environment),
+]);
 
 export const accessPresetsTable = pgTable("access_presets", {
   id: serial("id").primaryKey(),
