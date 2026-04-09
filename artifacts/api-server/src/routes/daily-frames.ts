@@ -38,6 +38,11 @@ router.post("/daily-frames", requireAuth, async (req: Request, res: Response): P
     return;
   }
 
+  if (body.data.tierA.length > 3) {
+    res.status(400).json({ error: "Tier A may not contain more than 3 tasks." });
+    return;
+  }
+
   const [frame] = await db
     .insert(dailyFramesTable)
     .values({
@@ -121,6 +126,11 @@ router.put("/daily-frames/:date", requireAuth, async (req: Request, res: Respons
   const body = UpsertDailyFrameBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  if (body.data.tierA.length > 3) {
+    res.status(400).json({ error: "Tier A may not contain more than 3 tasks." });
     return;
   }
 

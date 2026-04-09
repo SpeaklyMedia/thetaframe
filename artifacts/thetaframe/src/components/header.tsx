@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { useGetUserMode, getGetUserModeQueryKey, useUpsertUserMode } from "@workspace/api-client-react";
+import { ApiError } from "@workspace/api-client-react";
 import { getEmotionColorClass } from "@/lib/colors";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,16 +26,18 @@ export function Header() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const queryClient = useQueryClient();
-  const { data: userMode, isError } = useGetUserMode({
-    query: { enabled: !!user, queryKey: getGetUserModeQueryKey() }
+  const { data: userMode, error } = useGetUserMode({
+    query: { enabled: !!user, queryKey: getGetUserModeQueryKey(), retry: 0 }
   });
   const upsertMode = useUpsertUserMode();
 
   const currentMode = userMode?.mode as Mode | undefined;
   const currentColour = userMode?.colourState;
 
+  const isMissing = error instanceof ApiError && error.status === 404;
+
   useEffect(() => {
-    if (user && isError && !upsertMode.isPending) {
+    if (user && isMissing && !upsertMode.isPending && !upsertMode.isSuccess) {
       upsertMode.mutate(
         { data: { mode: "explore", colourState: "green" } },
         {
@@ -44,7 +47,7 @@ export function Header() {
         }
       );
     }
-  }, [user, isError, upsertMode, queryClient]);
+  }, [user, isMissing, upsertMode, queryClient]);
 
   const handleModeChange = (mode: Mode) => {
     upsertMode.mutate(
