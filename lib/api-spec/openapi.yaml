@@ -34,6 +34,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /daily-frames:
+    get:
+      operationId: listDailyFrames
+      tags: [daily-frames]
+      summary: List all daily frames for the current user
+      responses:
+        "200":
+          description: List of daily frames
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyFrame"
+    post:
+      operationId: createDailyFrame
+      tags: [daily-frames]
+      summary: Create or update a daily frame (date in body)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDailyFrameBody"
+      responses:
+        "200":
+          description: Created or updated daily frame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyFrame"
+
   /daily-frames/{date}:
     get:
       operationId: getDailyFrame
@@ -98,6 +130,38 @@ paths:
                 items:
                   $ref: "#/components/schemas/DailyFrame"
 
+  /weekly-frames:
+    get:
+      operationId: listWeeklyFrames
+      tags: [weekly-frames]
+      summary: List all weekly frames for the current user
+      responses:
+        "200":
+          description: List of weekly frames
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyFrame"
+    post:
+      operationId: createWeeklyFrame
+      tags: [weekly-frames]
+      summary: Create or update a weekly frame (weekStart in body)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWeeklyFrameBody"
+      responses:
+        "200":
+          description: Created or updated weekly frame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyFrame"
+
   /weekly-frames/{weekStart}:
     get:
       operationId: getWeeklyFrame
@@ -146,6 +210,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WeeklyFrame"
+
+  /vision-frames:
+    get:
+      operationId: getVisionFrameCollection
+      tags: [vision-frames]
+      summary: Get the current user's vision frame (collection alias)
+      responses:
+        "200":
+          description: Vision frame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisionFrame"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createVisionFrame
+      tags: [vision-frames]
+      summary: Create or update the user's vision frame
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertVisionFrameBody"
+      responses:
+        "200":
+          description: Created or updated vision frame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisionFrame"
 
   /vision-frames/me:
     get:
@@ -314,6 +414,42 @@ components:
         - timeBlocks
         - skipProtocolUsed
 
+    CreateDailyFrameBody:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        colourState:
+          type: string
+          enum: [green, yellow, red, blue, purple]
+        tierA:
+          type: array
+          items:
+            $ref: "#/components/schemas/TierTask"
+        tierB:
+          type: array
+          items:
+            $ref: "#/components/schemas/TierTask"
+        timeBlocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeBlock"
+        microWin:
+          type: ["string", "null"]
+        skipProtocolUsed:
+          type: boolean
+        skipProtocolChoice:
+          type: ["string", "null"]
+          enum: ["micro-win", "intentional-recovery", null]
+      required:
+        - date
+        - colourState
+        - tierA
+        - tierB
+        - timeBlocks
+        - skipProtocolUsed
+
     UpsertDailyFrameBody:
       type: object
       properties:
@@ -388,6 +524,29 @@ components:
       required:
         - id
         - userId
+        - weekStart
+        - steps
+        - nonNegotiables
+
+    CreateWeeklyFrameBody:
+      type: object
+      properties:
+        weekStart:
+          type: string
+          description: Week start date YYYY-MM-DD (Monday)
+        theme:
+          type: ["string", "null"]
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyStep"
+        nonNegotiables:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyStep"
+        recoveryPlan:
+          type: ["string", "null"]
+      required:
         - weekStart
         - steps
         - nonNegotiables

@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CreateDailyFrameBody,
+  CreateWeeklyFrameBody,
   DailyFrame,
   ErrorResponse,
   HealthStatus,
@@ -113,6 +115,167 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all daily frames for the current user
+ */
+export const getListDailyFramesUrl = () => {
+  return `/api/daily-frames`;
+};
+
+export const listDailyFrames = async (
+  options?: RequestInit,
+): Promise<DailyFrame[]> => {
+  return customFetch<DailyFrame[]>(getListDailyFramesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDailyFramesQueryKey = () => {
+  return [`/api/daily-frames`] as const;
+};
+
+export const getListDailyFramesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDailyFrames>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDailyFrames>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDailyFramesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDailyFrames>>> = ({
+    signal,
+  }) => listDailyFrames({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDailyFrames>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDailyFramesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDailyFrames>>
+>;
+export type ListDailyFramesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all daily frames for the current user
+ */
+
+export function useListDailyFrames<
+  TData = Awaited<ReturnType<typeof listDailyFrames>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDailyFrames>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDailyFramesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update a daily frame (date in body)
+ */
+export const getCreateDailyFrameUrl = () => {
+  return `/api/daily-frames`;
+};
+
+export const createDailyFrame = async (
+  createDailyFrameBody: CreateDailyFrameBody,
+  options?: RequestInit,
+): Promise<DailyFrame> => {
+  return customFetch<DailyFrame>(getCreateDailyFrameUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDailyFrameBody),
+  });
+};
+
+export const getCreateDailyFrameMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDailyFrame>>,
+    TError,
+    { data: BodyType<CreateDailyFrameBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDailyFrame>>,
+  TError,
+  { data: BodyType<CreateDailyFrameBody> },
+  TContext
+> => {
+  const mutationKey = ["createDailyFrame"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDailyFrame>>,
+    { data: BodyType<CreateDailyFrameBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createDailyFrame(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDailyFrameMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDailyFrame>>
+>;
+export type CreateDailyFrameMutationBody = BodyType<CreateDailyFrameBody>;
+export type CreateDailyFrameMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update a daily frame (date in body)
+ */
+export const useCreateDailyFrame = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDailyFrame>>,
+    TError,
+    { data: BodyType<CreateDailyFrameBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDailyFrame>>,
+  TError,
+  { data: BodyType<CreateDailyFrameBody> },
+  TContext
+> => {
+  return useMutation(getCreateDailyFrameMutationOptions(options));
+};
 
 /**
  * @summary Get daily frame for a date
@@ -364,6 +527,167 @@ export function useGetRecentDailyFrames<
 }
 
 /**
+ * @summary List all weekly frames for the current user
+ */
+export const getListWeeklyFramesUrl = () => {
+  return `/api/weekly-frames`;
+};
+
+export const listWeeklyFrames = async (
+  options?: RequestInit,
+): Promise<WeeklyFrame[]> => {
+  return customFetch<WeeklyFrame[]>(getListWeeklyFramesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWeeklyFramesQueryKey = () => {
+  return [`/api/weekly-frames`] as const;
+};
+
+export const getListWeeklyFramesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWeeklyFrames>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWeeklyFrames>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWeeklyFramesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWeeklyFrames>>
+  > = ({ signal }) => listWeeklyFrames({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWeeklyFrames>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWeeklyFramesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWeeklyFrames>>
+>;
+export type ListWeeklyFramesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all weekly frames for the current user
+ */
+
+export function useListWeeklyFrames<
+  TData = Awaited<ReturnType<typeof listWeeklyFrames>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWeeklyFrames>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWeeklyFramesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update a weekly frame (weekStart in body)
+ */
+export const getCreateWeeklyFrameUrl = () => {
+  return `/api/weekly-frames`;
+};
+
+export const createWeeklyFrame = async (
+  createWeeklyFrameBody: CreateWeeklyFrameBody,
+  options?: RequestInit,
+): Promise<WeeklyFrame> => {
+  return customFetch<WeeklyFrame>(getCreateWeeklyFrameUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createWeeklyFrameBody),
+  });
+};
+
+export const getCreateWeeklyFrameMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWeeklyFrame>>,
+    TError,
+    { data: BodyType<CreateWeeklyFrameBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWeeklyFrame>>,
+  TError,
+  { data: BodyType<CreateWeeklyFrameBody> },
+  TContext
+> => {
+  const mutationKey = ["createWeeklyFrame"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWeeklyFrame>>,
+    { data: BodyType<CreateWeeklyFrameBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createWeeklyFrame(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWeeklyFrameMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWeeklyFrame>>
+>;
+export type CreateWeeklyFrameMutationBody = BodyType<CreateWeeklyFrameBody>;
+export type CreateWeeklyFrameMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update a weekly frame (weekStart in body)
+ */
+export const useCreateWeeklyFrame = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWeeklyFrame>>,
+    TError,
+    { data: BodyType<CreateWeeklyFrameBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createWeeklyFrame>>,
+  TError,
+  { data: BodyType<CreateWeeklyFrameBody> },
+  TContext
+> => {
+  return useMutation(getCreateWeeklyFrameMutationOptions(options));
+};
+
+/**
  * @summary Get weekly frame for a week
  */
 export const getGetWeeklyFrameUrl = (weekStart: string) => {
@@ -536,6 +860,168 @@ export const useUpsertWeeklyFrame = <
   TContext
 > => {
   return useMutation(getUpsertWeeklyFrameMutationOptions(options));
+};
+
+/**
+ * @summary Get the current user's vision frame (collection alias)
+ */
+export const getGetVisionFrameCollectionUrl = () => {
+  return `/api/vision-frames`;
+};
+
+export const getVisionFrameCollection = async (
+  options?: RequestInit,
+): Promise<VisionFrame> => {
+  return customFetch<VisionFrame>(getGetVisionFrameCollectionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVisionFrameCollectionQueryKey = () => {
+  return [`/api/vision-frames`] as const;
+};
+
+export const getGetVisionFrameCollectionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVisionFrameCollection>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVisionFrameCollection>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetVisionFrameCollectionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getVisionFrameCollection>>
+  > = ({ signal }) => getVisionFrameCollection({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVisionFrameCollection>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVisionFrameCollectionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVisionFrameCollection>>
+>;
+export type GetVisionFrameCollectionQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get the current user's vision frame (collection alias)
+ */
+
+export function useGetVisionFrameCollection<
+  TData = Awaited<ReturnType<typeof getVisionFrameCollection>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVisionFrameCollection>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVisionFrameCollectionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update the user's vision frame
+ */
+export const getCreateVisionFrameUrl = () => {
+  return `/api/vision-frames`;
+};
+
+export const createVisionFrame = async (
+  upsertVisionFrameBody: UpsertVisionFrameBody,
+  options?: RequestInit,
+): Promise<VisionFrame> => {
+  return customFetch<VisionFrame>(getCreateVisionFrameUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertVisionFrameBody),
+  });
+};
+
+export const getCreateVisionFrameMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createVisionFrame>>,
+    TError,
+    { data: BodyType<UpsertVisionFrameBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createVisionFrame>>,
+  TError,
+  { data: BodyType<UpsertVisionFrameBody> },
+  TContext
+> => {
+  const mutationKey = ["createVisionFrame"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createVisionFrame>>,
+    { data: BodyType<UpsertVisionFrameBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createVisionFrame(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateVisionFrameMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createVisionFrame>>
+>;
+export type CreateVisionFrameMutationBody = BodyType<UpsertVisionFrameBody>;
+export type CreateVisionFrameMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update the user's vision frame
+ */
+export const useCreateVisionFrame = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createVisionFrame>>,
+    TError,
+    { data: BodyType<UpsertVisionFrameBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createVisionFrame>>,
+  TError,
+  { data: BodyType<UpsertVisionFrameBody> },
+  TContext
+> => {
+  return useMutation(getCreateVisionFrameMutationOptions(options));
 };
 
 /**

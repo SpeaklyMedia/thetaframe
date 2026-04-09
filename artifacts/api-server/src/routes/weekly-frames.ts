@@ -1,7 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db, weeklyFramesTable } from "@workspace/db";
 import {
+  ListWeeklyFramesResponse,
+  CreateWeeklyFrameBody,
+  CreateWeeklyFrameResponse,
   GetWeeklyFrameParams,
   GetWeeklyFrameResponse,
   UpsertWeeklyFrameParams,
@@ -11,6 +14,52 @@ import {
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
+
+router.get("/weekly-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  const frames = await db
+    .select()
+    .from(weeklyFramesTable)
+    .where(eq(weeklyFramesTable.userId, userId))
+    .orderBy(desc(weeklyFramesTable.weekStart));
+
+  res.json(ListWeeklyFramesResponse.parse(frames));
+});
+
+router.post("/weekly-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  const body = CreateWeeklyFrameBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [frame] = await db
+    .insert(weeklyFramesTable)
+    .values({
+      userId,
+      weekStart: body.data.weekStart,
+      theme: body.data.theme ?? null,
+      steps: body.data.steps,
+      nonNegotiables: body.data.nonNegotiables,
+      recoveryPlan: body.data.recoveryPlan ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [weeklyFramesTable.userId, weeklyFramesTable.weekStart],
+      set: {
+        theme: body.data.theme ?? null,
+        steps: body.data.steps,
+        nonNegotiables: body.data.nonNegotiables,
+        recoveryPlan: body.data.recoveryPlan ?? null,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  res.json(CreateWeeklyFrameResponse.parse(frame));
+});
 
 router.get("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;

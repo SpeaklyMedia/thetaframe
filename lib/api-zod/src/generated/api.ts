@@ -16,6 +16,132 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary List all daily frames for the current user
+ */
+export const ListDailyFramesResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  date: zod.string().describe("YYYY-MM-DD"),
+  colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+  tierA: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      completed: zod.boolean(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  tierB: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      completed: zod.boolean(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  timeBlocks: zod.array(
+    zod.object({
+      id: zod.string(),
+      startTime: zod.string().describe("HH:MM format"),
+      action: zod.string(),
+    }),
+  ),
+  microWin: zod.string().nullish(),
+  skipProtocolUsed: zod.boolean(),
+  skipProtocolChoice: zod
+    .union([
+      zod.literal("micro-win"),
+      zod.literal("intentional-recovery"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListDailyFramesResponse = zod.array(ListDailyFramesResponseItem);
+
+/**
+ * @summary Create or update a daily frame (date in body)
+ */
+export const CreateDailyFrameBody = zod.object({
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+  tierA: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      completed: zod.boolean(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  tierB: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      completed: zod.boolean(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  timeBlocks: zod.array(
+    zod.object({
+      id: zod.string(),
+      startTime: zod.string().describe("HH:MM format"),
+      action: zod.string(),
+    }),
+  ),
+  microWin: zod.string().nullish(),
+  skipProtocolUsed: zod.boolean(),
+  skipProtocolChoice: zod
+    .union([
+      zod.literal("micro-win"),
+      zod.literal("intentional-recovery"),
+      zod.literal(null),
+    ])
+    .nullish(),
+});
+
+export const CreateDailyFrameResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  date: zod.string().describe("YYYY-MM-DD"),
+  colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+  tierA: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      completed: zod.boolean(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  tierB: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      completed: zod.boolean(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  timeBlocks: zod.array(
+    zod.object({
+      id: zod.string(),
+      startTime: zod.string().describe("HH:MM format"),
+      action: zod.string(),
+    }),
+  ),
+  microWin: zod.string().nullish(),
+  skipProtocolUsed: zod.boolean(),
+  skipProtocolChoice: zod
+    .union([
+      zod.literal("micro-win"),
+      zod.literal("intentional-recovery"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
  * @summary Get daily frame for a date
  */
 export const GetDailyFrameParams = zod.object({
@@ -195,6 +321,81 @@ export const GetRecentDailyFramesResponse = zod.array(
 );
 
 /**
+ * @summary List all weekly frames for the current user
+ */
+export const ListWeeklyFramesResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  weekStart: zod.string().describe("Week start date YYYY-MM-DD (Monday)"),
+  theme: zod.string().nullish(),
+  steps: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  nonNegotiables: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  recoveryPlan: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListWeeklyFramesResponse = zod.array(ListWeeklyFramesResponseItem);
+
+/**
+ * @summary Create or update a weekly frame (weekStart in body)
+ */
+export const CreateWeeklyFrameBody = zod.object({
+  weekStart: zod.string().describe("Week start date YYYY-MM-DD (Monday)"),
+  theme: zod.string().nullish(),
+  steps: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  nonNegotiables: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  recoveryPlan: zod.string().nullish(),
+});
+
+export const CreateWeeklyFrameResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  weekStart: zod.string().describe("Week start date YYYY-MM-DD (Monday)"),
+  theme: zod.string().nullish(),
+  steps: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  nonNegotiables: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  recoveryPlan: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
  * @summary Get weekly frame for a week
  */
 export const GetWeeklyFrameParams = zod.object({
@@ -271,6 +472,71 @@ export const UpsertWeeklyFrameResponse = zod.object({
     }),
   ),
   recoveryPlan: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get the current user's vision frame (collection alias)
+ */
+export const GetVisionFrameCollectionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  goals: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  nextSteps: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Create or update the user's vision frame
+ */
+export const CreateVisionFrameBody = zod.object({
+  goals: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  nextSteps: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+});
+
+export const CreateVisionFrameResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  goals: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
+  nextSteps: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      emoji: zod.string().nullish(),
+    }),
+  ),
   createdAt: zod.string().optional(),
   updatedAt: zod.string().optional(),
 });

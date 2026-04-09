@@ -69,6 +69,43 @@ export interface DailyFrame {
   updatedAt?: string;
 }
 
+export type CreateDailyFrameBodyColourState =
+  (typeof CreateDailyFrameBodyColourState)[keyof typeof CreateDailyFrameBodyColourState];
+
+export const CreateDailyFrameBodyColourState = {
+  green: "green",
+  yellow: "yellow",
+  red: "red",
+  blue: "blue",
+  purple: "purple",
+} as const;
+
+/**
+ * @nullable
+ */
+export type CreateDailyFrameBodySkipProtocolChoice =
+  | (typeof CreateDailyFrameBodySkipProtocolChoice)[keyof typeof CreateDailyFrameBodySkipProtocolChoice]
+  | null;
+
+export const CreateDailyFrameBodySkipProtocolChoice = {
+  "micro-win": "micro-win",
+  "intentional-recovery": "intentional-recovery",
+} as const;
+
+export interface CreateDailyFrameBody {
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  colourState: CreateDailyFrameBodyColourState;
+  tierA: TierTask[];
+  tierB: TierTask[];
+  timeBlocks: TimeBlock[];
+  /** @nullable */
+  microWin?: string | null;
+  skipProtocolUsed: boolean;
+  /** @nullable */
+  skipProtocolChoice?: CreateDailyFrameBodySkipProtocolChoice;
+}
+
 export type UpsertDailyFrameBodyColourState =
   (typeof UpsertDailyFrameBodyColourState)[keyof typeof UpsertDailyFrameBodyColourState];
 
@@ -124,6 +161,17 @@ export interface WeeklyFrame {
   recoveryPlan?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CreateWeeklyFrameBody {
+  /** Week start date YYYY-MM-DD (Monday) */
+  weekStart: string;
+  /** @nullable */
+  theme?: string | null;
+  steps: WeeklyStep[];
+  nonNegotiables: WeeklyStep[];
+  /** @nullable */
+  recoveryPlan?: string | null;
 }
 
 export interface UpsertWeeklyFrameBody {

@@ -2,6 +2,9 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, dailyFramesTable } from "@workspace/db";
 import {
+  ListDailyFramesResponse,
+  CreateDailyFrameBody,
+  CreateDailyFrameResponse,
   GetDailyFrameParams,
   GetDailyFrameResponse,
   UpsertDailyFrameParams,
@@ -13,21 +16,65 @@ import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAu
 
 const router: IRouter = Router();
 
-router.get("/daily-frames/recent", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/daily-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
 
   const frames = await db
     .select()
     .from(dailyFramesTable)
-    .where(
-      and(
-        eq(dailyFramesTable.userId, userId),
-      )
-    )
+    .where(eq(dailyFramesTable.userId, userId))
+    .orderBy(desc(dailyFramesTable.date));
+
+  res.json(ListDailyFramesResponse.parse(frames));
+});
+
+router.post("/daily-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  const body = CreateDailyFrameBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [frame] = await db
+    .insert(dailyFramesTable)
+    .values({
+      userId,
+      date: body.data.date,
+      colourState: body.data.colourState,
+      tierA: body.data.tierA,
+      tierB: body.data.tierB,
+      timeBlocks: body.data.timeBlocks,
+      microWin: body.data.microWin ?? null,
+      skipProtocolUsed: body.data.skipProtocolUsed,
+      skipProtocolChoice: body.data.skipProtocolChoice ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [dailyFramesTable.userId, dailyFramesTable.date],
+      set: {
+        colourState: body.data.colourState,
+        tierA: body.data.tierA,
+        tierB: body.data.tierB,
+        timeBlocks: body.data.timeBlocks,
+        microWin: body.data.microWin ?? null,
+        skipProtocolUsed: body.data.skipProtocolUsed,
+        skipProtocolChoice: body.data.skipProtocolChoice ?? null,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  res.json(CreateDailyFrameResponse.parse(frame));
+});
+
+router.get("/daily-frames/recent", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  const frames = await db
+    .select()
+    .from(dailyFramesTable)
+    .where(eq(dailyFramesTable.userId, userId))
     .orderBy(desc(dailyFramesTable.date))
     .limit(7);
 
