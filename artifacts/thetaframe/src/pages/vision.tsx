@@ -4,7 +4,8 @@ import { SkipProtocol } from "@/components/skip-protocol";
 import { 
   useGetVisionFrame, 
   useUpsertVisionFrame, 
-  getGetVisionFrameQueryKey 
+  getGetVisionFrameQueryKey,
+  ApiError,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,9 +14,10 @@ import { Input } from "@/components/ui/input";
 
 export default function VisionPage() {
   const queryClient = useQueryClient();
-  const { data: frame, isLoading } = useGetVisionFrame({ 
+  const { data: frame, isLoading, error } = useGetVisionFrame({ 
     query: { queryKey: getGetVisionFrameQueryKey(), retry: 0 } 
   });
+  const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertVisionFrame();
 
   const [goals, setGoals] = useState<VisionGoal[]>([
@@ -63,6 +65,22 @@ export default function VisionPage() {
         <div className="container mx-auto p-4 md:p-8 space-y-8">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-32 w-full" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (frameError) {
+    return (
+      <Layout>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
+          <p className="text-4xl">⚠️</p>
+          <h2 className="text-xl font-semibold">Couldn't load your vision frame</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            {frameError.status === 401
+              ? "You're not signed in. Please sign in and try again."
+              : "Something went wrong on our end. Try refreshing the page."}
+          </p>
         </div>
       </Layout>
     );

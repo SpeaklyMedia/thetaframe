@@ -4,7 +4,8 @@ import { SkipProtocol } from "@/components/skip-protocol";
 import { 
   useGetWeeklyFrame, 
   useUpsertWeeklyFrame, 
-  getGetWeeklyFrameQueryKey 
+  getGetWeeklyFrameQueryKey,
+  ApiError,
 } from "@workspace/api-client-react";
 import { getMondayOfCurrentWeek } from "@/lib/dates";
 import { useQueryClient } from "@tanstack/react-query";
@@ -59,9 +60,10 @@ function EmojiPicker({ value, onChange }: { value?: string | null; onChange: (e:
 export default function WeeklyPage() {
   const weekStart = getMondayOfCurrentWeek();
   const queryClient = useQueryClient();
-  const { data: frame, isLoading } = useGetWeeklyFrame(weekStart, { 
+  const { data: frame, isLoading, error } = useGetWeeklyFrame(weekStart, { 
     query: { enabled: !!weekStart, queryKey: getGetWeeklyFrameQueryKey(weekStart), retry: 0 } 
   });
+  const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertWeeklyFrame();
 
   const [theme, setTheme] = useState("");
@@ -116,6 +118,22 @@ export default function WeeklyPage() {
         <div className="container mx-auto p-4 md:p-8 space-y-8">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-32 w-full" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (frameError) {
+    return (
+      <Layout>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
+          <p className="text-4xl">⚠️</p>
+          <h2 className="text-xl font-semibold">Couldn't load this week's frame</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            {frameError.status === 401
+              ? "You're not signed in. Please sign in and try again."
+              : "Something went wrong on our end. Try refreshing the page."}
+          </p>
         </div>
       </Layout>
     );

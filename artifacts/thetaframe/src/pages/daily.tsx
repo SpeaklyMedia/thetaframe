@@ -16,6 +16,7 @@ import { getEmotionColorClass } from "@/lib/colors";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, X } from "lucide-react";
 import { SkipProtocol } from "@/components/skip-protocol";
+import { ApiError } from "@workspace/api-client-react";
 
 const COLOUR_LABELS: Record<DailyFrameColourState, string> = {
   green: "Green — Calm & Ready",
@@ -28,9 +29,10 @@ const COLOUR_LABELS: Record<DailyFrameColourState, string> = {
 export default function DailyPage() {
   const date = getTodayDateString();
   const queryClient = useQueryClient();
-  const { data: frame, isLoading } = useGetDailyFrame(date, {
+  const { data: frame, isLoading, error } = useGetDailyFrame(date, {
     query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date), retry: 0 },
   });
+  const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertDailyFrame();
 
   const [colourState, setColourState] = useState<DailyFrameColourState>("green");
@@ -85,6 +87,22 @@ export default function DailyPage() {
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-64 w-full" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (frameError) {
+    return (
+      <Layout>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
+          <p className="text-4xl">⚠️</p>
+          <h2 className="text-xl font-semibold">Couldn't load today's frame</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            {frameError.status === 401
+              ? "You're not signed in. Please sign in and try again."
+              : "Something went wrong on our end. Try refreshing the page."}
+          </p>
         </div>
       </Layout>
     );
