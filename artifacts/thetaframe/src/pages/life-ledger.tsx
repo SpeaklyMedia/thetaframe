@@ -522,8 +522,11 @@ export default function LifeLedgerPage() {
   const updateMutation = useUpdateLifeLedgerEntry();
   const deleteMutation = useDeleteLifeLedgerEntry();
 
-  const invalidateTab = (tab: Tab) =>
+  const invalidateTab = (tab: Tab) => {
     queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey(tab) });
+    queryClient.invalidateQueries({ queryKey: getGetNext90DaysQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetSubscriptionAuditQueryKey() });
+  };
 
   const handleCreate = (data: LifeLedgerEntryBody) => {
     createMutation.mutate({ tab: activeTab, data }, {
