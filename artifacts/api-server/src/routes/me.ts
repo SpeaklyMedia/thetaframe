@@ -27,10 +27,10 @@ router.get("/me/permissions", requireAuth, async (req: Request, res: Response): 
     .from(accessPermissionsTable)
     .where(eq(accessPermissionsTable.userId, userId));
 
-  if (perms.length === 0) {
-    const rows = ALL_MODULES.flatMap((module) =>
-      ALL_ENVIRONMENTS.map((env) => ({ userId, module, environment: env })),
-    );
+  const envPerms = perms.filter((p) => p.environment === environment);
+
+  if (envPerms.length === 0) {
+    const rows = ALL_MODULES.map((module) => ({ userId, module, environment }));
     await db.insert(accessPermissionsTable).values(rows).onConflictDoNothing();
 
     res.json({
@@ -40,7 +40,6 @@ router.get("/me/permissions", requireAuth, async (req: Request, res: Response): 
     return;
   }
 
-  const envPerms = perms.filter((p) => p.environment === environment);
   res.json({
     modules: envPerms.map((p) => p.module),
     environment,

@@ -4,7 +4,7 @@ import { useGetMyPermissions, getGetMyPermissionsQueryKey } from "@workspace/api
 export function usePermissions() {
   const { user } = useUser();
 
-  const { data, isLoading } = useGetMyPermissions({
+  const { data, isLoading, isError } = useGetMyPermissions({
     query: {
       enabled: !!user,
       queryKey: getGetMyPermissionsQueryKey(),
@@ -17,7 +17,7 @@ export function usePermissions() {
 
   const hasModule = (module: string): boolean => {
     if (!user) return false;
-    if (isLoading) return true;
+    if (isLoading || isError) return true;
     return modules.includes(module);
   };
 

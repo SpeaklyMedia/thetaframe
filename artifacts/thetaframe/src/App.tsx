@@ -2,10 +2,11 @@ import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wo
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk, useUser } from "@clerk/react";
+import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk, useUser, useAuth } from "@clerk/react";
 import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
 
 import Home from "@/pages/home";
 import SignInPage from "@/pages/sign-in";
@@ -92,6 +93,17 @@ function AdminRoute() {
   );
 }
 
+function ClerkAuthSetup() {
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => { setAuthTokenGetter(null); };
+  }, [getToken]);
+
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const queryClient = useQueryClient();
@@ -128,6 +140,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ClerkAuthSetup />
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
           <ClerkLoading>
