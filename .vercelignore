@@ -1,0 +1,7 @@
+artifacts/mockup-sandbox
+attached_assets
+scripts
+.local
+.cache
+.upm
+*.replit-artifact

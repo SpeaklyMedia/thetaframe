@@ -9,23 +9,44 @@ import {
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
-export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
+function isOnReplit(): boolean {
+  return Boolean(process.env.REPL_ID);
+}
+
+function buildStorageClient(): Storage {
+  const credJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  if (credJson) {
+    let credentials: object;
+    try {
+      credentials = JSON.parse(Buffer.from(credJson, "base64").toString("utf-8"));
+    } catch {
+      throw new Error(
+        "GOOGLE_APPLICATION_CREDENTIALS_JSON is set but is not valid base64-encoded JSON."
+      );
+    }
+    return new Storage({ credentials });
+  }
+
+  return new Storage({
+    credentials: {
+      audience: "replit",
+      subject_token_type: "access_token",
+      token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+      type: "external_account",
+      credential_source: {
+        url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+        format: {
+          type: "json",
+          subject_token_field_name: "access_token",
+        },
       },
+      universe_domain: "googleapis.com",
     },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
-});
+    projectId: "",
+  });
+}
+
+export const objectStorageClient = buildStorageClient();
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -232,6 +253,23 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
+  if (isOnReplit()) {
+    return signViaReplitSidecar({ bucketName, objectName, method, ttlSec });
+  }
+  return signViaGcs({ bucketName, objectName, method, ttlSec });
+}
+
+async function signViaReplitSidecar({
+  bucketName,
+  objectName,
+  method,
+  ttlSec,
+}: {
+  bucketName: string;
+  objectName: string;
+  method: string;
+  ttlSec: number;
+}): Promise<string> {
   const request = {
     bucket_name: bucketName,
     object_name: objectName,
@@ -257,6 +295,29 @@ async function signObjectURL({
   }
 
   const data = await response.json() as { signed_url: string };
-  const signedURL = data.signed_url;
-  return signedURL;
+  return data.signed_url;
+}
+
+async function signViaGcs({
+  bucketName,
+  objectName,
+  method,
+  ttlSec,
+}: {
+  bucketName: string;
+  objectName: string;
+  method: string;
+  ttlSec: number;
+}): Promise<string> {
+  const bucket = objectStorageClient.bucket(bucketName);
+  const file = bucket.file(objectName);
+  const expires = Date.now() + ttlSec * 1000;
+
+  const [url] = await file.getSignedUrl({
+    version: "v4",
+    action: method.toLowerCase() as "read" | "write" | "delete",
+    expires,
+  });
+
+  return url;
 }

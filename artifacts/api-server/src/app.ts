@@ -30,15 +30,20 @@ app.use(
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
+const allowedOrigins: (string | RegExp)[] = [
+  /^http:\/\/localhost(:\d+)?$/,
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
+];
+
 const devDomain = process.env.REPLIT_DEV_DOMAIN
   ? `https://${process.env.REPLIT_DEV_DOMAIN}`
   : null;
-const allowedOrigins: (string | RegExp)[] = [
-  /^http:\/\/localhost(:\d+)?$/,
-];
 if (devDomain) allowedOrigins.push(devDomain);
+
 if (process.env.ALLOWED_ORIGINS) {
-  process.env.ALLOWED_ORIGINS.split(",").forEach(o => allowedOrigins.push(o.trim()));
+  process.env.ALLOWED_ORIGINS.split(",").forEach((o) =>
+    allowedOrigins.push(o.trim()),
+  );
 }
 
 app.use(cors({

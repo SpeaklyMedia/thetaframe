@@ -8,6 +8,8 @@ const router = Router();
 
 function detectEnvironment(): string {
   if (process.env.REPLIT_DEPLOYMENT === "1") return "production";
+  if (process.env.VERCEL_ENV === "production") return "production";
+  if (process.env.VERCEL_ENV === "preview") return "staging";
   if (process.env.NODE_ENV === "production") return "production";
   if (process.env.NODE_ENV === "staging") return "staging";
   return "development";
