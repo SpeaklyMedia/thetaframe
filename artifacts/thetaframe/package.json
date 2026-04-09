@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/react": "^6.2.0"
+    "@clerk/react": "^6.2.0",
+    "radix-ui": "^1.4.3"
   }
 }

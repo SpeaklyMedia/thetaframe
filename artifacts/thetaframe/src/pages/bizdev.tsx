@@ -17,6 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -240,7 +246,7 @@ export default function BizdevPage() {
   const updateMutation = useUpdateBizdevBrand();
   const deleteMutation = useDeleteBizdevBrand();
 
-  const [showForm, setShowForm] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [filterPhase, setFilterPhase] = useState<Phase | "ALL">("ALL");
   const [filterOwner, setFilterOwner] = useState("");
@@ -285,10 +291,15 @@ export default function BizdevPage() {
     queryClient.invalidateQueries({ queryKey: getGetBizdevSummaryQueryKey() });
   };
 
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingId(null);
+  };
+
   const handleCreate = (data: BizdevBrandBody) => {
     createMutation.mutate({ data }, {
       onSuccess: () => {
-        setShowForm(false);
+        closeModal();
         invalidate();
       },
     });
@@ -297,7 +308,7 @@ export default function BizdevPage() {
   const handleUpdate = (id: number, data: BizdevBrandBody) => {
     updateMutation.mutate({ id, data }, {
       onSuccess: () => {
-        setEditingId(null);
+        closeModal();
         invalidate();
       },
     });
@@ -330,11 +341,9 @@ export default function BizdevPage() {
             <h1 className="text-3xl font-bold tracking-tight" data-testid="text-bizdev-title">BizDev</h1>
             <p className="text-muted-foreground mt-1">Brand and client lead tracker</p>
           </div>
-          {!showForm && editingId === null && (
-            <Button onClick={() => setShowForm(true)} data-testid="button-new-lead">
-              <Plus className="w-4 h-4 mr-2" /> New Lead
-            </Button>
-          )}
+          <Button onClick={() => { setEditingId(null); setModalOpen(true); }} data-testid="button-new-lead">
+            <Plus className="w-4 h-4 mr-2" /> New Lead
+          </Button>
         </header>
 
         {summary && (
@@ -397,11 +406,11 @@ export default function BizdevPage() {
           )}
         </div>
 
-        {(showForm || editingId !== null) && (
-          <div className="bg-card border rounded-2xl p-6 shadow-sm" data-testid="brand-form-panel">
-            <h2 className="text-lg font-semibold mb-5">
-              {editingId !== null ? "Edit Lead" : "New Lead"}
-            </h2>
+        <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="brand-form-modal">
+            <DialogHeader>
+              <DialogTitle>{editingId !== null ? "Edit Lead" : "New Lead"}</DialogTitle>
+            </DialogHeader>
             <BrandForm
               initial={
                 editingBrand
@@ -423,14 +432,11 @@ export default function BizdevPage() {
                 if (editingId !== null) handleUpdate(editingId, data);
                 else handleCreate(data);
               }}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingId(null);
-              }}
+              onCancel={closeModal}
               isSaving={createMutation.isPending || updateMutation.isPending}
             />
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {isLoading ? (
           <div className="space-y-2">
@@ -478,7 +484,7 @@ export default function BizdevPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => { setShowForm(false); setEditingId(brand.id); }}
+                          onClick={() => { setEditingId(brand.id); setModalOpen(true); }}
                           aria-label="Edit"
                           data-testid={`button-edit-brand-${brand.id}`}
                         >
@@ -500,7 +506,7 @@ export default function BizdevPage() {
               </tbody>
             </table>
           </div>
-        ) : !showForm ? (
+        ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-muted-foreground">
               {filterPhase !== "ALL" || filterOwner
@@ -508,12 +514,12 @@ export default function BizdevPage() {
                 : "No leads yet."}
             </p>
             {filterPhase === "ALL" && !filterOwner && (
-              <Button variant="outline" className="mt-4" onClick={() => setShowForm(true)} data-testid="button-empty-new-lead">
+              <Button variant="outline" className="mt-4" onClick={() => { setEditingId(null); setModalOpen(true); }} data-testid="button-empty-new-lead">
                 <Plus className="w-4 h-4 mr-2" /> Add your first lead
               </Button>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </Layout>
   );
