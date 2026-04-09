@@ -74,7 +74,6 @@ export default function VisionPage() {
     return (
       <Layout>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
-          <p className="text-4xl">⚠️</p>
           <h2 className="text-xl font-semibold">Couldn't load your vision frame</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
             {frameError.status === 401
