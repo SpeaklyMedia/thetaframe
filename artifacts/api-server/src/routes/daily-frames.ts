@@ -12,8 +12,8 @@ import {
   UpsertDailyFrameResponse,
   GetRecentDailyFramesResponse,
 } from "@workspace/api-zod";
-import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { serializeDates, isValidDateString } from "../lib/serialize";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { serializeDates, isValidDateString } from "../lib/serialize.js";
 
 const router: IRouter = Router();
 

@@ -5,9 +5,9 @@ import {
   CreateReachFileBody,
   DeleteReachFileParams,
 } from "@workspace/api-zod";
-import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { serializeDates } from "../lib/serialize";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { serializeDates } from "../lib/serialize.js";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();

@@ -17,8 +17,8 @@ import {
   UpdateLifeLedgerEntryBody,
   DeleteLifeLedgerEntryParams,
 } from "@workspace/api-zod";
-import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { serializeDates } from "../lib/serialize";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { serializeDates } from "../lib/serialize.js";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
 

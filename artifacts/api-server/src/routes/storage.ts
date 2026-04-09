@@ -6,8 +6,8 @@ import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();

@@ -8,8 +8,8 @@ import {
   UpdateBizdevBrandParams,
   DeleteBizdevBrandParams,
 } from "@workspace/api-zod";
-import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { serializeDates } from "../lib/serialize";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { serializeDates } from "../lib/serialize.js";
 
 const router: IRouter = Router();
 

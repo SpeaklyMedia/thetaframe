@@ -52,3 +52,6 @@ replit.nix
 .upm/
 .breakpoints
 .config/
+
+# Vercel
+.vercel/

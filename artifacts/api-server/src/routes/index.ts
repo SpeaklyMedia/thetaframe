@@ -1,15 +1,15 @@
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
-import dailyFramesRouter from "./daily-frames";
-import weeklyFramesRouter from "./weekly-frames";
-import visionFramesRouter from "./vision-frames";
-import userModeRouter from "./user-mode";
-import bizdevRouter from "./bizdev";
-import lifeLedgerRouter from "./life-ledger";
-import reachRouter from "./reach";
-import storageRouter from "./storage";
-import adminRouter from "./admin";
-import meRouter from "./me";
+import healthRouter from "./health.js";
+import dailyFramesRouter from "./daily-frames.js";
+import weeklyFramesRouter from "./weekly-frames.js";
+import visionFramesRouter from "./vision-frames.js";
+import userModeRouter from "./user-mode.js";
+import bizdevRouter from "./bizdev.js";
+import lifeLedgerRouter from "./life-ledger.js";
+import reachRouter from "./reach.js";
+import storageRouter from "./storage.js";
+import adminRouter from "./admin.js";
+import meRouter from "./me.js";
 
 const router: IRouter = Router();
 

@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import { db } from "@workspace/db";
 import { accessPermissionsTable } from "@workspace/db/schema";
 import { and, eq } from "drizzle-orm";
