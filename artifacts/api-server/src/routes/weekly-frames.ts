@@ -36,6 +36,14 @@ router.post("/weekly-frames", requireAuth, async (req: Request, res: Response): 
     res.status(400).json({ error: body.error.message });
     return;
   }
+  if (body.data.steps.length > 3) {
+    res.status(400).json({ error: "Steps may not contain more than 3 items." });
+    return;
+  }
+  if (body.data.nonNegotiables.length > 5) {
+    res.status(400).json({ error: "Non-negotiables may not contain more than 5 items." });
+    return;
+  }
 
   const [frame] = await db
     .insert(weeklyFramesTable)
@@ -109,6 +117,14 @@ router.put("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
   const body = UpsertWeeklyFrameBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+  if (body.data.steps.length > 3) {
+    res.status(400).json({ error: "Steps may not contain more than 3 items." });
+    return;
+  }
+  if (body.data.nonNegotiables.length > 5) {
+    res.status(400).json({ error: "Non-negotiables may not contain more than 5 items." });
     return;
   }
 

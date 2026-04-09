@@ -50,6 +50,14 @@ router.post("/vision-frames", requireAuth, async (req: Request, res: Response): 
     res.status(400).json({ error: body.error.message });
     return;
   }
+  if (body.data.goals.length > 3) {
+    res.status(400).json({ error: "Goals may not contain more than 3 items." });
+    return;
+  }
+  if (body.data.nextSteps.length > 3) {
+    res.status(400).json({ error: "Next steps may not contain more than 3 items." });
+    return;
+  }
 
   const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
   res.json(CreateVisionFrameResponse.parse(serializeDates(frame)));
@@ -77,6 +85,14 @@ router.put("/vision-frames/me", requireAuth, async (req: Request, res: Response)
   const body = UpsertVisionFrameBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+  if (body.data.goals.length > 3) {
+    res.status(400).json({ error: "Goals may not contain more than 3 items." });
+    return;
+  }
+  if (body.data.nextSteps.length > 3) {
+    res.status(400).json({ error: "Next steps may not contain more than 3 items." });
     return;
   }
 
