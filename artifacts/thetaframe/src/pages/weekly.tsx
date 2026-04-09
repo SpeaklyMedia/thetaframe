@@ -13,6 +13,48 @@ import { WeeklyStep } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const STEP_EMOJIS = ["🎯", "🔥", "💡", "🌱", "🛠️", "⚡", "📌", "✅", "🚀", "🧠", "💪", "🎨"];
+
+function EmojiPicker({ value, onChange }: { value?: string | null; onChange: (e: string | null) => void }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-9 h-9 text-lg shrink-0"
+          data-testid="button-emoji-picker"
+        >
+          {value || "➕"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-2">
+        <div className="grid grid-cols-6 gap-1">
+          {STEP_EMOJIS.map(e => (
+            <button
+              key={e}
+              onClick={() => onChange(e)}
+              className={`text-lg p-1 rounded hover:bg-accent transition-colors ${value === e ? "bg-accent" : ""}`}
+              data-testid={`emoji-option-${e}`}
+            >
+              {e}
+            </button>
+          ))}
+          {value && (
+            <button
+              onClick={() => onChange(null)}
+              className="text-xs text-muted-foreground col-span-6 mt-1 text-center hover:text-foreground"
+            >
+              clear
+            </button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function WeeklyPage() {
   const weekStart = getMondayOfCurrentWeek();
@@ -40,8 +82,8 @@ export default function WeeklyPage() {
     if (frame && initRef.current !== frame.id) {
       initRef.current = frame.id;
       setTheme(frame.theme || "");
-      if (frame.steps && frame.steps.length > 0) setSteps(frame.steps);
-      if (frame.nonNegotiables && frame.nonNegotiables.length > 0) setNonNegotiables(frame.nonNegotiables);
+      if (frame.steps && frame.steps.length > 0) setSteps(frame.steps as WeeklyStep[]);
+      if (frame.nonNegotiables && frame.nonNegotiables.length > 0) setNonNegotiables(frame.nonNegotiables as WeeklyStep[]);
       setRecoveryPlan(frame.recoveryPlan || "");
     }
   }, [frame]);
@@ -83,6 +125,12 @@ export default function WeeklyPage() {
     save({ steps: updated });
   };
 
+  const updateStepEmoji = (id: string, emoji: string | null) => {
+    const updated = steps.map(s => s.id === id ? { ...s, emoji } : s);
+    setSteps(updated);
+    save({ steps: updated });
+  };
+
   const updateNonNegotiable = (id: string, text: string) => {
     const updated = nonNegotiables.map(s => s.id === id ? { ...s, text } : s);
     setNonNegotiables(updated);
@@ -114,15 +162,21 @@ export default function WeeklyPage() {
           <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
             <h2 className="text-xl font-semibold">3 Steps</h2>
             <p className="text-sm text-muted-foreground">What moves the needle this week?</p>
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="weekly-steps">
               {steps.map((step, i) => (
-                <div key={step.id} className="flex items-center gap-3">
-                  <span className="text-muted-foreground text-sm font-medium w-4">{i + 1}.</span>
+                <div key={step.id} className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-sm font-medium w-4 shrink-0">{i + 1}.</span>
+                  <EmojiPicker
+                    value={step.emoji}
+                    onChange={(emoji) => updateStepEmoji(step.id, emoji)}
+                  />
                   <Input 
                     value={step.text}
                     onChange={(e) => updateStep(step.id, e.target.value)}
+                    onBlur={() => save({ steps })}
                     placeholder="Step..."
                     className="flex-1 bg-transparent"
+                    data-testid={`input-step-${i}`}
                   />
                 </div>
               ))}
@@ -135,12 +189,14 @@ export default function WeeklyPage() {
             <div className="space-y-3">
               {nonNegotiables.map((nn, i) => (
                 <div key={nn.id} className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
                   <Input 
                     value={nn.text}
                     onChange={(e) => updateNonNegotiable(nn.id, e.target.value)}
+                    onBlur={() => save({ nonNegotiables })}
                     placeholder="Non-negotiable..."
                     className="flex-1 bg-transparent"
+                    data-testid={`input-non-neg-${i}`}
                   />
                 </div>
               ))}
