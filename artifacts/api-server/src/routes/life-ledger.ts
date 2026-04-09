@@ -50,25 +50,24 @@ router.get("/life-ledger/next-90-days", requireAuth, async (req: Request, res: R
   const windowEndStr = windowEnd.toISOString().split("T")[0];
   const nowStr = now.toISOString().split("T")[0];
 
-  const allEntries: Array<{ id: number; tab: string; name: string; dueDate: string | null; impactLevel: string | null; notes: string | null }> = [];
+  const tabEntries = await Promise.all(
+    (Object.entries(TABLE_MAP) as Array<[Tab, AnyLedgerTable]>).map(async ([tab, table]) => {
+      const rows = await db
+        .select()
+        .from(table as typeof lifeLedgerPeopleTable)
+        .where(
+          and(
+            eq(table.userId, userId),
+            isNotNull(table.dueDate),
+            gte(table.dueDate, nowStr),
+            lte(table.dueDate, windowEndStr),
+          ),
+        );
+      return rows.map((row) => ({ id: row.id, tab, name: row.name, dueDate: row.dueDate, impactLevel: row.impactLevel, notes: row.notes }));
+    }),
+  );
 
-  for (const [tab, table] of Object.entries(TABLE_MAP) as Array<[Tab, AnyLedgerTable]>) {
-    const rows = await db
-      .select()
-      .from(table as typeof lifeLedgerPeopleTable)
-      .where(
-        and(
-          eq(table.userId, userId),
-          isNotNull(table.dueDate),
-          gte(table.dueDate, nowStr),
-          lte(table.dueDate, windowEndStr),
-        ),
-      );
-    for (const row of rows) {
-      allEntries.push({ id: row.id, tab, name: row.name, dueDate: row.dueDate, impactLevel: row.impactLevel, notes: row.notes });
-    }
-  }
-
+  const allEntries = tabEntries.flat();
   allEntries.sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
 
   res.json({ entries: allEntries, windowEnd: windowEndStr });
