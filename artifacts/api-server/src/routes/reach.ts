@@ -50,9 +50,8 @@ router.post("/reach/files", requireAuth, async (req: Request, res: Response): Pr
     return;
   }
 
-  let objectFile;
   try {
-    objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+    await objectStorageService.getObjectEntityFile(objectPath);
   } catch (err) {
     if (err instanceof ObjectNotFoundError) {
       await db.delete(pendingUploadsTable).where(eq(pendingUploadsTable.id, pending.id));
@@ -61,8 +60,6 @@ router.post("/reach/files", requireAuth, async (req: Request, res: Response): Pr
     }
     throw err;
   }
-
-  void objectFile;
 
   await db
     .delete(pendingUploadsTable)
