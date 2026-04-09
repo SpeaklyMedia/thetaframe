@@ -2,8 +2,10 @@ import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wo
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk } from "@clerk/react";
 import { useEffect, useRef } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Layout } from "@/components/layout";
 
 import Home from "@/pages/home";
 import SignInPage from "@/pages/sign-in";
@@ -34,6 +36,22 @@ if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
 }
 
+function PageSkeleton() {
+  return (
+    <Layout>
+      <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
+        <Skeleton className="h-9 w-48" />
+        <Skeleton className="h-10 w-full max-w-sm" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-32 w-full rounded-2xl" />
+      </div>
+    </Layout>
+  );
+}
+
 function HomeRedirect() {
   return (
     <>
@@ -62,7 +80,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function GatedRoute({ component: Component, module }: { component: React.ComponentType; module: string }) {
   const { hasModule, isLoading } = usePermissions();
-  if (isLoading) return null;
+  if (isLoading) return <PageSkeleton />;
   return (
     <>
       <Show when="signed-in">
@@ -77,7 +95,7 @@ function GatedRoute({ component: Component, module }: { component: React.Compone
 
 function AdminRoute() {
   const { isAdmin, isLoading } = usePermissions();
-  if (isLoading) return null;
+  if (isLoading) return <PageSkeleton />;
   return (
     <>
       <Show when="signed-in">
@@ -128,35 +146,40 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
-          <Switch>
-            <Route path="/" component={HomeRedirect} />
-            <Route path="/sign-in/*?" component={SignInPage} />
-            <Route path="/sign-up/*?" component={SignUpPage} />
+          <ClerkLoading>
+            <PageSkeleton />
+          </ClerkLoading>
+          <ClerkLoaded>
+            <Switch>
+              <Route path="/" component={HomeRedirect} />
+              <Route path="/sign-in/*?" component={SignInPage} />
+              <Route path="/sign-up/*?" component={SignUpPage} />
 
-            <Route path="/daily">
-              <GatedRoute component={DailyPage} module="daily" />
-            </Route>
-            <Route path="/weekly">
-              <GatedRoute component={WeeklyPage} module="weekly" />
-            </Route>
-            <Route path="/vision">
-              <GatedRoute component={VisionPage} module="vision" />
-            </Route>
-            <Route path="/bizdev">
-              <GatedRoute component={BizdevPage} module="bizdev" />
-            </Route>
-            <Route path="/life-ledger">
-              <GatedRoute component={LifeLedgerPage} module="life-ledger" />
-            </Route>
-            <Route path="/reach">
-              <GatedRoute component={ReachPage} module="reach" />
-            </Route>
-            <Route path="/admin">
-              <AdminRoute />
-            </Route>
+              <Route path="/daily">
+                <GatedRoute component={DailyPage} module="daily" />
+              </Route>
+              <Route path="/weekly">
+                <GatedRoute component={WeeklyPage} module="weekly" />
+              </Route>
+              <Route path="/vision">
+                <GatedRoute component={VisionPage} module="vision" />
+              </Route>
+              <Route path="/bizdev">
+                <GatedRoute component={BizdevPage} module="bizdev" />
+              </Route>
+              <Route path="/life-ledger">
+                <GatedRoute component={LifeLedgerPage} module="life-ledger" />
+              </Route>
+              <Route path="/reach">
+                <GatedRoute component={ReachPage} module="reach" />
+              </Route>
+              <Route path="/admin">
+                <AdminRoute />
+              </Route>
 
-            <Route component={NotFound} />
-          </Switch>
+              <Route component={NotFound} />
+            </Switch>
+          </ClerkLoaded>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
