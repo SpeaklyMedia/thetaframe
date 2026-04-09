@@ -56,7 +56,11 @@ cd artifacts/thetaframe && pnpm tsc --noEmit
 - `vision_frames` — userId (unique), goals, next steps
 - `user_modes` — userId (unique), mode (explore/build/release), colour state
 - `bizdev_brands` — userId, brand, phase (COLD/WARM/HOT), human status, next action, touch date/channel, owner, blocker, money open/notes
-- `life_ledger` — userId, tab (people/events/financial/subscriptions/travel), name, tags (jsonb), impact level, review window, due date, notes, amount, currency, is_essential, billing_cycle
+- `life_ledger_people` — userId, tab, name, tags (jsonb), impact level, review window, due date, notes
+- `life_ledger_events` — same schema; stores events entries
+- `life_ledger_financial` — same schema; stores financial entries (amount, currency)
+- `life_ledger_subscriptions` — same schema; stores subscription entries (amount, currency, is_essential, billing_cycle)
+- `life_ledger_travel` — same schema; stores travel entries
 - `reach_files` — userId, name, file_type, size_bytes, object_path, notes
 
 ## API Routes

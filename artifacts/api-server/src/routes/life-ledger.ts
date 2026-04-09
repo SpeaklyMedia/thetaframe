@@ -1,6 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, lifeLedgerTable } from "@workspace/db";
+import { db } from "@workspace/db";
+import {
+  lifeLedgerPeopleTable,
+  lifeLedgerEventsTable,
+  lifeLedgerFinancialTable,
+  lifeLedgerSubscriptionsTable,
+  lifeLedgerTravelTable,
+} from "@workspace/db";
 import {
   ListLifeLedgerEntriesParams,
   CreateLifeLedgerEntryParams,
@@ -13,10 +20,26 @@ import {
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
 import { serializeDates } from "../lib/serialize";
 
-const VALID_TABS = ["people", "events", "financial", "subscriptions", "travel"] as const;
-type Tab = typeof VALID_TABS[number];
+type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
+
+const VALID_TABS: Tab[] = ["people", "events", "financial", "subscriptions", "travel"];
+
+const TABLE_MAP = {
+  people: lifeLedgerPeopleTable,
+  events: lifeLedgerEventsTable,
+  financial: lifeLedgerFinancialTable,
+  subscriptions: lifeLedgerSubscriptionsTable,
+  travel: lifeLedgerTravelTable,
+} as const;
+
+type AnyLedgerTable = typeof lifeLedgerPeopleTable;
 
 const router: IRouter = Router();
+
+function resolveTable(tab: string): AnyLedgerTable | null {
+  if (!VALID_TABS.includes(tab as Tab)) return null;
+  return TABLE_MAP[tab as Tab] as AnyLedgerTable;
+}
 
 router.get("/life-ledger/next-90-days", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
@@ -27,33 +50,26 @@ router.get("/life-ledger/next-90-days", requireAuth, async (req: Request, res: R
   const windowEndStr = windowEnd.toISOString().split("T")[0];
   const nowStr = now.toISOString().split("T")[0];
 
-  const allEntries = await db
-    .select()
-    .from(lifeLedgerTable)
-    .where(eq(lifeLedgerTable.userId, userId));
+  const allEntries: Array<{ id: number; tab: string; name: string; dueDate: string | null; impactLevel: string | null; notes: string | null }> = [];
 
-  const upcoming = allEntries
-    .filter((e) => e.dueDate && e.dueDate >= nowStr && e.dueDate <= windowEndStr)
-    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
-    .map((e) => ({
-      id: e.id,
-      tab: e.tab,
-      name: e.name,
-      dueDate: e.dueDate as string,
-      impactLevel: e.impactLevel,
-      notes: e.notes,
-    }));
+  for (const [tab, table] of Object.entries(TABLE_MAP) as Array<[Tab, AnyLedgerTable]>) {
+    const rows = await db.select().from(table as typeof lifeLedgerPeopleTable).where(eq(table.userId, userId));
+    for (const row of rows) {
+      if (row.dueDate && row.dueDate >= nowStr && row.dueDate <= windowEndStr) {
+        allEntries.push({ id: row.id, tab, name: row.name, dueDate: row.dueDate, impactLevel: row.impactLevel, notes: row.notes });
+      }
+    }
+  }
 
-  res.json({ entries: upcoming, windowEnd: windowEndStr });
+  allEntries.sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
+
+  res.json({ entries: allEntries, windowEnd: windowEndStr });
 });
 
 router.get("/life-ledger/subscription-audit", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
-  const subs = await db
-    .select()
-    .from(lifeLedgerTable)
-    .where(and(eq(lifeLedgerTable.userId, userId), eq(lifeLedgerTable.tab, "subscriptions")));
+  const subs = await db.select().from(lifeLedgerSubscriptionsTable).where(eq(lifeLedgerSubscriptionsTable.userId, userId));
 
   let totalMonthlyEssential = 0;
   let totalMonthlyNonEssential = 0;
@@ -95,17 +111,17 @@ router.get("/life-ledger/:tab", requireAuth, async (req: Request, res: Response)
     return;
   }
 
-  const tab = params.data.tab as Tab;
-  if (!VALID_TABS.includes(tab)) {
+  const table = resolveTable(params.data.tab);
+  if (!table) {
     res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
     return;
   }
 
   const entries = await db
     .select()
-    .from(lifeLedgerTable)
-    .where(and(eq(lifeLedgerTable.userId, userId), eq(lifeLedgerTable.tab, tab)))
-    .orderBy(lifeLedgerTable.name);
+    .from(table)
+    .where(eq(table.userId, userId))
+    .orderBy(table.name);
 
   res.json(entries.map(serializeDates));
 });
@@ -119,8 +135,8 @@ router.post("/life-ledger/:tab", requireAuth, async (req: Request, res: Response
     return;
   }
 
-  const tab = params.data.tab as Tab;
-  if (!VALID_TABS.includes(tab)) {
+  const table = resolveTable(params.data.tab);
+  if (!table) {
     res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
     return;
   }
@@ -132,8 +148,8 @@ router.post("/life-ledger/:tab", requireAuth, async (req: Request, res: Response
   }
 
   const [entry] = await db
-    .insert(lifeLedgerTable)
-    .values({ userId, tab, ...body.data })
+    .insert(table)
+    .values({ userId, tab: params.data.tab, ...body.data })
     .returning();
 
   res.status(201).json(serializeDates(entry));
@@ -148,10 +164,16 @@ router.get("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Respo
     return;
   }
 
+  const table = resolveTable(params.data.tab);
+  if (!table) {
+    res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
+    return;
+  }
+
   const [entry] = await db
     .select()
-    .from(lifeLedgerTable)
-    .where(and(eq(lifeLedgerTable.userId, userId), eq(lifeLedgerTable.id, params.data.id)));
+    .from(table)
+    .where(and(eq(table.userId, userId), eq(table.id, params.data.id)));
 
   if (!entry) {
     res.status(404).json({ error: "Entry not found" });
@@ -170,6 +192,12 @@ router.put("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Respo
     return;
   }
 
+  const table = resolveTable(params.data.tab);
+  if (!table) {
+    res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
+    return;
+  }
+
   const body = UpdateLifeLedgerEntryBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -177,9 +205,9 @@ router.put("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Respo
   }
 
   const [entry] = await db
-    .update(lifeLedgerTable)
+    .update(table)
     .set({ ...body.data, updatedAt: new Date() })
-    .where(and(eq(lifeLedgerTable.userId, userId), eq(lifeLedgerTable.id, params.data.id)))
+    .where(and(eq(table.userId, userId), eq(table.id, params.data.id)))
     .returning();
 
   if (!entry) {
@@ -199,9 +227,15 @@ router.delete("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Re
     return;
   }
 
+  const table = resolveTable(params.data.tab);
+  if (!table) {
+    res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
+    return;
+  }
+
   await db
-    .delete(lifeLedgerTable)
-    .where(and(eq(lifeLedgerTable.userId, userId), eq(lifeLedgerTable.id, params.data.id)));
+    .delete(table)
+    .where(and(eq(table.userId, userId), eq(table.id, params.data.id)));
 
   res.status(204).send();
 });

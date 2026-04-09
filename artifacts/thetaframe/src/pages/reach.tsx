@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import {
   useListReachFiles,
@@ -13,12 +13,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Trash2, FileText, File, Image, FileArchive } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Upload, Trash2, FileText, File, Image, FileArchive, ChevronDown, Search, X } from "lucide-react";
 
 function fileIcon(fileType: string | null | undefined) {
   if (!fileType) return <File className="w-5 h-5 text-muted-foreground" />;
   if (fileType.startsWith("image/")) return <Image className="w-5 h-5 text-blue-500" />;
-  if (fileType === "application/pdf" || fileType.includes("document") || fileType.includes("text"))
+  if (
+    fileType === "application/pdf" ||
+    fileType.includes("document") ||
+    fileType.startsWith("text/")
+  )
     return <FileText className="w-5 h-5 text-orange-500" />;
   if (fileType.includes("zip") || fileType.includes("archive") || fileType.includes("tar"))
     return <FileArchive className="w-5 h-5 text-purple-500" />;
@@ -30,6 +40,15 @@ function formatBytes(bytes: number | null | undefined): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function coarseType(fileType: string | null | undefined): string {
+  if (!fileType) return "Other";
+  if (fileType.startsWith("image/")) return "Image";
+  if (fileType === "application/pdf") return "PDF";
+  if (fileType.startsWith("text/") || fileType.includes("document")) return "Document";
+  if (fileType.includes("zip") || fileType.includes("archive") || fileType.includes("tar")) return "Archive";
+  return "Other";
 }
 
 function FileCard({
@@ -52,7 +71,7 @@ function FileCard({
           {file.name}
         </p>
         <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-          {file.fileType && <span>{file.fileType}</span>}
+          {file.fileType && <span className="capitalize">{coarseType(file.fileType)}</span>}
           {file.sizeBytes && <span>{formatBytes(file.sizeBytes)}</span>}
           <span>{file.createdAt ? new Date(file.createdAt).toLocaleDateString() : ""}</span>
         </div>
@@ -84,6 +103,8 @@ export default function ReachPage() {
   const [pendingNotes, setPendingNotes] = useState<Record<string, string>>({});
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string>("All");
 
   const { data: files, isLoading } = useListReachFiles({
     query: { queryKey: getListReachFilesQueryKey() },
@@ -95,6 +116,26 @@ export default function ReachPage() {
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListReachFilesQueryKey() });
+
+  const typeOptions = useMemo(() => {
+    const types = new Set((files ?? []).map((f) => coarseType(f.fileType)));
+    return ["All", ...Array.from(types).sort()];
+  }, [files]);
+
+  const filteredFiles = useMemo(() => {
+    let list = files ?? [];
+    if (filterType !== "All") list = list.filter((f) => coarseType(f.fileType) === filterType);
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(
+        (f) =>
+          f.name.toLowerCase().includes(q) ||
+          (f.notes ?? "").toLowerCase().includes(q) ||
+          (f.fileType ?? "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [files, filterType, searchQuery]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -230,16 +271,62 @@ export default function ReachPage() {
           )}
         </div>
 
+        <div className="flex flex-wrap items-center gap-3" data-testid="file-filters">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search files..."
+              className="pl-9"
+              data-testid="input-search-files"
+            />
+            {searchQuery && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                onClick={() => setSearchQuery("")}
+                data-testid="button-clear-search"
+              >
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {typeOptions.length > 1 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="filter-type-trigger">
+                  {filterType === "All" ? "All types" : filterType}
+                  <ChevronDown className="w-3 h-3 ml-1.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {typeOptions.map((t) => (
+                  <DropdownMenuItem
+                    key={t}
+                    onClick={() => setFilterType(t)}
+                    className={filterType === t ? "font-semibold" : ""}
+                    data-testid={`filter-type-${t.toLowerCase()}`}
+                  >
+                    {t}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="space-y-3">
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
           </div>
-        ) : files && files.length > 0 ? (
+        ) : filteredFiles.length > 0 ? (
           <div className="space-y-3" data-testid="files-list">
-            <p className="text-sm text-muted-foreground">{files.length} file{files.length !== 1 ? "s" : ""}</p>
-            {files.map((file) => (
+            <p className="text-sm text-muted-foreground">
+              {filteredFiles.length} file{filteredFiles.length !== 1 ? "s" : ""}
+              {(searchQuery || filterType !== "All") ? " matching filters" : ""}
+            </p>
+            {filteredFiles.map((file) => (
               <FileCard
                 key={file.id}
                 file={file}
@@ -247,6 +334,13 @@ export default function ReachPage() {
                 isDeleting={deletingId === file.id}
               />
             ))}
+          </div>
+        ) : files && files.length > 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state-filtered">
+            <p className="text-muted-foreground">No files match the current filters.</p>
+            <Button variant="ghost" size="sm" className="mt-3" onClick={() => { setSearchQuery(""); setFilterType("All"); }}>
+              Clear filters
+            </Button>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state">

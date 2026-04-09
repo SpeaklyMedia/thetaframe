@@ -33,6 +33,11 @@ router.post("/reach/files", requireAuth, async (req: Request, res: Response): Pr
     return;
   }
 
+  if (!body.data.objectPath.startsWith("/objects/")) {
+    res.status(400).json({ error: "Invalid objectPath" });
+    return;
+  }
+
   const [file] = await db
     .insert(reachFilesTable)
     .values({ userId, ...body.data })

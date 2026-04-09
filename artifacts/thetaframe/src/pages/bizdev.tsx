@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import {
   useListBizdevBrands,
@@ -22,9 +22,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, X, ChevronDown, Pencil } from "lucide-react";
+import { Plus, X, ChevronDown, Pencil, ChevronUp, ChevronsUpDown } from "lucide-react";
 
 type Phase = "COLD" | "WARM" | "HOT";
+type SortField = "brand" | "nextTouchDate" | "phase" | "moneyOpen";
+type SortDir = "asc" | "desc";
 
 const PHASE_LABELS: Record<Phase, string> = {
   COLD: "Cold",
@@ -77,7 +79,7 @@ function BrandForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Brand *</label>
           <Input
@@ -111,6 +113,16 @@ function BrandForm({
         </div>
 
         <div className="space-y-1.5">
+          <label className="text-sm font-medium">Owner</label>
+          <Input
+            value={form.owner ?? ""}
+            onChange={(e) => set("owner", e.target.value || null)}
+            placeholder="Who owns this lead?"
+            data-testid="input-owner"
+          />
+        </div>
+
+        <div className="space-y-1.5">
           <label className="text-sm font-medium">Human Status</label>
           <Input
             value={form.humanStatus ?? ""}
@@ -121,12 +133,22 @@ function BrandForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Owner</label>
+          <label className="text-sm font-medium">Next Action</label>
           <Input
-            value={form.owner ?? ""}
-            onChange={(e) => set("owner", e.target.value || null)}
-            placeholder="Who owns this lead?"
-            data-testid="input-owner"
+            value={form.nextAction ?? ""}
+            onChange={(e) => set("nextAction", e.target.value || null)}
+            placeholder="What's the next concrete step?"
+            data-testid="input-next-action"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Blocker</label>
+          <Input
+            value={form.blocker ?? ""}
+            onChange={(e) => set("blocker", e.target.value || null)}
+            placeholder="What's in the way?"
+            data-testid="input-blocker"
           />
         </div>
 
@@ -174,26 +196,6 @@ function BrandForm({
             data-testid="input-money-open"
           />
         </div>
-
-        <div className="space-y-1.5 md:col-span-1">
-          <label className="text-sm font-medium">Next Action</label>
-          <Input
-            value={form.nextAction ?? ""}
-            onChange={(e) => set("nextAction", e.target.value || null)}
-            placeholder="What's the next concrete step?"
-            data-testid="input-next-action"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium">Blocker</label>
-        <Input
-          value={form.blocker ?? ""}
-          onChange={(e) => set("blocker", e.target.value || null)}
-          placeholder="What's in the way?"
-          data-testid="input-blocker"
-        />
       </div>
 
       <div className="space-y-1.5">
@@ -219,80 +221,11 @@ function BrandForm({
   );
 }
 
-function BrandCard({
-  brand,
-  onEdit,
-  onDelete,
-}: {
-  brand: BizdevBrand;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div
-      className="bg-card border rounded-2xl p-5 shadow-sm space-y-3 transition-shadow hover:shadow-md group"
-      data-testid={`brand-card-${brand.id}`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-base font-semibold truncate">{brand.brand}</h3>
-          <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-semibold ${PHASE_COLORS[brand.phase as Phase]}`}>
-            {PHASE_LABELS[brand.phase as Phase]}
-          </span>
-        </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit" data-testid={`button-edit-brand-${brand.id}`}>
-            <Pencil className="w-4 h-4 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onDelete} aria-label="Delete" data-testid={`button-delete-brand-${brand.id}`}>
-            <X className="w-4 h-4 text-muted-foreground" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-        {brand.humanStatus && (
-          <div className="col-span-2">
-            <span className="text-muted-foreground text-xs">Status: </span>
-            <span>{brand.humanStatus}</span>
-          </div>
-        )}
-        {brand.nextAction && (
-          <div className="col-span-2">
-            <span className="text-muted-foreground text-xs">Next: </span>
-            <span>{brand.nextAction}</span>
-          </div>
-        )}
-        {brand.nextTouchDate && (
-          <div>
-            <span className="text-muted-foreground text-xs">Touch by: </span>
-            <span className="font-medium">{brand.nextTouchDate}</span>
-            {brand.nextTouchChannel && (
-              <span className="text-muted-foreground text-xs"> via {brand.nextTouchChannel}</span>
-            )}
-          </div>
-        )}
-        {brand.owner && (
-          <div>
-            <span className="text-muted-foreground text-xs">Owner: </span>
-            <span>{brand.owner}</span>
-          </div>
-        )}
-        {brand.blocker && (
-          <div className="col-span-2">
-            <span className="text-muted-foreground text-xs">Blocker: </span>
-            <span className="text-destructive">{brand.blocker}</span>
-          </div>
-        )}
-        {brand.moneyOpen != null && (
-          <div>
-            <span className="text-muted-foreground text-xs">Money Open: </span>
-            <span className="font-medium">${brand.moneyOpen.toLocaleString()}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function SortIcon({ field, active, dir }: { field: string; active: boolean; dir: SortDir }) {
+  if (!active) return <ChevronsUpDown className="w-3 h-3 ml-1 text-muted-foreground/50" />;
+  return dir === "asc"
+    ? <ChevronUp className="w-3 h-3 ml-1 text-primary" />
+    : <ChevronDown className="w-3 h-3 ml-1 text-primary" />;
 }
 
 export default function BizdevPage() {
@@ -309,6 +242,43 @@ export default function BizdevPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [filterPhase, setFilterPhase] = useState<Phase | "ALL">("ALL");
+  const [filterOwner, setFilterOwner] = useState("");
+  const [sortField, setSortField] = useState<SortField>("nextTouchDate");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const uniqueOwners = useMemo(
+    () => Array.from(new Set(brands?.map((b) => b.owner).filter(Boolean) as string[])).sort(),
+    [brands],
+  );
+
+  const filteredBrands = useMemo(() => {
+    let list = brands ?? [];
+    if (filterPhase !== "ALL") list = list.filter((b) => b.phase === filterPhase);
+    if (filterOwner) list = list.filter((b) => b.owner === filterOwner);
+    list = [...list].sort((a, b) => {
+      let va: string | number | null = null;
+      let vb: string | number | null = null;
+      if (sortField === "brand") { va = a.brand; vb = b.brand; }
+      else if (sortField === "nextTouchDate") { va = a.nextTouchDate ?? ""; vb = b.nextTouchDate ?? ""; }
+      else if (sortField === "phase") { va = a.phase; vb = b.phase; }
+      else if (sortField === "moneyOpen") { va = a.moneyOpen ?? -1; vb = b.moneyOpen ?? -1; }
+
+      if (va === vb) return 0;
+      const cmp = (va ?? "") < (vb ?? "") ? -1 : 1;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [brands, filterPhase, filterOwner, sortField, sortDir]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListBizdevBrandsQueryKey() });
@@ -339,9 +309,22 @@ export default function BizdevPage() {
 
   const editingBrand = brands?.find((b) => b.id === editingId);
 
+  const ColHeader = ({ field, label }: { field: SortField; label: string }) => (
+    <th
+      className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap"
+      onClick={() => handleSort(field)}
+      data-testid={`sort-${field}`}
+    >
+      <span className="inline-flex items-center">
+        {label}
+        <SortIcon field={field} active={sortField === field} dir={sortDir} />
+      </span>
+    </th>
+  );
+
   return (
     <Layout>
-      <div className="container mx-auto p-4 md:p-8 max-w-5xl space-y-8">
+      <div className="container mx-auto p-4 md:p-8 max-w-7xl space-y-6">
         <header className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight" data-testid="text-bizdev-title">BizDev</h1>
@@ -357,13 +340,62 @@ export default function BizdevPage() {
         {summary && (
           <div className="grid grid-cols-3 gap-4" data-testid="bizdev-summary">
             {(["COLD", "WARM", "HOT"] as Phase[]).map((p) => (
-              <div key={p} className={`rounded-2xl p-4 text-center border shadow-sm ${PHASE_COLORS[p]}`}>
+              <button
+                key={p}
+                onClick={() => setFilterPhase(filterPhase === p ? "ALL" : p)}
+                className={`rounded-2xl p-4 text-center border shadow-sm transition-all ${
+                  filterPhase === p
+                    ? PHASE_COLORS[p] + " ring-2 ring-current ring-offset-2"
+                    : PHASE_COLORS[p]
+                }`}
+                data-testid={`filter-phase-${p.toLowerCase()}`}
+              >
                 <div className="text-2xl font-bold">{summary.counts[p]}</div>
                 <div className="text-xs font-semibold mt-0.5 uppercase tracking-wide opacity-80">{PHASE_LABELS[p]}</div>
-              </div>
+              </button>
             ))}
           </div>
         )}
+
+        <div className="flex flex-wrap items-center gap-3" data-testid="filter-bar">
+          {filterPhase !== "ALL" && (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${PHASE_COLORS[filterPhase]}`}>
+              Phase: {PHASE_LABELS[filterPhase]}
+              <button onClick={() => setFilterPhase("ALL")} aria-label="Clear phase filter" data-testid="clear-phase-filter">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {uniqueOwners.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="filter-owner-trigger">
+                  {filterOwner ? `Owner: ${filterOwner}` : "Filter by owner"}
+                  <ChevronDown className="w-3 h-3 ml-1.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setFilterOwner("")} data-testid="filter-owner-all">All owners</DropdownMenuItem>
+                {uniqueOwners.map((o) => (
+                  <DropdownMenuItem key={o} onClick={() => setFilterOwner(o)} data-testid={`filter-owner-${o}`}>
+                    {o}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {filterOwner && (
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setFilterOwner("")}
+              data-testid="clear-owner-filter"
+            >
+              Clear owner
+            </button>
+          )}
+        </div>
 
         {(showForm || editingId !== null) && (
           <div className="bg-card border rounded-2xl p-6 shadow-sm" data-testid="brand-form-panel">
@@ -401,32 +433,83 @@ export default function BizdevPage() {
         )}
 
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full rounded-2xl" />
-            <Skeleton className="h-32 w-full rounded-2xl" />
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
           </div>
-        ) : brands && brands.length > 0 ? (
-          <div className="space-y-4" data-testid="brands-list">
-            {brands.map((brand) => (
-              editingId === brand.id ? null : (
-                <BrandCard
-                  key={brand.id}
-                  brand={brand}
-                  onEdit={() => {
-                    setShowForm(false);
-                    setEditingId(brand.id);
-                  }}
-                  onDelete={() => handleDelete(brand.id)}
-                />
-              )
-            ))}
+        ) : filteredBrands.length > 0 ? (
+          <div className="overflow-x-auto rounded-2xl border shadow-sm bg-card" data-testid="brands-table">
+            <table className="w-full text-sm">
+              <thead className="border-b bg-muted/40">
+                <tr>
+                  <ColHeader field="brand" label="Brand" />
+                  <ColHeader field="phase" label="Phase" />
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Status</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Next Action</th>
+                  <ColHeader field="nextTouchDate" label="Touch Date" />
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Channel</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Owner</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Blocker</th>
+                  <ColHeader field="moneyOpen" label="$ Open" />
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBrands.map((brand) => (
+                  <tr key={brand.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`brand-row-${brand.id}`}>
+                    <td className="px-3 py-3 font-medium whitespace-nowrap">{brand.brand}</td>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${PHASE_COLORS[brand.phase as Phase]}`}>
+                        {PHASE_LABELS[brand.phase as Phase]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground max-w-[160px] truncate">{brand.humanStatus ?? ""}</td>
+                    <td className="px-3 py-3 text-muted-foreground max-w-[180px] truncate">{brand.nextAction ?? ""}</td>
+                    <td className="px-3 py-3 font-mono text-xs whitespace-nowrap">{brand.nextTouchDate ?? ""}</td>
+                    <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{brand.nextTouchChannel ?? ""}</td>
+                    <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{brand.owner ?? ""}</td>
+                    <td className="px-3 py-3 text-destructive max-w-[140px] truncate">{brand.blocker ?? ""}</td>
+                    <td className="px-3 py-3 font-mono whitespace-nowrap">
+                      {brand.moneyOpen != null ? `$${brand.moneyOpen.toLocaleString()}` : ""}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => { setShowForm(false); setEditingId(brand.id); }}
+                          aria-label="Edit"
+                          data-testid={`button-edit-brand-${brand.id}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(brand.id)}
+                          aria-label="Delete"
+                          data-testid={`button-delete-brand-${brand.id}`}
+                        >
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : !showForm ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-muted-foreground">No leads yet.</p>
-            <Button variant="outline" className="mt-4" onClick={() => setShowForm(true)} data-testid="button-empty-new-lead">
-              <Plus className="w-4 h-4 mr-2" /> Add your first lead
-            </Button>
+            <p className="text-muted-foreground">
+              {filterPhase !== "ALL" || filterOwner
+                ? "No leads match the current filters."
+                : "No leads yet."}
+            </p>
+            {filterPhase === "ALL" && !filterOwner && (
+              <Button variant="outline" className="mt-4" onClick={() => setShowForm(true)} data-testid="button-empty-new-lead">
+                <Plus className="w-4 h-4 mr-2" /> Add your first lead
+              </Button>
+            )}
           </div>
         ) : null}
       </div>
