@@ -8,8 +8,7 @@ import { logger } from "./lib/logger.js";
 
 const app = express();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-app.use((pinoHttp as any)({
+const httpLogger = pinoHttp({
   logger,
   serializers: {
     req(req: { id: string; method: string; url: string }) {
@@ -25,7 +24,8 @@ app.use((pinoHttp as any)({
       };
     },
   },
-}));
+});
+app.use(httpLogger);
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
