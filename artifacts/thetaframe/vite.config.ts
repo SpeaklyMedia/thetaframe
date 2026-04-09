@@ -13,7 +13,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    ...(process.env.REPL_ID !== undefined
+    ...(process.env.REPL_ID !== undefined && process.env.NODE_ENV !== "production"
       ? [
           await import("@replit/vite-plugin-runtime-error-modal").then((m) =>
             m.default(),
