@@ -17,17 +17,22 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AccessPreset,
+  AdminUser,
   BizdevBrand,
   BizdevBrandBody,
   BizdevSummary,
   CreateDailyFrameBody,
+  CreatePresetBody,
   CreateWeeklyFrameBody,
   DailyFrame,
   ErrorResponse,
   HealthStatus,
   LifeLedgerEntry,
   LifeLedgerEntryBody,
+  MyPermissionsResponse,
   Next90DaysResponse,
+  PutUserPermissionsBody,
   ReachFile,
   ReachFileBody,
   RequestUploadUrlBody,
@@ -38,6 +43,7 @@ import type {
   UpsertVisionFrameBody,
   UpsertWeeklyFrameBody,
   UserMode,
+  UserPermissionsResponse,
   VisionFrame,
   WeeklyFrame,
 } from "./api.schemas";
@@ -2836,4 +2842,670 @@ export const useUpsertUserMode = <
   TContext
 > => {
   return useMutation(getUpsertUserModeMutationOptions(options));
+};
+
+/**
+ * @summary Get the current user's permitted modules for the current environment
+ */
+export const getGetMyPermissionsUrl = () => {
+  return `/api/me/permissions`;
+};
+
+export const getMyPermissions = async (
+  options?: RequestInit,
+): Promise<MyPermissionsResponse> => {
+  return customFetch<MyPermissionsResponse>(getGetMyPermissionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyPermissionsQueryKey = () => {
+  return [`/api/me/permissions`] as const;
+};
+
+export const getGetMyPermissionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyPermissions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPermissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyPermissionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyPermissions>>
+  > = ({ signal }) => getMyPermissions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPermissions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyPermissionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyPermissions>>
+>;
+export type GetMyPermissionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's permitted modules for the current environment
+ */
+
+export function useGetMyPermissions<
+  TData = Awaited<ReturnType<typeof getMyPermissions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPermissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyPermissionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all Clerk users with their permissions (admin only)
+ */
+export const getListAdminUsersUrl = () => {
+  return `/api/admin/users`;
+};
+
+export const listAdminUsers = async (
+  options?: RequestInit,
+): Promise<AdminUser[]> => {
+  return customFetch<AdminUser[]>(getListAdminUsersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminUsersQueryKey = () => {
+  return [`/api/admin/users`] as const;
+};
+
+export const getListAdminUsersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminUsers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminUsers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminUsersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({
+    signal,
+  }) => listAdminUsers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminUsers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminUsersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminUsers>>
+>;
+export type ListAdminUsersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all Clerk users with their permissions (admin only)
+ */
+
+export function useListAdminUsers<
+  TData = Awaited<ReturnType<typeof listAdminUsers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminUsers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminUsersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a user's permissions (admin only)
+ */
+export const getGetAdminUserPermissionsUrl = (userId: string) => {
+  return `/api/admin/users/${userId}/permissions`;
+};
+
+export const getAdminUserPermissions = async (
+  userId: string,
+  options?: RequestInit,
+): Promise<UserPermissionsResponse> => {
+  return customFetch<UserPermissionsResponse>(
+    getGetAdminUserPermissionsUrl(userId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAdminUserPermissionsQueryKey = (userId: string) => {
+  return [`/api/admin/users/${userId}/permissions`] as const;
+};
+
+export const getGetAdminUserPermissionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminUserPermissions>>,
+  TError = ErrorType<unknown>,
+>(
+  userId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminUserPermissions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAdminUserPermissionsQueryKey(userId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminUserPermissions>>
+  > = ({ signal }) =>
+    getAdminUserPermissions(userId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!userId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminUserPermissions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminUserPermissionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminUserPermissions>>
+>;
+export type GetAdminUserPermissionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a user's permissions (admin only)
+ */
+
+export function useGetAdminUserPermissions<
+  TData = Awaited<ReturnType<typeof getAdminUserPermissions>>,
+  TError = ErrorType<unknown>,
+>(
+  userId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminUserPermissions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminUserPermissionsQueryOptions(userId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Replace a user's full permissions (admin only)
+ */
+export const getPutAdminUserPermissionsUrl = (userId: string) => {
+  return `/api/admin/users/${userId}/permissions`;
+};
+
+export const putAdminUserPermissions = async (
+  userId: string,
+  putUserPermissionsBody: PutUserPermissionsBody,
+  options?: RequestInit,
+): Promise<UserPermissionsResponse> => {
+  return customFetch<UserPermissionsResponse>(
+    getPutAdminUserPermissionsUrl(userId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(putUserPermissionsBody),
+    },
+  );
+};
+
+export const getPutAdminUserPermissionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof putAdminUserPermissions>>,
+    TError,
+    { userId: string; data: BodyType<PutUserPermissionsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof putAdminUserPermissions>>,
+  TError,
+  { userId: string; data: BodyType<PutUserPermissionsBody> },
+  TContext
+> => {
+  const mutationKey = ["putAdminUserPermissions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof putAdminUserPermissions>>,
+    { userId: string; data: BodyType<PutUserPermissionsBody> }
+  > = (props) => {
+    const { userId, data } = props ?? {};
+
+    return putAdminUserPermissions(userId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PutAdminUserPermissionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof putAdminUserPermissions>>
+>;
+export type PutAdminUserPermissionsMutationBody =
+  BodyType<PutUserPermissionsBody>;
+export type PutAdminUserPermissionsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Replace a user's full permissions (admin only)
+ */
+export const usePutAdminUserPermissions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof putAdminUserPermissions>>,
+    TError,
+    { userId: string; data: BodyType<PutUserPermissionsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof putAdminUserPermissions>>,
+  TError,
+  { userId: string; data: BodyType<PutUserPermissionsBody> },
+  TContext
+> => {
+  return useMutation(getPutAdminUserPermissionsMutationOptions(options));
+};
+
+/**
+ * @summary List all access presets (admin only)
+ */
+export const getListAdminPresetsUrl = () => {
+  return `/api/admin/presets`;
+};
+
+export const listAdminPresets = async (
+  options?: RequestInit,
+): Promise<AccessPreset[]> => {
+  return customFetch<AccessPreset[]>(getListAdminPresetsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminPresetsQueryKey = () => {
+  return [`/api/admin/presets`] as const;
+};
+
+export const getListAdminPresetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminPresets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminPresets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminPresetsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminPresets>>
+  > = ({ signal }) => listAdminPresets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminPresets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminPresetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminPresets>>
+>;
+export type ListAdminPresetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all access presets (admin only)
+ */
+
+export function useListAdminPresets<
+  TData = Awaited<ReturnType<typeof listAdminPresets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminPresets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminPresetsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new access preset (admin only)
+ */
+export const getCreateAdminPresetUrl = () => {
+  return `/api/admin/presets`;
+};
+
+export const createAdminPreset = async (
+  createPresetBody: CreatePresetBody,
+  options?: RequestInit,
+): Promise<AccessPreset> => {
+  return customFetch<AccessPreset>(getCreateAdminPresetUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPresetBody),
+  });
+};
+
+export const getCreateAdminPresetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminPreset>>,
+    TError,
+    { data: BodyType<CreatePresetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminPreset>>,
+  TError,
+  { data: BodyType<CreatePresetBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdminPreset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminPreset>>,
+    { data: BodyType<CreatePresetBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminPreset(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminPresetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminPreset>>
+>;
+export type CreateAdminPresetMutationBody = BodyType<CreatePresetBody>;
+export type CreateAdminPresetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new access preset (admin only)
+ */
+export const useCreateAdminPreset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminPreset>>,
+    TError,
+    { data: BodyType<CreatePresetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminPreset>>,
+  TError,
+  { data: BodyType<CreatePresetBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdminPresetMutationOptions(options));
+};
+
+/**
+ * @summary Delete an access preset (admin only)
+ */
+export const getDeleteAdminPresetUrl = (id: number) => {
+  return `/api/admin/presets/${id}`;
+};
+
+export const deleteAdminPreset = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAdminPresetUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAdminPresetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminPreset>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAdminPreset>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAdminPreset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAdminPreset>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAdminPreset(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAdminPresetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAdminPreset>>
+>;
+
+export type DeleteAdminPresetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an access preset (admin only)
+ */
+export const useDeleteAdminPreset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminPreset>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAdminPreset>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAdminPresetMutationOptions(options));
+};
+
+/**
+ * @summary Apply a preset's permissions to a user (admin only)
+ */
+export const getApplyAdminPresetUrl = (id: number, userId: string) => {
+  return `/api/admin/presets/${id}/apply/${userId}`;
+};
+
+export const applyAdminPreset = async (
+  id: number,
+  userId: string,
+  options?: RequestInit,
+): Promise<UserPermissionsResponse> => {
+  return customFetch<UserPermissionsResponse>(
+    getApplyAdminPresetUrl(id, userId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getApplyAdminPresetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyAdminPreset>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyAdminPreset>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  const mutationKey = ["applyAdminPreset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyAdminPreset>>,
+    { id: number; userId: string }
+  > = (props) => {
+    const { id, userId } = props ?? {};
+
+    return applyAdminPreset(id, userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyAdminPresetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyAdminPreset>>
+>;
+
+export type ApplyAdminPresetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply a preset's permissions to a user (admin only)
+ */
+export const useApplyAdminPreset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyAdminPreset>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyAdminPreset>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  return useMutation(getApplyAdminPresetMutationOptions(options));
 };

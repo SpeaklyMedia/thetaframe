@@ -14,7 +14,10 @@ import VisionPage from "@/pages/vision";
 import BizdevPage from "@/pages/bizdev";
 import LifeLedgerPage from "@/pages/life-ledger";
 import ReachPage from "@/pages/reach";
+import AdminPage from "@/pages/admin";
+import AccessDeniedPage from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +53,36 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     <>
       <Show when="signed-in">
         <Component />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
+function GatedRoute({ component: Component, module }: { component: React.ComponentType; module: string }) {
+  const { hasModule, isLoading } = usePermissions();
+  if (isLoading) return null;
+  return (
+    <>
+      <Show when="signed-in">
+        {hasModule(module) ? <Component /> : <AccessDeniedPage />}
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
+function AdminRoute() {
+  const { isAdmin, isLoading } = usePermissions();
+  if (isLoading) return null;
+  return (
+    <>
+      <Show when="signed-in">
+        {isAdmin ? <AdminPage /> : <AccessDeniedPage />}
       </Show>
       <Show when="signed-out">
         <Redirect to="/" />
@@ -97,24 +130,27 @@ function ClerkProviderWithRoutes() {
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
-            
+
             <Route path="/daily">
               <ProtectedRoute component={DailyPage} />
             </Route>
             <Route path="/weekly">
-              <ProtectedRoute component={WeeklyPage} />
+              <GatedRoute component={WeeklyPage} module="weekly" />
             </Route>
             <Route path="/vision">
-              <ProtectedRoute component={VisionPage} />
+              <GatedRoute component={VisionPage} module="vision" />
             </Route>
             <Route path="/bizdev">
-              <ProtectedRoute component={BizdevPage} />
+              <GatedRoute component={BizdevPage} module="bizdev" />
             </Route>
             <Route path="/life-ledger">
-              <ProtectedRoute component={LifeLedgerPage} />
+              <GatedRoute component={LifeLedgerPage} module="life-ledger" />
             </Route>
             <Route path="/reach">
-              <ProtectedRoute component={ReachPage} />
+              <GatedRoute component={ReachPage} module="reach" />
+            </Route>
+            <Route path="/admin">
+              <AdminRoute />
             </Route>
 
             <Route component={NotFound} />

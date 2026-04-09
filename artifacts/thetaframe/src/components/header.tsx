@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const MODES = ["explore", "build", "release"] as const;
 type Mode = typeof MODES[number];
@@ -22,10 +23,19 @@ const MODE_LABELS: Record<Mode, string> = {
   release: "Release",
 };
 
+const MODULE_NAV = [
+  { module: "weekly", href: "/weekly", label: "Weekly Rhythm", testId: "link-weekly" },
+  { module: "vision", href: "/vision", label: "Vision Tracker", testId: "link-vision" },
+  { module: "bizdev", href: "/bizdev", label: "BizDev", testId: "link-bizdev" },
+  { module: "life-ledger", href: "/life-ledger", label: "Life Ledger", testId: "link-life-ledger" },
+  { module: "reach", href: "/reach", label: "REACH", testId: "link-reach" },
+];
+
 export function Header() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const queryClient = useQueryClient();
+  const { hasModule, isAdmin } = usePermissions();
   const { data: userMode, error } = useGetUserMode({
     query: { enabled: !!user, queryKey: getGetUserModeQueryKey(), retry: 0 }
   });
@@ -73,21 +83,21 @@ export function Header() {
               <Link href="/daily" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-daily">
                 Daily Frame
               </Link>
-              <Link href="/weekly" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-weekly">
-                Weekly Rhythm
-              </Link>
-              <Link href="/vision" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-vision">
-                Vision Tracker
-              </Link>
-              <Link href="/bizdev" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-bizdev">
-                BizDev
-              </Link>
-              <Link href="/life-ledger" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-life-ledger">
-                Life Ledger
-              </Link>
-              <Link href="/reach" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-reach">
-                REACH
-              </Link>
+              {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
+                <Link
+                  key={item.module}
+                  href={item.href}
+                  className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                  data-testid={item.testId}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {isAdmin && (
+                <Link href="/admin" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-admin">
+                  Admin
+                </Link>
+              )}
             </nav>
           )}
         </div>

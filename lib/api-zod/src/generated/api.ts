@@ -1043,3 +1043,130 @@ export const UpsertUserModeResponse = zod.object({
   createdAt: zod.string().optional(),
   updatedAt: zod.string().optional(),
 });
+
+/**
+ * @summary Get the current user's permitted modules for the current environment
+ */
+export const GetMyPermissionsResponse = zod.object({
+  modules: zod.array(zod.string()),
+  environment: zod.string(),
+});
+
+/**
+ * @summary List all Clerk users with their permissions (admin only)
+ */
+export const ListAdminUsersResponseItem = zod.object({
+  id: zod.string(),
+  firstName: zod.string().nullish(),
+  lastName: zod.string().nullish(),
+  email: zod.string(),
+  imageUrl: zod.string(),
+  lastActiveAt: zod.number().nullish(),
+  createdAt: zod.number(),
+  role: zod.string().nullish(),
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+});
+export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem);
+
+/**
+ * @summary Get a user's permissions (admin only)
+ */
+export const GetAdminUserPermissionsParams = zod.object({
+  userId: zod.coerce.string(),
+});
+
+export const GetAdminUserPermissionsResponse = zod.object({
+  userId: zod.string(),
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Replace a user's full permissions (admin only)
+ */
+export const PutAdminUserPermissionsParams = zod.object({
+  userId: zod.coerce.string(),
+});
+
+export const PutAdminUserPermissionsBody = zod.object({
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+});
+
+export const PutAdminUserPermissionsResponse = zod.object({
+  userId: zod.string(),
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary List all access presets (admin only)
+ */
+export const ListAdminPresetsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+  createdAt: zod.string().optional(),
+  createdBy: zod.string(),
+});
+export const ListAdminPresetsResponse = zod.array(ListAdminPresetsResponseItem);
+
+/**
+ * @summary Create a new access preset (admin only)
+ */
+export const CreateAdminPresetBody = zod.object({
+  name: zod.string(),
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete an access preset (admin only)
+ */
+export const DeleteAdminPresetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Apply a preset's permissions to a user (admin only)
+ */
+export const ApplyAdminPresetParams = zod.object({
+  id: zod.coerce.number(),
+  userId: zod.coerce.string(),
+});
+
+export const ApplyAdminPresetResponse = zod.object({
+  userId: zod.string(),
+  permissions: zod.array(
+    zod.object({
+      module: zod.string(),
+      environment: zod.string(),
+    }),
+  ),
+});

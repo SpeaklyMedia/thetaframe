@@ -544,3 +544,51 @@ export interface RequestUploadUrlResponse {
   uploadURL: string;
   objectPath: string;
 }
+
+export interface PermissionEntry {
+  module: string;
+  environment: string;
+}
+
+export interface MyPermissionsResponse {
+  modules: string[];
+  environment: string;
+}
+
+export interface AdminUser {
+  id: string;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
+  email: string;
+  imageUrl: string;
+  /** @nullable */
+  lastActiveAt?: number | null;
+  createdAt: number;
+  /** @nullable */
+  role?: string | null;
+  permissions: PermissionEntry[];
+}
+
+export interface UserPermissionsResponse {
+  userId: string;
+  permissions: PermissionEntry[];
+}
+
+export interface PutUserPermissionsBody {
+  permissions: PermissionEntry[];
+}
+
+export interface AccessPreset {
+  id: number;
+  name: string;
+  permissions: PermissionEntry[];
+  createdAt?: string;
+  createdBy: string;
+}
+
+export interface CreatePresetBody {
+  name: string;
+  permissions: PermissionEntry[];
+}

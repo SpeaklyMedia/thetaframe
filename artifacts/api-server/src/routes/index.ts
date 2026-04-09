@@ -8,6 +8,8 @@ import bizdevRouter from "./bizdev";
 import lifeLedgerRouter from "./life-ledger";
 import reachRouter from "./reach";
 import storageRouter from "./storage";
+import adminRouter from "./admin";
+import meRouter from "./me";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use(bizdevRouter);
 router.use(lifeLedgerRouter);
 router.use(reachRouter);
 router.use(storageRouter);
+router.use(adminRouter);
+router.use(meRouter);
 
 export default router;

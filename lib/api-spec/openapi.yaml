@@ -26,6 +26,10 @@ tags:
     description: REACH file bundle manager
   - name: storage
     description: Object storage uploads
+  - name: admin
+    description: Admin user and permission management
+  - name: me
+    description: Current user context
 
 paths:
   /healthz:
@@ -661,6 +665,147 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserMode"
+
+  /me/permissions:
+    get:
+      operationId: getMyPermissions
+      tags: [me]
+      summary: Get the current user's permitted modules for the current environment
+      responses:
+        "200":
+          description: List of permitted modules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyPermissionsResponse"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all Clerk users with their permissions (admin only)
+      responses:
+        "200":
+          description: List of users with permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+
+  /admin/users/{userId}/permissions:
+    get:
+      operationId: getAdminUserPermissions
+      tags: [admin]
+      summary: Get a user's permissions (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPermissionsResponse"
+    put:
+      operationId: putAdminUserPermissions
+      tags: [admin]
+      summary: Replace a user's full permissions (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutUserPermissionsBody"
+      responses:
+        "200":
+          description: Updated permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPermissionsResponse"
+
+  /admin/presets:
+    get:
+      operationId: listAdminPresets
+      tags: [admin]
+      summary: List all access presets (admin only)
+      responses:
+        "200":
+          description: List of presets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessPreset"
+    post:
+      operationId: createAdminPreset
+      tags: [admin]
+      summary: Create a new access preset (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePresetBody"
+      responses:
+        "201":
+          description: Created preset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessPreset"
+
+  /admin/presets/{id}:
+    delete:
+      operationId: deleteAdminPreset
+      tags: [admin]
+      summary: Delete an access preset (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/presets/{id}/apply/{userId}:
+    post:
+      operationId: applyAdminPreset
+      tags: [admin]
+      summary: Apply a preset's permissions to a user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Applied permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPermissionsResponse"
 
 components:
   schemas:
@@ -1315,3 +1460,114 @@ components:
       required:
         - uploadURL
         - objectPath
+
+    PermissionEntry:
+      type: object
+      properties:
+        module:
+          type: string
+        environment:
+          type: string
+      required:
+        - module
+        - environment
+
+    MyPermissionsResponse:
+      type: object
+      properties:
+        modules:
+          type: array
+          items:
+            type: string
+        environment:
+          type: string
+      required:
+        - modules
+        - environment
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        email:
+          type: string
+        imageUrl:
+          type: string
+        lastActiveAt:
+          type: ["number", "null"]
+        createdAt:
+          type: number
+        role:
+          type: ["string", "null"]
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionEntry"
+      required:
+        - id
+        - email
+        - imageUrl
+        - createdAt
+        - permissions
+
+    UserPermissionsResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionEntry"
+      required:
+        - userId
+        - permissions
+
+    PutUserPermissionsBody:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionEntry"
+      required:
+        - permissions
+
+    AccessPreset:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionEntry"
+        createdAt:
+          type: string
+        createdBy:
+          type: string
+      required:
+        - id
+        - name
+        - permissions
+        - createdBy
+
+    CreatePresetBody:
+      type: object
+      properties:
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionEntry"
+      required:
+        - name
+        - permissions
