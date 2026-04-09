@@ -7,7 +7,6 @@ export default function SignInPage() {
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        {/* To update login providers, app branding, or OAuth settings use the Auth pane in the workspace toolbar. More information can be found in the Replit docs. */}
         <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
       </div>
     </Layout>
