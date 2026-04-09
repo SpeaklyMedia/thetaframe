@@ -1,3 +1,3 @@
-// Vercel serverless entry — plain JS so Vercel does not type-check the TypeScript source
-import app from "../artifacts/api-server/src/app.js";
+// Vercel serverless entry — imports pre-built bundle, no TypeScript source exposed
+import app from "../artifacts/api-server/dist/app.mjs";
 export default app;

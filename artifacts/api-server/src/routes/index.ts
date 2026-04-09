@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import healthRouter from "./health.js";
 import dailyFramesRouter from "./daily-frames.js";
 import weeklyFramesRouter from "./weekly-frames.js";
@@ -11,7 +11,7 @@ import storageRouter from "./storage.js";
 import adminRouter from "./admin.js";
 import meRouter from "./me.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 router.use(healthRouter);
 router.use(dailyFramesRouter);

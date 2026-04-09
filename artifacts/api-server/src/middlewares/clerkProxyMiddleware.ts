@@ -1,5 +1,5 @@
 import { createProxyMiddleware } from "http-proxy-middleware";
-import type { Request, Response, NextFunction, RequestHandler } from "express";
+import type { Request, Response, RequestHandler } from "express";
 import type { ClientRequest, IncomingMessage } from "http";
 
 const CLERK_FAPI = "https://frontend-api.clerk.dev";
@@ -7,12 +7,12 @@ export const CLERK_PROXY_PATH = "/api/__clerk";
 
 export function clerkProxyMiddleware(): RequestHandler {
   if (process.env.NODE_ENV !== "production") {
-    return (_req: Request, _res: Response, next: NextFunction) => next();
+    return (_req: Request, _res: Response, next: (err?: unknown) => void) => next();
   }
 
   const secretKey = process.env.CLERK_SECRET_KEY;
   if (!secretKey) {
-    return (_req: Request, _res: Response, next: NextFunction) => next();
+    return (_req: Request, _res: Response, next: (err?: unknown) => void) => next();
   }
 
   return createProxyMiddleware({
@@ -32,7 +32,7 @@ export function clerkProxyMiddleware(): RequestHandler {
         const xff = req.headers["x-forwarded-for"];
         const clientIp =
           (Array.isArray(xff) ? xff[0] : xff)?.split(",")[0]?.trim() ||
-          (req as Request).socket?.remoteAddress ||
+          req.socket?.remoteAddress ||
           "";
         if (clientIp) {
           proxyReq.setHeader("X-Forwarded-For", clientIp);
