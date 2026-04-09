@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   lifeLedgerPeopleTable,
@@ -53,11 +53,19 @@ router.get("/life-ledger/next-90-days", requireAuth, async (req: Request, res: R
   const allEntries: Array<{ id: number; tab: string; name: string; dueDate: string | null; impactLevel: string | null; notes: string | null }> = [];
 
   for (const [tab, table] of Object.entries(TABLE_MAP) as Array<[Tab, AnyLedgerTable]>) {
-    const rows = await db.select().from(table as typeof lifeLedgerPeopleTable).where(eq(table.userId, userId));
+    const rows = await db
+      .select()
+      .from(table as typeof lifeLedgerPeopleTable)
+      .where(
+        and(
+          eq(table.userId, userId),
+          isNotNull(table.dueDate),
+          gte(table.dueDate, nowStr),
+          lte(table.dueDate, windowEndStr),
+        ),
+      );
     for (const row of rows) {
-      if (row.dueDate && row.dueDate >= nowStr && row.dueDate <= windowEndStr) {
-        allEntries.push({ id: row.id, tab, name: row.name, dueDate: row.dueDate, impactLevel: row.impactLevel, notes: row.notes });
-      }
+      allEntries.push({ id: row.id, tab, name: row.name, dueDate: row.dueDate, impactLevel: row.impactLevel, notes: row.notes });
     }
   }
 
