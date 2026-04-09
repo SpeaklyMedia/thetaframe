@@ -16,7 +16,6 @@ function detectEnvironment(): string {
 }
 
 const ALL_MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
-const ALL_ENVIRONMENTS = ["development", "staging", "production"] as const;
 
 router.get("/me/permissions", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
