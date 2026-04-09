@@ -44,6 +44,64 @@ const IMPACT_LEVELS = ["low", "medium", "high"];
 const REVIEW_WINDOWS = ["annual", "quarterly", "monthly", "situational"];
 const BILLING_CYCLES = ["monthly", "annual"];
 
+const TAB_TAG_SUGGESTIONS: Record<Tab, string[]> = {
+  people: [
+    "ll:type_family",
+    "ll:type_friend",
+    "ll:type_colleague",
+    "ll:type_mentor",
+    "ll:type_client",
+    "ll:domain_work",
+    "ll:domain_personal",
+    "ll:qualifier_key",
+    "ll:qualifier_occasional",
+  ],
+  events: [
+    "ll:type_deadline",
+    "ll:type_appointment",
+    "ll:type_birthday",
+    "ll:type_anniversary",
+    "ll:type_recurring",
+    "ll:domain_work",
+    "ll:domain_personal",
+    "ll:qualifier_blocking",
+    "ll:qualifier_optional",
+  ],
+  financial: [
+    "ll:type_debt",
+    "ll:type_tax",
+    "ll:type_insurance",
+    "ll:type_loan",
+    "ll:type_investment",
+    "ll:domain_business",
+    "ll:domain_personal",
+    "ll:qualifier_urgent",
+    "ll:qualifier_planned",
+  ],
+  subscriptions: [
+    "ll:type_software",
+    "ll:type_media",
+    "ll:type_health",
+    "ll:type_utility",
+    "ll:type_membership",
+    "ll:domain_work",
+    "ll:domain_personal",
+    "ll:qualifier_review",
+    "ll:qualifier_keep",
+  ],
+  travel: [
+    "ll:type_flight",
+    "ll:type_hotel",
+    "ll:type_car",
+    "ll:type_experience",
+    "ll:type_conference",
+    "ll:domain_business",
+    "ll:domain_personal",
+    "ll:qualifier_booked",
+    "ll:qualifier_planned",
+  ],
+};
+
 const EMPTY_FORM: LifeLedgerEntryBody = {
   name: "",
   tags: [],
@@ -72,6 +130,7 @@ function EntryForm({
 }) {
   const [form, setForm] = useState<LifeLedgerEntryBody>(initial);
   const [tagInput, setTagInput] = useState("");
+  const suggestions = TAB_TAG_SUGGESTIONS[tab].filter((s) => !form.tags.includes(s));
 
   const set = <K extends keyof LifeLedgerEntryBody>(k: K, v: LifeLedgerEntryBody[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -228,13 +287,28 @@ function EntryForm({
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-            placeholder="Add tag..."
+            placeholder="Custom tag or select below..."
             data-testid="input-tag"
           />
           <Button type="button" variant="outline" size="sm" onClick={addTag} data-testid="button-add-tag">
             Add
           </Button>
         </div>
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => set("tags", [...form.tags, s])}
+                className="inline-flex items-center bg-accent/50 hover:bg-accent px-2 py-0.5 rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+                data-testid={`button-suggest-tag-${s}`}
+              >
+                + {s}
+              </button>
+            ))}
+          </div>
+        )}
         {form.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {form.tags.map((tag) => (

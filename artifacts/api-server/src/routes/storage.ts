@@ -1,16 +1,20 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
+import { eq, and } from "drizzle-orm";
+import { db, reachFilesTable, pendingUploadsTable } from "@workspace/db";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
 router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });
@@ -22,6 +26,14 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
 
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+    await db
+      .insert(pendingUploadsTable)
+      .values({ userId, objectPath })
+      .onConflictDoUpdate({
+        target: pendingUploadsTable.objectPath,
+        set: { userId, createdAt: new Date() },
+      });
 
     res.json(
       RequestUploadUrlResponse.parse({
@@ -64,12 +76,24 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
 });
 
 router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
-    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
 
+    const [record] = await db
+      .select()
+      .from(reachFilesTable)
+      .where(and(eq(reachFilesTable.objectPath, objectPath), eq(reachFilesTable.userId, userId)));
+
+    if (!record) {
+      res.status(404).json({ error: "Object not found" });
+      return;
+    }
+
+    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
     const response = await objectStorageService.downloadObject(objectFile);
 
     res.status(response.status);

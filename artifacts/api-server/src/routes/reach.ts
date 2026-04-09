@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, reachFilesTable } from "@workspace/db";
+import { db, reachFilesTable, pendingUploadsTable } from "@workspace/db";
 import {
   CreateReachFileBody,
   DeleteReachFileParams,
@@ -33,10 +33,26 @@ router.post("/reach/files", requireAuth, async (req: Request, res: Response): Pr
     return;
   }
 
-  if (!body.data.objectPath.startsWith("/objects/")) {
+  const { objectPath } = body.data;
+
+  if (!objectPath.startsWith("/objects/")) {
     res.status(400).json({ error: "Invalid objectPath" });
     return;
   }
+
+  const [pending] = await db
+    .select()
+    .from(pendingUploadsTable)
+    .where(and(eq(pendingUploadsTable.objectPath, objectPath), eq(pendingUploadsTable.userId, userId)));
+
+  if (!pending) {
+    res.status(403).json({ error: "No pending upload found for this path" });
+    return;
+  }
+
+  await db
+    .delete(pendingUploadsTable)
+    .where(eq(pendingUploadsTable.id, pending.id));
 
   const [file] = await db
     .insert(reachFilesTable)
