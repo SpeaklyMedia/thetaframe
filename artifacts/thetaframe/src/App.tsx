@@ -27,6 +27,7 @@ import NotFound from "@/pages/not-found";
 const queryClient = new QueryClient();
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL?.trim() || undefined;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const homeRedirectUrl = `${basePath || ""}/`;
 
@@ -144,6 +145,7 @@ function ClerkProviderWithRoutes() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       signInFallbackRedirectUrl={homeRedirectUrl}

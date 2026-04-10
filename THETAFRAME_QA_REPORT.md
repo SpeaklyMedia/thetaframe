@@ -38,8 +38,15 @@ Date: 2026-04-10
 - Clerk redirect URL inspection returned `0` configured redirect URLs.
 - Clerk allowlist inspection returned `0` configured allowlist identifiers.
 - Clerk user inspection returned only `1` user in the current instance.
+- Live proxy inspection found a second production misalignment:
+  - `GET /api/__clerk/v1/client` returned Clerk `host_invalid`
+  - the frontend was not passing `proxyUrl` into `ClerkProvider`, even though the backend proxy middleware and env contract already existed
 - Interim mitigation applied:
   - updated Clerk `allowed_origins` on the current instance to include `https://thetaframe.vercel.app`
+  - wired `VITE_CLERK_PROXY_URL` through the frontend `ClerkProvider`
+  - prepared the production app to route Clerk browser traffic through `/api/__clerk`
+  - set Clerk domain `proxy_url = https://thetaframe.vercel.app/api/__clerk`
+  - added `VITE_CLERK_PROXY_URL` to Vercel Production env
 - Hard blocker remains:
   - ThetaFrame production still needs a real Clerk production instance and live keys; the current development instance is not a valid long-term production auth foundation.
 
