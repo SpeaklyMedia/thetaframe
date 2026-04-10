@@ -1481,9 +1481,12 @@ components:
             type: string
         environment:
           type: string
+        isAdmin:
+          type: boolean
       required:
         - modules
         - environment
+        - isAdmin
 
     AdminUser:
       type: object

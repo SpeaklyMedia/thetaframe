@@ -1,8 +1,14 @@
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getPreferredRoute } from "@/lib/navigation";
 
 export default function AccessDeniedPage() {
+  const { modules, isAdmin } = usePermissions();
+  const fallbackHref = getPreferredRoute(modules, isAdmin);
+  const fallbackLabel = fallbackHref === "/admin" ? "Back to Admin" : "Go to your active lane";
+
   return (
     <Layout>
       <div className="flex flex-col items-center justify-center flex-1 py-24 px-4 text-center">
@@ -14,7 +20,7 @@ export default function AccessDeniedPage() {
             You are signed in, but this part of ThetaFrame has not been granted to you. Contact your administrator if you need access.
           </p>
           <Button asChild variant="outline" size="sm">
-            <Link href="/daily">Back to Daily Frame</Link>
+            <Link href={fallbackHref}>{fallbackLabel}</Link>
           </Button>
         </div>
       </div>

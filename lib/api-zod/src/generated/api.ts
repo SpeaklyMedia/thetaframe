@@ -1050,6 +1050,7 @@ export const UpsertUserModeResponse = zod.object({
 export const GetMyPermissionsResponse = zod.object({
   modules: zod.array(zod.string()),
   environment: zod.string(),
+  isAdmin: zod.boolean(),
 });
 
 /**

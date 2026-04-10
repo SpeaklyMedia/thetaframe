@@ -15,13 +15,18 @@ const SURFACE_HREFS: Record<string, string> = {
 export function OnboardingChecklist({
   surfaces,
   onNavigate,
+  completedCount,
+  totalCount,
 }: {
   surfaces: OnboardingSurfaceProgress[];
   onNavigate?: () => void;
+  completedCount?: number;
+  totalCount?: number;
 }) {
   if (surfaces.length === 0) return null;
 
-  const completedCount = surfaces.filter((surface) => surface.isComplete).length;
+  const resolvedCompletedCount = completedCount ?? surfaces.filter((surface) => surface.isComplete).length;
+  const resolvedTotalCount = totalCount ?? surfaces.length;
 
   return (
     <section
@@ -33,7 +38,7 @@ export function OnboardingChecklist({
           Onboarding Progress
         </p>
         <h2 className="text-lg font-semibold">
-          {completedCount} of {surfaces.length} spaces completed
+          {resolvedCompletedCount} of {resolvedTotalCount} spaces completed
         </h2>
         <p className="text-sm text-muted-foreground">
           Learn each surface by using it once through the normal workflow. The prompt disappears after real data is saved.

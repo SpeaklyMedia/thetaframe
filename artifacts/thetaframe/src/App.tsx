@@ -2,14 +2,14 @@ import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wo
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk, useUser } from "@clerk/react";
+import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk } from "@clerk/react";
 import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
 import { AuthSessionProvider, useAuthSession } from "@/hooks/use-auth-session";
-import { userIsOwner } from "@/lib/owner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { SignedInOnboardingModal } from "@/components/signed-in-onboarding-modal";
+import { getPreferredRoute } from "@/lib/navigation";
 
 import Home from "@/pages/home";
 import SignInPage from "@/pages/sign-in";
@@ -28,7 +28,7 @@ const queryClient = new QueryClient();
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-const dailyRedirectUrl = `${basePath}/daily`;
+const homeRedirectUrl = `${basePath || ""}/`;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -59,22 +59,7 @@ function PageSkeleton() {
 function HomeRedirect() {
   const { status } = useAuthSession();
   const { modules, isAdmin, isLoading, isError } = usePermissions();
-
-  const preferredRoute = modules.includes("daily")
-    ? "/daily"
-    : modules.includes("weekly")
-      ? "/weekly"
-      : modules.includes("vision")
-        ? "/vision"
-        : modules.includes("bizdev")
-          ? "/bizdev"
-          : modules.includes("life-ledger")
-            ? "/life-ledger"
-            : modules.includes("reach")
-              ? "/reach"
-              : isAdmin
-                ? "/admin"
-                : "/daily";
+  const preferredRoute = getPreferredRoute(modules, isAdmin);
 
   return (
     <>
@@ -117,12 +102,12 @@ function ModuleRoute({
 }
 
 function AdminRoute() {
-  const { user } = useUser();
-  const isAdmin = (user?.publicMetadata as Record<string, unknown>)?.role === "admin" || userIsOwner(user);
+  const { status } = useAuthSession();
+  const { isAdmin, isLoading } = usePermissions();
   return (
     <>
       <Show when="signed-in">
-        {isAdmin ? <AdminPage /> : <AccessDeniedPage />}
+        {status === "loading" || isLoading ? <PageSkeleton /> : isAdmin ? <AdminPage /> : <AccessDeniedPage />}
       </Show>
       <Show when="signed-out">
         <Redirect to="/" />
@@ -161,8 +146,8 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      signInFallbackRedirectUrl={dailyRedirectUrl}
-      signUpFallbackRedirectUrl={dailyRedirectUrl}
+      signInFallbackRedirectUrl={homeRedirectUrl}
+      signUpFallbackRedirectUrl={homeRedirectUrl}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >

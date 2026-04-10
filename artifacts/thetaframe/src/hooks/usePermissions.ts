@@ -17,6 +17,7 @@ export function usePermissions() {
 
   const modules: string[] = data?.modules ?? [];
   const environment: string = data?.environment ?? "development";
+  const isAdmin = Boolean(data?.isAdmin) || userIsOwner(user);
 
   const hasModule = (module: string): boolean => {
     if (!user) return false;
@@ -24,11 +25,5 @@ export function usePermissions() {
     return modules.includes(module);
   };
 
-  const isAdmin = (): boolean => {
-    if (!user) return false;
-    const meta = user.publicMetadata as Record<string, unknown>;
-    return meta?.role === "admin" || userIsOwner(user);
-  };
-
-  return { modules, environment, hasModule, isAdmin: isAdmin(), isLoading, isError };
+  return { modules, environment, hasModule, isAdmin, isLoading, isError };
 }

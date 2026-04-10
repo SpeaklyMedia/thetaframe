@@ -553,6 +553,7 @@ export interface PermissionEntry {
 export interface MyPermissionsResponse {
   modules: string[];
   environment: string;
+  isAdmin: boolean;
 }
 
 export interface AdminUser {

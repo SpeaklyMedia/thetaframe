@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { useOnboardingProgress } from "@/hooks/use-onboarding";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getPreferredRoute } from "@/lib/navigation";
+import { Link } from "wouter";
 
 function getDismissKey(userId: string) {
   return `thetaframe:onboarding-modal-dismissed:${userId}`;
@@ -20,7 +24,9 @@ function getDismissKey(userId: string) {
 export function SignedInOnboardingModal() {
   const { user } = useUser();
   const { status } = useAuthSession();
-  const { incompleteSurfaces, isLoading, isError } = useOnboardingProgress();
+  const queryClient = useQueryClient();
+  const { surfaces, incompleteSurfaces, completedCount, isLoading, isError } = useOnboardingProgress();
+  const { modules, isAdmin } = usePermissions();
   const [dismissed, setDismissed] = useState(true);
 
   const dismissKey = useMemo(
@@ -53,9 +59,10 @@ export function SignedInOnboardingModal() {
     status === "ready" &&
     Boolean(user) &&
     !isLoading &&
-    !isError &&
-    incompleteSurfaces.length > 0 &&
+    (isError || incompleteSurfaces.length > 0) &&
     !dismissed;
+
+  const fallbackHref = getPreferredRoute(modules, isAdmin);
 
   return (
     <Dialog open={shouldOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>
@@ -67,7 +74,38 @@ export function SignedInOnboardingModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <OnboardingChecklist surfaces={incompleteSurfaces} onNavigate={handleDismiss} />
+        {isError ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border bg-card px-5 py-4 shadow-sm space-y-2">
+              <h2 className="text-lg font-semibold">Your getting-started guide could not load</h2>
+              <p className="text-sm text-muted-foreground">
+                The app is available, but the onboarding checklist did not load yet. You can retry or go straight to your next lane.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY })}
+                data-testid="button-retry-onboarding-modal"
+              >
+                Retry guide
+              </Button>
+              <Button asChild type="button" data-testid="link-open-fallback-lane">
+                <Link href={fallbackHref} onClick={handleDismiss}>
+                  Open your next lane
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <OnboardingChecklist
+            surfaces={incompleteSurfaces}
+            onNavigate={handleDismiss}
+            completedCount={completedCount}
+            totalCount={surfaces.length}
+          />
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={handleDismiss} data-testid="button-dismiss-onboarding-modal">

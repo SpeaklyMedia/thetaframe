@@ -3,12 +3,12 @@ import { Layout } from "@/components/layout";
 
 export default function SignUpPage() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-  const dailyRedirectUrl = `${basePath}/daily`;
+  const homeRedirectUrl = `${basePath || ""}/`;
 
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={dailyRedirectUrl} />
+        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={homeRedirectUrl} />
       </div>
     </Layout>
   );

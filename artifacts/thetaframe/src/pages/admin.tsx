@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import {
   useListAdminUsers,
@@ -163,6 +163,12 @@ function PermissionEditor({
   const applyPreset = useApplyAdminPreset();
   const createPreset = useCreateAdminPreset();
   const deletePreset = useDeleteAdminPreset();
+
+  useEffect(() => {
+    if (!isDirty) {
+      setGrid(buildGrid(permsData?.permissions ?? user.permissions));
+    }
+  }, [isDirty, permsData?.permissions, user.permissions]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
