@@ -25,12 +25,32 @@ Date: 2026-04-10
 - signed-out `GET /api/onboarding` returns `401`
 - signed-out protected route probes still return auth-gated responses
 
+## Clerk Production Investigation
+- Vercel production is still configured with Clerk test keys:
+  - `CLERK_PUBLISHABLE_KEY = pk_test_...`
+  - `VITE_CLERK_PUBLISHABLE_KEY = pk_test_...`
+  - `CLERK_SECRET_KEY = sk_test_...`
+- Direct Clerk API inspection confirms the live app is using Clerk instance `ins_3C6Oz1etMpUelMZ80k8JHR68FcY`.
+- That Clerk instance reports `environment_type = development`.
+- Clerk domain inspection showed only one configured domain:
+  - `unique.bass-77.lcl.dev`
+  - frontend API URL on `clerk.accounts.dev`
+- Clerk redirect URL inspection returned `0` configured redirect URLs.
+- Clerk allowlist inspection returned `0` configured allowlist identifiers.
+- Clerk user inspection returned only `1` user in the current instance.
+- Interim mitigation applied:
+  - updated Clerk `allowed_origins` on the current instance to include `https://thetaframe.vercel.app`
+- Hard blocker remains:
+  - ThetaFrame production still needs a real Clerk production instance and live keys; the current development instance is not a valid long-term production auth foundation.
+
 ## Residual Risks
 - Signed-in browser-only UX remains to be manually verified:
   - onboarding modal first appearance
   - mode badge interaction feel
   - exact `403` UX on deliberately restricted accounts
   - per-surface onboarding clearing in a live signed-in session
+- Clerk production cutover remains outstanding:
+  - until Vercel uses `pk_live_...` / `sk_live_...`, signed-in behavior can still be unstable even with client-side hardening
 
 ## Manual Acceptance Checklist
 - Sign in on desktop and confirm the onboarding modal appears for incomplete surfaces.

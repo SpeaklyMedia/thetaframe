@@ -28,6 +28,7 @@ export function SignedInOnboardingModal() {
   const { surfaces, incompleteSurfaces, completedCount, isLoading, isError } = useOnboardingProgress();
   const { modules, isAdmin } = usePermissions();
   const [dismissed, setDismissed] = useState(true);
+  const [openedOnce, setOpenedOnce] = useState(false);
 
   const dismissKey = useMemo(
     () => (user?.id ? getDismissKey(user.id) : null),
@@ -37,6 +38,7 @@ export function SignedInOnboardingModal() {
   useEffect(() => {
     if (!dismissKey) {
       setDismissed(true);
+      setOpenedOnce(false);
       return;
     }
 
@@ -46,6 +48,7 @@ export function SignedInOnboardingModal() {
     }
 
     setDismissed(window.sessionStorage.getItem(dismissKey) === "1");
+    setOpenedOnce(false);
   }, [dismissKey]);
 
   const handleDismiss = () => {
@@ -56,13 +59,29 @@ export function SignedInOnboardingModal() {
   };
 
   const shouldOpen =
-    status === "ready" &&
+    !dismissed &&
     Boolean(user) &&
-    !isLoading &&
-    (isError || incompleteSurfaces.length > 0) &&
-    !dismissed;
+    status !== "signed_out" &&
+    (openedOnce || (
+      status === "ready" &&
+      !isLoading &&
+      (isError || incompleteSurfaces.length > 0)
+    ));
 
   const fallbackHref = getPreferredRoute(modules, isAdmin);
+
+  useEffect(() => {
+    if (
+      !dismissed &&
+      !openedOnce &&
+      status === "ready" &&
+      Boolean(user) &&
+      !isLoading &&
+      (isError || incompleteSurfaces.length > 0)
+    ) {
+      setOpenedOnce(true);
+    }
+  }, [dismissed, incompleteSurfaces.length, isError, isLoading, openedOnce, status, user]);
 
   return (
     <Dialog open={shouldOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>
@@ -97,6 +116,13 @@ export function SignedInOnboardingModal() {
                 </Link>
               </Button>
             </div>
+          </div>
+        ) : isLoading && openedOnce ? (
+          <div className="rounded-2xl border bg-card px-5 py-4 shadow-sm space-y-2">
+            <h2 className="text-lg font-semibold">Loading your getting-started plan</h2>
+            <p className="text-sm text-muted-foreground">
+              ThetaFrame is preparing your onboarding state for this session.
+            </p>
           </div>
         ) : (
           <OnboardingChecklist

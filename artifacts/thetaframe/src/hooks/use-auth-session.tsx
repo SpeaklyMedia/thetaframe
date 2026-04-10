@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 
@@ -23,6 +23,12 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
   const { isLoaded, userId, getToken } = useAuth();
   const [status, setStatus] = useState<AuthSessionStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const getTokenRef = useRef(getToken);
+  const readyUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,20 +45,26 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
         setAuthTokenGetter(null);
         setStatus("signed_out");
         setErrorMessage(null);
+        readyUserIdRef.current = null;
         return;
       }
 
-      setAuthTokenGetter(() => getToken());
-      setStatus("loading");
+      setAuthTokenGetter(() => getTokenRef.current());
+
+      const hasReadySessionForUser = readyUserIdRef.current === userId;
+      if (!hasReadySessionForUser) {
+        setStatus("loading");
+      }
       setErrorMessage(null);
 
       let lastError: unknown = null;
 
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
-          const token = await getToken();
+          const token = await getTokenRef.current();
           if (token) {
             if (!cancelled) {
+              readyUserIdRef.current = userId;
               setStatus("ready");
               setErrorMessage(null);
             }
@@ -68,6 +80,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
       }
 
       if (!cancelled) {
+        readyUserIdRef.current = null;
         setStatus("failed");
         setErrorMessage(
           lastError instanceof Error
@@ -83,7 +96,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
       cancelled = true;
       setAuthTokenGetter(null);
     };
-  }, [getToken, isLoaded, userId]);
+  }, [isLoaded, userId]);
 
   const value = useMemo<AuthSessionContextValue>(
     () => ({
