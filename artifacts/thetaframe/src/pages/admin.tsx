@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Plus, Trash2, Check } from "lucide-react";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 const MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
 const MODULE_LABELS: Record<string, string> = {
@@ -165,6 +167,7 @@ function PermissionEditor({
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetAdminUserPermissionsQueryKey(user.id) });
+    queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
   };
 
   const toggle = (mod: string, env: string) => {
@@ -231,6 +234,7 @@ function PermissionEditor({
           setPresetName("");
           setIsSavingPreset(false);
           queryClient.invalidateQueries({ queryKey: getListAdminPresetsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
         },
         onError: () => setIsSavingPreset(false),
       },
@@ -241,6 +245,7 @@ function PermissionEditor({
     deletePreset.mutate({ id }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListAdminPresetsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
       },
     });
   };
@@ -393,6 +398,7 @@ export default function AdminPage() {
   const { data: presets } = useListAdminPresets({
     query: { queryKey: getListAdminPresetsQueryKey() },
   });
+  const { isSurfaceComplete } = useOnboardingProgress();
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -418,8 +424,10 @@ export default function AdminPage() {
       <div className="container mx-auto p-4 md:p-8 max-w-6xl space-y-6">
         <header>
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-admin-title">Admin</h1>
-          <p className="text-muted-foreground mt-1">Manage users and module access permissions</p>
+          <p className="text-muted-foreground mt-1">Control who can access each surface and save reusable permission presets for the workspace.</p>
         </header>
+
+        {!isSurfaceComplete("admin") && <SurfaceOnboardingCard surface="admin" />}
 
         {selectedUser ? (
           <PermissionEditor

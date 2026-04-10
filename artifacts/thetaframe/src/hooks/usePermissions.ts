@@ -1,12 +1,15 @@
 import { useUser } from "@clerk/react";
 import { useGetMyPermissions, getGetMyPermissionsQueryKey } from "@workspace/api-client-react";
+import { useAuthSession } from "@/hooks/use-auth-session";
+import { userIsOwner } from "@/lib/owner";
 
 export function usePermissions() {
   const { user } = useUser();
+  const { status } = useAuthSession();
 
   const { data, isLoading, isError } = useGetMyPermissions({
     query: {
-      enabled: !!user,
+      enabled: !!user && status === "ready",
       queryKey: getGetMyPermissionsQueryKey(),
       staleTime: 30_000,
     },
@@ -24,8 +27,8 @@ export function usePermissions() {
   const isAdmin = (): boolean => {
     if (!user) return false;
     const meta = user.publicMetadata as Record<string, unknown>;
-    return meta?.role === "admin";
+    return meta?.role === "admin" || userIsOwner(user);
   };
 
-  return { modules, environment, hasModule, isAdmin: isAdmin(), isLoading };
+  return { modules, environment, hasModule, isAdmin: isAdmin(), isLoading, isError };
 }

@@ -10,9 +10,12 @@ import {
   UpsertVisionFrameResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates } from "../lib/serialize.js";
+import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
+router.use(requireAuth, requireModuleAccess("vision"));
 
 const upsertVision = async (userId: string, goals: unknown, nextSteps: unknown) => {
   const [frame] = await db
@@ -26,7 +29,7 @@ const upsertVision = async (userId: string, goals: unknown, nextSteps: unknown) 
   return frame;
 };
 
-router.get("/vision-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/vision-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const [frame] = await db
@@ -42,7 +45,7 @@ router.get("/vision-frames", requireAuth, async (req: Request, res: Response): P
   res.json(GetVisionFrameCollectionResponse.parse(serializeDates(frame)));
 });
 
-router.post("/vision-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/vision-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const body = CreateVisionFrameBody.safeParse(req.body);
@@ -60,10 +63,11 @@ router.post("/vision-frames", requireAuth, async (req: Request, res: Response): 
   }
 
   const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
+  await markOnboardingSurfaceComplete(userId, "vision");
   res.json(CreateVisionFrameResponse.parse(serializeDates(frame)));
 });
 
-router.get("/vision-frames/me", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/vision-frames/me", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const [frame] = await db
@@ -79,7 +83,7 @@ router.get("/vision-frames/me", requireAuth, async (req: Request, res: Response)
   res.json(GetVisionFrameResponse.parse(serializeDates(frame)));
 });
 
-router.put("/vision-frames/me", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.put("/vision-frames/me", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const body = UpsertVisionFrameBody.safeParse(req.body);
@@ -97,6 +101,7 @@ router.put("/vision-frames/me", requireAuth, async (req: Request, res: Response)
   }
 
   const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
+  await markOnboardingSurfaceComplete(userId, "vision");
   res.json(UpsertVisionFrameResponse.parse(serializeDates(frame)));
 });
 

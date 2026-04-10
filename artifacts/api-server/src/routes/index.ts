@@ -10,6 +10,7 @@ import reachRouter from "./reach.js";
 import storageRouter from "./storage.js";
 import adminRouter from "./admin.js";
 import meRouter from "./me.js";
+import onboardingRouter from "./onboarding.js";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use(reachRouter);
 router.use(storageRouter);
 router.use(adminRouter);
 router.use(meRouter);
+router.use(onboardingRouter);
 
 export default router;

@@ -29,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Plus, X, ChevronDown, Pencil, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 type Phase = "COLD" | "WARM" | "HOT";
 type SortField = "brand" | "nextTouchDate" | "phase" | "moneyOpen";
@@ -245,6 +247,7 @@ export default function BizdevPage() {
   const createMutation = useCreateBizdevBrand();
   const updateMutation = useUpdateBizdevBrand();
   const deleteMutation = useDeleteBizdevBrand();
+  const { isSurfaceComplete } = useOnboardingProgress();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -289,6 +292,7 @@ export default function BizdevPage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListBizdevBrandsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetBizdevSummaryQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
   };
 
   const closeModal = () => {
@@ -345,6 +349,8 @@ export default function BizdevPage() {
             <Plus className="w-4 h-4 mr-2" /> New Lead
           </Button>
         </header>
+
+        {!isSurfaceComplete("bizdev") && <SurfaceOnboardingCard surface="bizdev" />}
 
         {summary && (
           <div className="grid grid-cols-3 gap-4" data-testid="bizdev-summary">

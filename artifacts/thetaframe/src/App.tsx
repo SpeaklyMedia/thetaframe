@@ -2,11 +2,14 @@ import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wo
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk, useUser, useAuth } from "@clerk/react";
+import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk, useUser } from "@clerk/react";
 import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { AuthSessionProvider, useAuthSession } from "@/hooks/use-auth-session";
+import { userIsOwner } from "@/lib/owner";
+import { usePermissions } from "@/hooks/usePermissions";
+import { SignedInOnboardingModal } from "@/components/signed-in-onboarding-modal";
 
 import Home from "@/pages/home";
 import SignInPage from "@/pages/sign-in";
@@ -25,6 +28,7 @@ const queryClient = new QueryClient();
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const dailyRedirectUrl = `${basePath}/daily`;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -53,10 +57,29 @@ function PageSkeleton() {
 }
 
 function HomeRedirect() {
+  const { status } = useAuthSession();
+  const { modules, isAdmin, isLoading, isError } = usePermissions();
+
+  const preferredRoute = modules.includes("daily")
+    ? "/daily"
+    : modules.includes("weekly")
+      ? "/weekly"
+      : modules.includes("vision")
+        ? "/vision"
+        : modules.includes("bizdev")
+          ? "/bizdev"
+          : modules.includes("life-ledger")
+            ? "/life-ledger"
+            : modules.includes("reach")
+              ? "/reach"
+              : isAdmin
+                ? "/admin"
+                : "/daily";
+
   return (
     <>
       <Show when="signed-in">
-        <Redirect to="/daily" />
+        {status === "loading" || isLoading ? <PageSkeleton /> : <Redirect to={isError ? "/daily" : preferredRoute} />}
       </Show>
       <Show when="signed-out">
         <Home />
@@ -65,11 +88,26 @@ function HomeRedirect() {
   );
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function ModuleRoute({
+  component: Component,
+  module,
+}: {
+  component: React.ComponentType;
+  module: "daily" | "weekly" | "vision" | "bizdev" | "life-ledger" | "reach";
+}) {
+  const { status } = useAuthSession();
+  const { hasModule, isLoading, isError } = usePermissions();
+
   return (
     <>
       <Show when="signed-in">
-        <Component />
+        {status === "loading" || isLoading ? (
+          <PageSkeleton />
+        ) : !isError && !hasModule(module) ? (
+          <AccessDeniedPage />
+        ) : (
+          <Component />
+        )}
       </Show>
       <Show when="signed-out">
         <Redirect to="/" />
@@ -80,7 +118,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function AdminRoute() {
   const { user } = useUser();
-  const isAdmin = (user?.publicMetadata as Record<string, unknown>)?.role === "admin";
+  const isAdmin = (user?.publicMetadata as Record<string, unknown>)?.role === "admin" || userIsOwner(user);
   return (
     <>
       <Show when="signed-in">
@@ -91,17 +129,6 @@ function AdminRoute() {
       </Show>
     </>
   );
-}
-
-function ClerkAuthSetup() {
-  const { getToken } = useAuth();
-
-  useEffect(() => {
-    setAuthTokenGetter(() => getToken());
-    return () => { setAuthTokenGetter(null); };
-  }, [getToken]);
-
-  return null;
 }
 
 function ClerkQueryClientCacheInvalidator() {
@@ -134,51 +161,55 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      signInFallbackRedirectUrl="/daily"
-      signUpFallbackRedirectUrl="/daily"
+      signInFallbackRedirectUrl={dailyRedirectUrl}
+      signUpFallbackRedirectUrl={dailyRedirectUrl}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
-        <ClerkAuthSetup />
-        <ClerkQueryClientCacheInvalidator />
-        <TooltipProvider>
-          <ClerkLoading>
-            <PageSkeleton />
-          </ClerkLoading>
-          <ClerkLoaded>
-            <Switch>
-              <Route path="/" component={HomeRedirect} />
-              <Route path="/sign-in/*?" component={SignInPage} />
-              <Route path="/sign-up/*?" component={SignUpPage} />
+        <AuthSessionProvider>
+          <ClerkQueryClientCacheInvalidator />
+          <TooltipProvider>
+            <ClerkLoading>
+              <PageSkeleton />
+            </ClerkLoading>
+            <ClerkLoaded>
+              <Show when="signed-in">
+                <SignedInOnboardingModal />
+              </Show>
+              <Switch>
+                <Route path="/" component={HomeRedirect} />
+                <Route path="/sign-in/*?" component={SignInPage} />
+                <Route path="/sign-up/*?" component={SignUpPage} />
 
-              <Route path="/daily">
-                <ProtectedRoute component={DailyPage} />
-              </Route>
-              <Route path="/weekly">
-                <ProtectedRoute component={WeeklyPage} />
-              </Route>
-              <Route path="/vision">
-                <ProtectedRoute component={VisionPage} />
-              </Route>
-              <Route path="/bizdev">
-                <ProtectedRoute component={BizdevPage} />
-              </Route>
-              <Route path="/life-ledger">
-                <ProtectedRoute component={LifeLedgerPage} />
-              </Route>
-              <Route path="/reach">
-                <ProtectedRoute component={ReachPage} />
-              </Route>
-              <Route path="/admin">
-                <AdminRoute />
-              </Route>
+                <Route path="/daily">
+                  <ModuleRoute component={DailyPage} module="daily" />
+                </Route>
+                <Route path="/weekly">
+                  <ModuleRoute component={WeeklyPage} module="weekly" />
+                </Route>
+                <Route path="/vision">
+                  <ModuleRoute component={VisionPage} module="vision" />
+                </Route>
+                <Route path="/bizdev">
+                  <ModuleRoute component={BizdevPage} module="bizdev" />
+                </Route>
+                <Route path="/life-ledger">
+                  <ModuleRoute component={LifeLedgerPage} module="life-ledger" />
+                </Route>
+                <Route path="/reach">
+                  <ModuleRoute component={ReachPage} module="reach" />
+                </Route>
+                <Route path="/admin">
+                  <AdminRoute />
+                </Route>
 
-              <Route component={NotFound} />
-            </Switch>
-          </ClerkLoaded>
-          <Toaster />
-        </TooltipProvider>
+                <Route component={NotFound} />
+              </Switch>
+            </ClerkLoaded>
+            <Toaster />
+          </TooltipProvider>
+        </AuthSessionProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

@@ -19,7 +19,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Upload, Trash2, FileText, File, Image, FileArchive, ChevronDown, Search, X } from "lucide-react";
+import { Upload, Trash2, FileText, File, Image, FileArchive, ChevronDown, Search, X, ExternalLink } from "lucide-react";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 function fileIcon(fileType: string | null | undefined) {
   if (!fileType) return <File className="w-5 h-5 text-muted-foreground" />;
@@ -49,6 +51,10 @@ function coarseType(fileType: string | null | undefined): string {
   if (fileType.startsWith("text/") || fileType.includes("document")) return "Document";
   if (fileType.includes("zip") || fileType.includes("archive") || fileType.includes("tar")) return "Archive";
   return "Other";
+}
+
+function getFileAccessUrl(objectPath: string): string {
+  return `/api/storage${encodeURI(objectPath)}`;
 }
 
 function FileCard({
@@ -85,10 +91,15 @@ function FileCard({
         onClick={onDelete}
         disabled={isDeleting}
         aria-label="Delete file"
-        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
         data-testid={`button-delete-file-${file.id}`}
       >
         <Trash2 className="w-4 h-4 text-destructive" />
+      </Button>
+      <Button asChild variant="ghost" size="icon" aria-label="Open file" className="shrink-0" data-testid={`link-open-file-${file.id}`}>
+        <a href={getFileAccessUrl(file.objectPath)} target="_blank" rel="noreferrer">
+          <ExternalLink className="w-4 h-4" />
+        </a>
       </Button>
     </div>
   );
@@ -113,9 +124,13 @@ export default function ReachPage() {
   const requestUploadUrl = useRequestUploadUrl();
   const createFileMutation = useCreateReachFile();
   const deleteFileMutation = useDeleteReachFile();
+  const { isSurfaceComplete } = useOnboardingProgress();
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: getListReachFilesQueryKey() });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListReachFilesQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY }),
+    ]);
 
   const typeOptions = useMemo(() => {
     const types = new Set((files ?? []).map((f) => coarseType(f.fileType)));
@@ -182,7 +197,7 @@ export default function ReachPage() {
       setStagedFiles([]);
       setPendingNotes({});
       if (fileInputRef.current) fileInputRef.current.value = "";
-      invalidate();
+      await invalidate();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -206,8 +221,10 @@ export default function ReachPage() {
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-reach-title">REACH</h1>
-          <p className="text-muted-foreground mt-1">File bundle manager</p>
+          <p className="text-muted-foreground mt-1">Keep the files you need close at hand so they can be uploaded, opened, and reused without hunting for them.</p>
         </header>
+
+        {!isSurfaceComplete("reach") && <SurfaceOnboardingCard surface="reach" />}
 
         <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-5" data-testid="upload-panel">
           <h2 className="text-base font-semibold">Upload Files</h2>

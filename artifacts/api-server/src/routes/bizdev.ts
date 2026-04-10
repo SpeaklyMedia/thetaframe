@@ -9,11 +9,14 @@ import {
   DeleteBizdevBrandParams,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates } from "../lib/serialize.js";
+import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
+router.use(requireAuth, requireModuleAccess("bizdev"));
 
-router.get("/bizdev/brands/summary", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/bizdev/brands/summary", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const rows = await db
@@ -35,7 +38,7 @@ router.get("/bizdev/brands/summary", requireAuth, async (req: Request, res: Resp
   res.json({ counts, total });
 });
 
-router.get("/bizdev/brands", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/bizdev/brands", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const brands = await db
@@ -47,7 +50,7 @@ router.get("/bizdev/brands", requireAuth, async (req: Request, res: Response): P
   res.json(brands.map(serializeDates));
 });
 
-router.post("/bizdev/brands", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/bizdev/brands", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const body = CreateBizdevBrandBody.safeParse(req.body);
@@ -61,10 +64,11 @@ router.post("/bizdev/brands", requireAuth, async (req: Request, res: Response): 
     .values({ userId, ...body.data })
     .returning();
 
+  await markOnboardingSurfaceComplete(userId, "bizdev");
   res.status(201).json(serializeDates(brand));
 });
 
-router.get("/bizdev/brands/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/bizdev/brands/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = GetBizdevBrandParams.safeParse(req.params);
@@ -86,7 +90,7 @@ router.get("/bizdev/brands/:id", requireAuth, async (req: Request, res: Response
   res.json(serializeDates(brand));
 });
 
-router.put("/bizdev/brands/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.put("/bizdev/brands/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = UpdateBizdevBrandParams.safeParse(req.params);
@@ -115,7 +119,7 @@ router.put("/bizdev/brands/:id", requireAuth, async (req: Request, res: Response
   res.json(serializeDates(brand));
 });
 
-router.delete("/bizdev/brands/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete("/bizdev/brands/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = DeleteBizdevBrandParams.safeParse(req.params);

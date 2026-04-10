@@ -5,6 +5,7 @@ import {
   useUpsertDailyFrame,
   getGetDailyFrameQueryKey,
 } from "@workspace/api-client-react";
+import { useAuth } from "@clerk/react";
 import { getTodayDateString } from "@/lib/dates";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, X } from "lucide-react";
 import { SkipProtocol } from "@/components/skip-protocol";
 import { ApiError } from "@workspace/api-client-react";
+import { useAuthSession } from "@/hooks/use-auth-session";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 const COLOUR_LABELS: Record<DailyFrameColourState, string> = {
   green: "Green — Calm & Ready",
@@ -26,11 +31,34 @@ const COLOUR_LABELS: Record<DailyFrameColourState, string> = {
   purple: "Purple — Creative Flow",
 };
 
+function getDailyFrameErrorMessage(error: ApiError<unknown>): string {
+  if (error.status === 400) {
+    return "Today's date request was invalid. Refresh and try again.";
+  }
+
+  if (error.status === 401) {
+    return "Your session could not be verified. Sign in again and retry.";
+  }
+
+  if (error.status >= 500) {
+    return "The server failed while loading today's frame. Try again shortly.";
+  }
+
+  return `Request failed while loading today's frame (HTTP ${error.status}).`;
+}
+
 export default function DailyPage() {
   const date = getTodayDateString();
+  const { isLoaded: isAuthLoaded, userId } = useAuth();
+  const { status: authSessionStatus, errorMessage: authSessionError } = useAuthSession();
   const queryClient = useQueryClient();
+  const { surfaces, isSurfaceComplete } = useOnboardingProgress();
   const { data: frame, isLoading, error } = useGetDailyFrame(date, {
-    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date), retry: 0 },
+    query: {
+      enabled: isAuthLoaded && Boolean(userId) && authSessionStatus === "ready" && !!date,
+      queryKey: getGetDailyFrameQueryKey(date),
+      retry: 0,
+    },
   });
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertDailyFrame();
@@ -74,6 +102,7 @@ export default function DailyPage() {
       upsert.mutate({ date, data: payload }, {
         onSuccess: (newFrame) => {
           queryClient.setQueryData(getGetDailyFrameQueryKey(date), newFrame);
+          queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
         },
       });
     },
@@ -92,15 +121,32 @@ export default function DailyPage() {
     );
   }
 
+  if (isAuthLoaded && userId && authSessionStatus === "failed") {
+    return (
+      <Layout>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
+          <h2 className="text-xl font-semibold">Your session is not ready</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            {authSessionError ?? "We could not prepare a signed-in session for today's frame."}
+          </p>
+          <p className="text-xs text-muted-foreground" data-testid="text-daily-frame-session-meta">
+            Date: {date} · Session: {authSessionStatus}
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
   if (frameError) {
     return (
       <Layout>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
           <h2 className="text-xl font-semibold">Couldn't load today's frame</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
-            {frameError.status === 401
-              ? "You're not signed in. Please sign in and try again."
-              : "Something went wrong on our end. Try refreshing the page."}
+            {getDailyFrameErrorMessage(frameError)}
+          </p>
+          <p className="text-xs text-muted-foreground" data-testid="text-daily-frame-error-meta">
+            Date: {date} · HTTP {frameError.status}
           </p>
         </div>
       </Layout>
@@ -208,8 +254,12 @@ export default function DailyPage() {
           )}
         </header>
 
+        <OnboardingChecklist surfaces={surfaces} />
+
         {/* Skip Protocol — shared component */}
         <SkipProtocol />
+
+        {!isSurfaceComplete("daily") && <SurfaceOnboardingCard surface="daily" />}
 
         {/* Tier A & B */}
         <div className="grid gap-6 md:grid-cols-2">

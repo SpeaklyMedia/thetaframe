@@ -18,7 +18,9 @@ import {
   DeleteLifeLedgerEntryParams,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates } from "../lib/serialize.js";
+import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
 
@@ -35,13 +37,14 @@ const TABLE_MAP = {
 type AnyLedgerTable = typeof lifeLedgerPeopleTable;
 
 const router: IRouter = Router();
+router.use(requireAuth, requireModuleAccess("life-ledger"));
 
 function resolveTable(tab: string): AnyLedgerTable | null {
   if (!VALID_TABS.includes(tab as Tab)) return null;
   return TABLE_MAP[tab as Tab] as AnyLedgerTable;
 }
 
-router.get("/life-ledger/next-90-days", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/life-ledger/next-90-days", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const now = new Date();
@@ -73,7 +76,7 @@ router.get("/life-ledger/next-90-days", requireAuth, async (req: Request, res: R
   res.json({ entries: allEntries, windowEnd: windowEndStr });
 });
 
-router.get("/life-ledger/subscription-audit", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/life-ledger/subscription-audit", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const subs = await db.select().from(lifeLedgerSubscriptionsTable).where(eq(lifeLedgerSubscriptionsTable.userId, userId));
@@ -109,7 +112,7 @@ router.get("/life-ledger/subscription-audit", requireAuth, async (req: Request, 
   });
 });
 
-router.get("/life-ledger/:tab", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/life-ledger/:tab", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = ListLifeLedgerEntriesParams.safeParse(req.params);
@@ -133,7 +136,7 @@ router.get("/life-ledger/:tab", requireAuth, async (req: Request, res: Response)
   res.json(entries.map(serializeDates));
 });
 
-router.post("/life-ledger/:tab", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/life-ledger/:tab", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = CreateLifeLedgerEntryParams.safeParse(req.params);
@@ -159,10 +162,11 @@ router.post("/life-ledger/:tab", requireAuth, async (req: Request, res: Response
     .values({ userId, tab: params.data.tab, ...body.data })
     .returning();
 
+  await markOnboardingSurfaceComplete(userId, "life-ledger");
   res.status(201).json(serializeDates(entry));
 });
 
-router.get("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = GetLifeLedgerEntryParams.safeParse(req.params);
@@ -190,7 +194,7 @@ router.get("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Respo
   res.json(serializeDates(entry));
 });
 
-router.put("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.put("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = UpdateLifeLedgerEntryParams.safeParse(req.params);
@@ -225,7 +229,7 @@ router.put("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Respo
   res.json(serializeDates(entry));
 });
 
-router.delete("/life-ledger/:tab/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = DeleteLifeLedgerEntryParams.safeParse(req.params);

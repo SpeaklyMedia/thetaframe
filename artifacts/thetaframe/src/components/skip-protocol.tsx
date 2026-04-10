@@ -4,16 +4,24 @@ import {
   useUpsertDailyFrame,
   getGetDailyFrameQueryKey,
 } from "@workspace/api-client-react";
+import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getTodayDateString } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle } from "lucide-react";
+import { useAuthSession } from "@/hooks/use-auth-session";
 
 export function SkipProtocol() {
   const date = getTodayDateString();
+  const { isLoaded: isAuthLoaded, userId } = useAuth();
+  const { status: authSessionStatus } = useAuthSession();
   const queryClient = useQueryClient();
   const { data: frame } = useGetDailyFrame(date, {
-    query: { enabled: !!date, queryKey: getGetDailyFrameQueryKey(date), retry: 0 },
+    query: {
+      enabled: isLoadedAndReady(isAuthLoaded, userId, authSessionStatus) && !!date,
+      queryKey: getGetDailyFrameQueryKey(date),
+      retry: 0,
+    },
   });
   const upsert = useUpsertDailyFrame();
 
@@ -56,6 +64,10 @@ export function SkipProtocol() {
     setShowPrompt(false);
     saveSkip(true, choice);
   };
+
+  if (authSessionStatus === "failed") {
+    return null;
+  }
 
   if (!skipUsed) {
     return (
@@ -104,4 +116,12 @@ export function SkipProtocol() {
       )}
     </div>
   );
+}
+
+function isLoadedAndReady(
+  isAuthLoaded: boolean,
+  userId: string | null | undefined,
+  authSessionStatus: "loading" | "ready" | "failed" | "signed_out",
+): boolean {
+  return isAuthLoaded && Boolean(userId) && authSessionStatus === "ready";
 }

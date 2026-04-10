@@ -8,11 +8,13 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+const requireReachAccess = [requireAuth, requireModuleAccess("reach")] as const;
 
-router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/storage/uploads/request-url", ...requireReachAccess, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const parsed = RequestUploadUrlBody.safeParse(req.body);
@@ -72,7 +74,7 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
   }
 });
 
-router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/storage/objects/*path", ...requireReachAccess, async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   try {

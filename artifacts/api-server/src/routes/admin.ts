@@ -4,6 +4,8 @@ import { getAuth, clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import { accessPermissionsTable, accessPresetsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
+import { ensureOwnerBootstrap, getUserAndMaybeBootstrap, isAdminUser, isOwnerUser } from "../lib/access.js";
+import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router = Router();
 
@@ -19,9 +21,8 @@ const requireAdmin = async (req: Request, res: Response, next: Function): Promis
     return;
   }
   try {
-    const user = await clerkClient.users.getUser(userId);
-    const role = (user.publicMetadata as Record<string, unknown>)?.role;
-    if (role !== "admin") {
+    const user = await getUserAndMaybeBootstrap(userId, req.log);
+    if (!isAdminUser(user)) {
       res.status(403).json({ error: "Forbidden: admin access required" });
       return;
     }
@@ -79,6 +80,8 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response): Pr
     }
     const clerkUsers = allClerkUsers;
 
+    await Promise.all(clerkUsers.map((user) => ensureOwnerBootstrap(user, req.log)));
+
     const userIds = clerkUsers.map((u) => u.id);
     const allPerms = userIds.length > 0
       ? await db.select().from(accessPermissionsTable).where(inArray(accessPermissionsTable.userId, userIds))
@@ -98,7 +101,9 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response): Pr
       imageUrl: u.imageUrl,
       lastActiveAt: u.lastActiveAt ?? null,
       createdAt: u.createdAt,
-      role: ((u.publicMetadata as Record<string, unknown>)?.role as string) ?? null,
+      role: isAdminUser(u)
+        ? "admin"
+        : (((u.publicMetadata as Record<string, unknown>)?.role as string) ?? null),
       permissions: permsByUser[u.id] ?? [],
     }));
 
@@ -115,6 +120,8 @@ router.get("/admin/users/:userId/permissions", requireAdmin, async (req: Request
     return;
   }
   const { userId } = params.data;
+  const targetUser = await clerkClient.users.getUser(userId);
+  await ensureOwnerBootstrap(targetUser, req.log);
   const perms = await db.select().from(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
   res.json({
     userId,
@@ -135,21 +142,27 @@ router.put("/admin/users/:userId/permissions", requireAdmin, async (req: Request
   }
   const { userId } = params.data;
   const grantedBy = (req as AdminRequest).adminUserId;
+  const targetUser = await clerkClient.users.getUser(userId);
 
-  await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+  if (isOwnerUser(targetUser)) {
+    await ensureOwnerBootstrap(targetUser, req.log);
+  } else {
+    await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
 
-  if (body.data.permissions.length > 0) {
-    await db.insert(accessPermissionsTable).values(
-      body.data.permissions.map((p) => ({
-        userId,
-        module: p.module,
-        environment: p.environment,
-        grantedBy,
-      })),
-    );
+    if (body.data.permissions.length > 0) {
+      await db.insert(accessPermissionsTable).values(
+        body.data.permissions.map((p) => ({
+          userId,
+          module: p.module,
+          environment: p.environment,
+          grantedBy,
+        })),
+      );
+    }
   }
 
   const updated = await db.select().from(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+  await markOnboardingSurfaceComplete(grantedBy, "admin");
   res.json({
     userId,
     permissions: updated.map((p) => ({ module: p.module, environment: p.environment })),
@@ -172,6 +185,7 @@ router.post("/admin/presets", requireAdmin, async (req: Request, res: Response):
     .insert(accessPresetsTable)
     .values({ name: body.data.name, permissions: body.data.permissions, createdBy })
     .returning();
+  await markOnboardingSurfaceComplete(createdBy, "admin");
   res.status(201).json(serializePreset(preset));
 });
 
@@ -181,7 +195,9 @@ router.delete("/admin/presets/:id", requireAdmin, async (req: Request, res: Resp
     res.status(400).json({ error: "Invalid preset id" });
     return;
   }
+  const adminUserId = (req as AdminRequest).adminUserId;
   await db.delete(accessPresetsTable).where(eq(accessPresetsTable.id, params.data.id));
+  await markOnboardingSurfaceComplete(adminUserId, "admin");
   res.status(204).end();
 });
 
@@ -193,6 +209,7 @@ router.post("/admin/presets/:id/apply/:userId", requireAdmin, async (req: Reques
   }
   const { id, userId } = params.data;
   const grantedBy = (req as AdminRequest).adminUserId;
+  const targetUser = await clerkClient.users.getUser(userId);
 
   const [preset] = await db.select().from(accessPresetsTable).where(eq(accessPresetsTable.id, id));
   if (!preset) {
@@ -202,15 +219,20 @@ router.post("/admin/presets/:id/apply/:userId", requireAdmin, async (req: Reques
 
   const perms = (preset.permissions as Array<{ module: string; environment: string }>);
 
-  await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+  if (isOwnerUser(targetUser)) {
+    await ensureOwnerBootstrap(targetUser, req.log);
+  } else {
+    await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
 
-  if (perms.length > 0) {
-    await db.insert(accessPermissionsTable).values(
-      perms.map((p) => ({ userId, module: p.module, environment: p.environment, grantedBy })),
-    );
+    if (perms.length > 0) {
+      await db.insert(accessPermissionsTable).values(
+        perms.map((p) => ({ userId, module: p.module, environment: p.environment, grantedBy })),
+      );
+    }
   }
 
   const updated = await db.select().from(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+  await markOnboardingSurfaceComplete(grantedBy, "admin");
   res.json({
     userId,
     permissions: updated.map((p) => ({ module: p.module, environment: p.environment })),

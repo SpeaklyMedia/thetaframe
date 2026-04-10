@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 const STEP_EMOJIS = ["🎯", "🔥", "💡", "🌱", "🛠️", "⚡", "📌", "✅", "🚀", "🧠", "💪", "🎨"];
 
@@ -65,6 +67,7 @@ export default function WeeklyPage() {
   });
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertWeeklyFrame();
+  const { isSurfaceComplete } = useOnboardingProgress();
 
   const [theme, setTheme] = useState("");
   const [steps, setSteps] = useState<WeeklyStep[]>([
@@ -106,6 +109,7 @@ export default function WeeklyPage() {
     upsert.mutate({ weekStart, data: payload }, {
       onSuccess: (newFrame) => {
         queryClient.setQueryData(getGetWeeklyFrameQueryKey(weekStart), newFrame);
+        queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
       }
     });
   }, [weekStart, theme, steps, nonNegotiables, recoveryPlan, upsert, queryClient]);
@@ -165,6 +169,8 @@ export default function WeeklyPage() {
         </header>
 
         <SkipProtocol />
+
+        {!isSurfaceComplete("weekly") && <SurfaceOnboardingCard surface="weekly" />}
 
         {isNewFrame && (
           <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-weekly">

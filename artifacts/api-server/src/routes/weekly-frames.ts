@@ -12,11 +12,14 @@ import {
   UpsertWeeklyFrameResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates, isValidDateString } from "../lib/serialize.js";
+import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
+router.use(requireAuth, requireModuleAccess("weekly"));
 
-router.get("/weekly-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/weekly-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const frames = await db
@@ -28,7 +31,7 @@ router.get("/weekly-frames", requireAuth, async (req: Request, res: Response): P
   res.json(ListWeeklyFramesResponse.parse(frames.map(serializeDates)));
 });
 
-router.post("/weekly-frames", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/weekly-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const body = CreateWeeklyFrameBody.safeParse(req.body);
@@ -67,10 +70,11 @@ router.post("/weekly-frames", requireAuth, async (req: Request, res: Response): 
     })
     .returning();
 
+  await markOnboardingSurfaceComplete(userId, "weekly");
   res.json(CreateWeeklyFrameResponse.parse(serializeDates(frame)));
 });
 
-router.get("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/weekly-frames/:weekStart", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = GetWeeklyFrameParams.safeParse(req.params);
@@ -101,7 +105,7 @@ router.get("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
   res.json(GetWeeklyFrameResponse.parse(serializeDates(frame)));
 });
 
-router.put("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.put("/weekly-frames/:weekStart", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = UpsertWeeklyFrameParams.safeParse(req.params);
@@ -150,6 +154,7 @@ router.put("/weekly-frames/:weekStart", requireAuth, async (req: Request, res: R
     })
     .returning();
 
+  await markOnboardingSurfaceComplete(userId, "weekly");
   res.json(UpsertWeeklyFrameResponse.parse(serializeDates(frame)));
 });
 

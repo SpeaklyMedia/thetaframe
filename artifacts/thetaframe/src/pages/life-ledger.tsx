@@ -29,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Plus, X, ChevronDown, Pencil, Calendar, TrendingUp } from "lucide-react";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
 
@@ -525,11 +527,13 @@ export default function LifeLedgerPage() {
   const createMutation = useCreateLifeLedgerEntry();
   const updateMutation = useUpdateLifeLedgerEntry();
   const deleteMutation = useDeleteLifeLedgerEntry();
+  const { isSurfaceComplete } = useOnboardingProgress();
 
   const invalidateTab = (tab: Tab) => {
     queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey(tab) });
     queryClient.invalidateQueries({ queryKey: getGetNext90DaysQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetSubscriptionAuditQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
   };
 
   const handleCreate = (data: LifeLedgerEntryBody) => {
@@ -562,7 +566,7 @@ export default function LifeLedgerPage() {
         <header className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight" data-testid="text-life-ledger-title">Life Ledger</h1>
-            <p className="text-muted-foreground mt-1">Personal obligations tracker</p>
+            <p className="text-muted-foreground mt-1">Keep the people, deadlines, finances, and plans that shape your life in one place.</p>
           </div>
           {!showForm && editingId === null && (
             <Button onClick={() => setShowForm(true)} data-testid="button-new-entry">
@@ -570,6 +574,8 @@ export default function LifeLedgerPage() {
             </Button>
           )}
         </header>
+
+        {!isSurfaceComplete("life-ledger") && <SurfaceOnboardingCard surface="life-ledger" />}
 
         <Next90DaysPanel />
 
@@ -646,7 +652,7 @@ export default function LifeLedgerPage() {
           />
         ) : !showForm ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground">No entries in {activeTab} yet.</p>
+            <p className="text-muted-foreground">No entries in {activeTab} yet. Add one real obligation or reminder to start building your ledger.</p>
             <Button variant="outline" className="mt-4" onClick={() => setShowForm(true)} data-testid="button-empty-new-entry">
               <Plus className="w-4 h-4 mr-2" /> Add first entry
             </Button>

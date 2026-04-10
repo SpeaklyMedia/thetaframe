@@ -6,13 +6,16 @@ import {
   DeleteReachFileParams,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates } from "../lib/serialize.js";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
+import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+router.use(requireAuth, requireModuleAccess("reach"));
 
-router.get("/reach/files", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get("/reach/files", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const files = await db
@@ -24,7 +27,7 @@ router.get("/reach/files", requireAuth, async (req: Request, res: Response): Pro
   res.json(files.map(serializeDates));
 });
 
-router.post("/reach/files", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/reach/files", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const body = CreateReachFileBody.safeParse(req.body);
@@ -70,10 +73,11 @@ router.post("/reach/files", requireAuth, async (req: Request, res: Response): Pr
     .values({ userId, ...body.data })
     .returning();
 
+  await markOnboardingSurfaceComplete(userId, "reach");
   res.status(201).json(serializeDates(file));
 });
 
-router.delete("/reach/files/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete("/reach/files/:id", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
   const params = DeleteReachFileParams.safeParse(req.params);

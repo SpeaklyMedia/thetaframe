@@ -11,6 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VisionGoal } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
+import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
+import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
 export default function VisionPage() {
   const queryClient = useQueryClient();
@@ -19,6 +21,7 @@ export default function VisionPage() {
   });
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertVisionFrame();
+  const { isSurfaceComplete } = useOnboardingProgress();
 
   const [goals, setGoals] = useState<VisionGoal[]>([
     { id: crypto.randomUUID(), text: "" },
@@ -53,6 +56,7 @@ export default function VisionPage() {
     upsert.mutate({ data: payload }, {
       onSuccess: (newFrame) => {
         queryClient.setQueryData(getGetVisionFrameQueryKey(), newFrame);
+        queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
       }
     });
   }, [goals, nextSteps, upsert, queryClient]);
@@ -106,6 +110,8 @@ export default function VisionPage() {
         </header>
 
         <SkipProtocol />
+
+        {!isSurfaceComplete("vision") && <SurfaceOnboardingCard surface="vision" />}
 
         {isNewFrame && (
           <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-vision">

@@ -10,9 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
+import { Menu } from "lucide-react";
+import { useAuthSession } from "@/hooks/use-auth-session";
+import { useToast } from "@/hooks/use-toast";
 
 const MODES = ["explore", "build", "release"] as const;
 type Mode = typeof MODES[number];
@@ -35,38 +38,46 @@ const MODULE_NAV = [
 export function Header() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { status } = useAuthSession();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { hasModule, isAdmin } = usePermissions();
   const { data: userMode, error } = useGetUserMode({
-    query: { enabled: !!user, queryKey: getGetUserModeQueryKey(), retry: 0 }
+    query: { enabled: !!user && status === "ready", queryKey: getGetUserModeQueryKey(), retry: 0 }
   });
   const upsertMode = useUpsertUserMode();
+  const [optimisticMode, setOptimisticMode] = useState<Mode | null>(null);
 
-  const currentMode = userMode?.mode as Mode | undefined;
+  const currentMode = optimisticMode ?? userMode?.mode as Mode | undefined;
   const currentColour = userMode?.colourState;
 
   const isMissing = error instanceof ApiError && error.status === 404;
-
-  useEffect(() => {
-    if (user && isMissing && !upsertMode.isPending && !upsertMode.isSuccess) {
-      upsertMode.mutate(
-        { data: { mode: "explore", colourState: "green" } },
-        {
-          onSuccess: (result) => {
-            queryClient.setQueryData(getGetUserModeQueryKey(), result);
-          }
-        }
-      );
+  const modeLabel = useMemo(() => {
+    if (upsertMode.isPending) {
+      return "Saving...";
     }
-  }, [user, isMissing, upsertMode, queryClient]);
+    return currentMode ? MODE_LABELS[currentMode] : "Set Mode";
+  }, [currentMode, upsertMode.isPending]);
 
   const handleModeChange = (mode: Mode) => {
+    setOptimisticMode(mode);
     upsertMode.mutate(
       { data: { mode, colourState: currentColour ?? "green" } },
       {
         onSuccess: (result) => {
+          setOptimisticMode(null);
           queryClient.setQueryData(getGetUserModeQueryKey(), result);
-        }
+        },
+        onError: () => {
+          setOptimisticMode(null);
+          toast({
+            title: "Mode could not be saved",
+            description: isMissing
+              ? "Your first mode selection did not persist. Try again."
+              : "The app could not update your working mode. Try again.",
+            variant: "destructive",
+          });
+        },
       }
     );
   };
@@ -104,22 +115,55 @@ export function Header() {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  aria-label="Open navigation menu"
+                  data-testid="button-mobile-nav"
+                >
+                  <Menu className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 md:hidden" data-testid="dropdown-mobile-nav">
+                {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
+                  <DropdownMenuItem asChild key={item.module}>
+                    <Link href={item.href} className="w-full">
+                      {item.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="w-full">
+                      Admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
                   className={`px-3 py-1.5 text-xs font-medium rounded-full cursor-pointer transition-all hover:opacity-90 ${
                     currentMode
                       ? getEmotionColorClass(currentColour)
                       : "bg-muted text-muted-foreground"
                   }`}
+                  disabled={upsertMode.isPending}
                   data-testid="button-mode-badge"
                 >
-                  {currentMode ? MODE_LABELS[currentMode] : "Set Mode"}
+                  {modeLabel}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" data-testid="dropdown-mode">
                 {MODES.map(mode => (
                   <DropdownMenuItem
                     key={mode}
-                    onClick={() => handleModeChange(mode)}
+                    onSelect={() => handleModeChange(mode)}
                     className={currentMode === mode ? "font-semibold" : ""}
                     data-testid={`dropdown-item-mode-${mode}`}
                   >
