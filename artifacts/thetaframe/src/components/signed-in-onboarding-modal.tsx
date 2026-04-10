@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -22,8 +21,7 @@ function getDismissKey(userId: string) {
 }
 
 export function SignedInOnboardingModal() {
-  const { user } = useUser();
-  const { status } = useAuthSession();
+  const { status, userId } = useAuthSession();
   const queryClient = useQueryClient();
   const { surfaces, incompleteSurfaces, completedCount, isLoading, isError } = useOnboardingProgress();
   const { modules, isAdmin } = usePermissions();
@@ -31,8 +29,8 @@ export function SignedInOnboardingModal() {
   const [openedOnce, setOpenedOnce] = useState(false);
 
   const dismissKey = useMemo(
-    () => (user?.id ? getDismissKey(user.id) : null),
-    [user?.id],
+    () => (userId ? getDismissKey(userId) : null),
+    [userId],
   );
 
   useEffect(() => {
@@ -60,7 +58,7 @@ export function SignedInOnboardingModal() {
 
   const shouldOpen =
     !dismissed &&
-    Boolean(user) &&
+    Boolean(userId) &&
     status !== "signed_out" &&
     (openedOnce || (
       status === "ready" &&
@@ -75,13 +73,13 @@ export function SignedInOnboardingModal() {
       !dismissed &&
       !openedOnce &&
       status === "ready" &&
-      Boolean(user) &&
+      Boolean(userId) &&
       !isLoading &&
       (isError || incompleteSurfaces.length > 0)
     ) {
       setOpenedOnce(true);
     }
-  }, [dismissed, incompleteSurfaces.length, isError, isLoading, openedOnce, status, user]);
+  }, [dismissed, incompleteSurfaces.length, isError, isLoading, openedOnce, status, userId]);
 
   return (
     <Dialog open={shouldOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>

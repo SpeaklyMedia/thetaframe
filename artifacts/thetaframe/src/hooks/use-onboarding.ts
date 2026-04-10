@@ -36,6 +36,7 @@ export function useOnboardingProgress() {
     queryFn: () => customFetch<OnboardingProgressResponse>("/api/onboarding", { responseType: "json" }),
     enabled: status === "ready" && Boolean(userId),
     staleTime: 30_000,
+    placeholderData: (previousData) => previousData,
   });
 
   const surfaces = query.data?.surfaces ?? [];

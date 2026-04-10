@@ -50,6 +50,9 @@ Date: 2026-04-10
   - redeployed production and verified the proxy path now resolves to the Clerk instance:
     - before: `/api/__clerk/v1/client` -> `host_invalid`
     - after: `/api/__clerk/v1/client` -> `dev_browser_unauthenticated` with `x-clerk-instance-id`
+  - further hardened the onboarding UI to reduce flicker on the current dev instance:
+    - modal session state now keys off the app's stabilized auth-session user id instead of Clerk's `useUser()` object
+    - onboarding query now keeps the last good payload during refetches instead of momentarily collapsing to an empty list
 - Hard blocker remains:
   - ThetaFrame production still needs a real Clerk production instance and live keys; the current development instance is not a valid long-term production auth foundation.
 
