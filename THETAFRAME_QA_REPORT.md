@@ -24,6 +24,10 @@ Date: 2026-04-10
 - `GET /api/healthz` returns `200`
 - signed-out `GET /api/onboarding` returns `401`
 - signed-out protected route probes still return auth-gated responses
+- `thetaframe.mrksylvstr.com` is attached to the Thetaframe Vercel project, but DNS is still misconfigured
+- Vercel domain config for `thetaframe.mrksylvstr.com` recommends:
+  - CNAME `thetaframe.mrksylvstr.com` -> `3e1fc87145b8ad9a.vercel-dns-017.com.`
+  - fallback CNAME target: `cname.vercel-dns.com.`
 
 ## Clerk Production Investigation
 - Vercel production is still configured with Clerk test keys:
@@ -43,7 +47,9 @@ Date: 2026-04-10
   - the frontend was not passing `proxyUrl` into `ClerkProvider`, even though the backend proxy middleware and env contract already existed
 - Interim mitigation applied:
   - updated Clerk `allowed_origins` on the current instance to include `https://thetaframe.vercel.app`
+  - updated Clerk `allowed_origins` on the current instance to include `https://thetaframe.mrksylvstr.com`
   - wired `VITE_CLERK_PROXY_URL` through the frontend `ClerkProvider`
+  - switched the frontend Clerk proxy path to follow the current browser origin at runtime
   - prepared the production app to route Clerk browser traffic through `/api/__clerk`
   - set Clerk domain `proxy_url = https://thetaframe.vercel.app/api/__clerk`
   - added `VITE_CLERK_PROXY_URL` to Vercel Production env
@@ -55,6 +61,7 @@ Date: 2026-04-10
     - onboarding query now keeps the last good payload during refetches instead of momentarily collapsing to an empty list
 - Hard blocker remains:
   - ThetaFrame production still needs a real Clerk production instance and live keys; the current development instance is not a valid long-term production auth foundation.
+  - the Cloudflare credentials available on this machine do not have zone access for `mrksylvstr.com`, so DNS for `thetaframe.mrksylvstr.com` could not be written from this shell
 
 ## Residual Risks
 - Signed-in browser-only UX remains to be manually verified:
