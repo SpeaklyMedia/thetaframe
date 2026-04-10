@@ -47,6 +47,9 @@ Date: 2026-04-10
   - prepared the production app to route Clerk browser traffic through `/api/__clerk`
   - set Clerk domain `proxy_url = https://thetaframe.vercel.app/api/__clerk`
   - added `VITE_CLERK_PROXY_URL` to Vercel Production env
+  - redeployed production and verified the proxy path now resolves to the Clerk instance:
+    - before: `/api/__clerk/v1/client` -> `host_invalid`
+    - after: `/api/__clerk/v1/client` -> `dev_browser_unauthenticated` with `x-clerk-instance-id`
 - Hard blocker remains:
   - ThetaFrame production still needs a real Clerk production instance and live keys; the current development instance is not a valid long-term production auth foundation.
 
