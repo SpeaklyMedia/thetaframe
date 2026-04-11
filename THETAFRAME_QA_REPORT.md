@@ -98,6 +98,17 @@ Date: 2026-04-11
   - `83` entries updated in place
   - no duplicate Baby KB entries were created
   - this preserved the existing provenance map while refreshing imported content
+- The corrected importer path was then verified again on the public production custom domain after deployment:
+  - import id: `6`
+  - entry `40` now reads `choose pediatrician / pediatric practice` inside Baby KB instead of the taxonomy token `insurance_or_admin`
+  - the same entry was promoted into:
+    - Daily `2026-04-13` as a `Tier B` task
+    - Weekly `2026-04-27` as a `steps` item
+    - Vision `parent-os-check` as a `nextSteps` item
+  - all three target surfaces now show the humanized action label `Choose Pediatrician / Pediatric Practice`
+  - this confirms the intended product contract:
+    - Baby KB remains the admin-only review/provenance lane
+    - Daily, Weekly, and Vision remain the live operating surfaces where action actually lands
 
 ## Residual Risks
 - Signed-in browser-only UX remains to be manually verified:
@@ -112,8 +123,6 @@ Date: 2026-04-11
   - idempotent promotion to Daily, Weekly, and Vision
   - visible promotion badges after linking
   - `Items in Motion` queue state changes after verification and promotion
-- One final live verification remains after the latest deploy:
-  - confirm the corrected milestone/checkpoint titles now render as actionable labels in the Baby KB UI rather than generic taxonomy tokens
 - Clerk social login is still intentionally bypassed in ThetaFrame until the Google provider is configured correctly in the production Clerk tenant.
 
 ## Manual Acceptance Checklist
