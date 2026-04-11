@@ -82,6 +82,25 @@ The stable contracts are:
 - reruns should update mapped entries instead of duplicating them
 - broader packet assets that are not yet materialized can be wired into future interfaces from the same source packet
 
+## Current Admin Review Layer
+- Baby KB now exposes an admin-only review board on top of the imported entries.
+- Review actions currently supported:
+  - bulk mark verified
+  - bulk add tag
+  - bulk remove tag
+  - grouping by source file or phase
+  - source-aware collapse and expand
+- These actions only mutate the Baby KB entry tags and editable content. They do not rewrite the import registry or original packet provenance.
+
+## Current Promotion Layer
+- Imported Baby KB entries can now be promoted into operational surfaces as linked copies:
+  - `Daily` -> unchecked `Tier B` task
+  - `Weekly` -> `steps`
+  - `Vision` -> `nextSteps`
+- Promotions are tracked separately from the source entry through a dedicated registry.
+- Promotions are idempotent per source entry and target container, so rerunning the same promotion does not duplicate the operational item.
+- Promotions are snapshots, not bidirectional sync. Editing the target surface does not overwrite the Baby KB source entry, and editing Baby KB does not silently rewrite an already-promoted target item.
+
 ## Product Intent
 This packet should be treated as:
 - admin-imported user content

@@ -10,6 +10,9 @@ import {
   getListLifeLedgerEntriesQueryKey,
   getGetNext90DaysQueryKey,
   getGetSubscriptionAuditQueryKey,
+  getGetDailyFrameQueryKey,
+  getGetWeeklyFrameQueryKey,
+  getGetVisionFrameQueryKey,
   LifeLedgerEntry,
   LifeLedgerEntryBody,
   LifeLedgerEntryBodyImpactLevel,
@@ -28,15 +31,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, X, ChevronDown, Pencil, Calendar, TrendingUp } from "lucide-react";
+import { Plus, X, ChevronDown, Pencil, Calendar, TrendingUp, ChevronRight } from "lucide-react";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
+  BABY_KB_PROMOTIONS_QUERY_KEY,
   useParentPacketImports,
   useParentPacketMaterializations,
+  useBabyKbPromotions,
+  useCreateBabyKbPromotion,
+  useBulkUpdateBabyKbEntries,
+  type BabyKbPromotion,
   type ParentPacketMaterialization,
 } from "@/hooks/use-parent-packet-imports";
+import { useToast } from "@/hooks/use-toast";
+import { getMondayOfCurrentWeek, getTodayDateString } from "@/lib/dates";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 type BabyReviewFilter = "all" | "framework" | "planning" | "reference" | "must-verify" | "verified";
@@ -77,6 +87,16 @@ const BABY_GROUP_BY_LABELS: Record<BabyGroupBy, string> = {
   source: "Group by source file",
   phase: "Group by phase",
   none: "No grouping",
+};
+const BABY_PROMOTION_BADGE_LABELS: Record<BabyKbPromotion["targetSurface"], string> = {
+  daily: "Promoted to Daily",
+  weekly: "Promoted to Weekly",
+  vision: "Promoted to Vision",
+};
+const BABY_PROMOTION_BUTTON_LABELS: Record<BabyKbPromotion["targetSurface"], string> = {
+  daily: "Promote to Daily",
+  weekly: "Promote to Weekly",
+  vision: "Promote to Vision",
 };
 
 const TAB_TAG_SUGGESTIONS: Record<Tab, string[]> = {
@@ -242,21 +262,6 @@ function inferPhase(entry: LifeLedgerEntry, materialization?: ParentPacketMateri
   return BABY_PHASE_ORDER.find((phase) => tags.includes(phase)) ?? null;
 }
 
-function toLifeLedgerEntryBody(entry: LifeLedgerEntry, tagsOverride?: string[]): LifeLedgerEntryBody {
-  return {
-    name: entry.name,
-    tags: tagsOverride ?? ((entry.tags as string[]) ?? []),
-    impactLevel: entry.impactLevel ?? null,
-    reviewWindow: entry.reviewWindow ?? null,
-    dueDate: entry.dueDate ?? null,
-    notes: entry.notes ?? null,
-    amount: entry.amount ?? null,
-    currency: entry.currency ?? null,
-    isEssential: entry.isEssential ?? null,
-    billingCycle: entry.billingCycle ?? null,
-  };
-}
-
 function buildBabyReviewEntry(
   entry: LifeLedgerEntry,
   materialization?: ParentPacketMaterialization,
@@ -331,6 +336,10 @@ function groupBabyEntries(entries: BabyReviewEntry[], groupBy: BabyGroupBy) {
   }
 
   return groups;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function EntryForm({
@@ -658,29 +667,57 @@ function BabyReviewBoard({
   groupBy,
   search,
   editingId,
+  selectedEntryIds,
+  collapsedGroupKeys,
+  bulkTagInput,
+  promotionsByEntryId,
+  promotingKey,
   onFilterChange,
   onGroupByChange,
   onSearchChange,
+  onToggleSelectAllVisible,
+  onToggleEntrySelected,
+  onToggleGroupCollapsed,
+  onBulkTagInputChange,
+  onBulkVerify,
+  onBulkAddTag,
+  onBulkRemoveTag,
   onEdit,
   onDelete,
-  onPromote,
-  promotingId,
+  onPromoteToSurface,
 }: {
   entries: BabyReviewEntry[];
   filter: BabyReviewFilter;
   groupBy: BabyGroupBy;
   search: string;
   editingId: number | null;
+  selectedEntryIds: number[];
+  collapsedGroupKeys: string[];
+  bulkTagInput: string;
+  promotionsByEntryId: Map<number, BabyKbPromotion[]>;
+  promotingKey: string | null;
   onFilterChange: (filter: BabyReviewFilter) => void;
   onGroupByChange: (groupBy: BabyGroupBy) => void;
   onSearchChange: (value: string) => void;
+  onToggleSelectAllVisible: () => void;
+  onToggleEntrySelected: (entryId: number) => void;
+  onToggleGroupCollapsed: (groupKey: string) => void;
+  onBulkTagInputChange: (value: string) => void;
+  onBulkVerify: () => void;
+  onBulkAddTag: () => void;
+  onBulkRemoveTag: () => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
-  onPromote: (entry: BabyReviewEntry) => void;
-  promotingId: number | null;
+  onPromoteToSurface: (entry: BabyReviewEntry, surface: BabyKbPromotion["targetSurface"]) => void;
 }) {
   const visibleEntries = entries.filter((entry) => entry.id !== editingId);
   const groups = groupBabyEntries(visibleEntries, groupBy);
+  const selectedSet = new Set(selectedEntryIds);
+  const collapsedSet = new Set(collapsedGroupKeys);
+  const visibleEntryIds = visibleEntries.map((entry) => entry.id);
+  const selectedVisibleCount = visibleEntryIds.filter((entryId) => selectedSet.has(entryId)).length;
+  const allVisibleSelected = visibleEntryIds.length > 0 && selectedVisibleCount === visibleEntryIds.length;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
   const importedCount = entries.filter((entry) => entry.isImported).length;
   const verifiedCount = entries.filter((entry) => entry.isVerified).length;
   const needsVerificationCount = entries.filter((entry) => entry.tagsList.includes("Needs verification")).length;
@@ -692,7 +729,7 @@ function BabyReviewBoard({
           <div>
             <h2 className="text-sm font-semibold">Review imported Baby KB content</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Filter the imported framework, group it by source or phase, and promote individual items into verified personal truth without losing the original packet link.
+              Filter imported framework content, group it by source or phase, and move the right items into verified truth or live planning surfaces without losing the original packet link.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
@@ -742,6 +779,64 @@ function BabyReviewBoard({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        <div className="rounded-xl border bg-muted/30 p-4 space-y-3" data-testid="baby-kb-bulk-actions">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                onCheckedChange={() => onToggleSelectAllVisible()}
+                data-testid="checkbox-select-all-visible-baby-kb"
+              />
+              <div>
+                <div className="text-sm font-medium">{selectedVisibleCount} selected in view</div>
+                <div className="text-xs text-muted-foreground">
+                  Bulk actions only touch Baby KB entry tags. Import provenance stays unchanged.
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selectedEntryIds.length === 0}
+                onClick={onBulkVerify}
+                data-testid="button-bulk-verify-baby-kb"
+              >
+                Mark verified
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 md:flex-row">
+            <Input
+              value={bulkTagInput}
+              onChange={(event) => onBulkTagInputChange(event.target.value)}
+              placeholder="Tag to add or remove across the selected entries..."
+              data-testid="input-bulk-tag-baby-kb"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selectedEntryIds.length === 0 || !bulkTagInput.trim()}
+                onClick={onBulkAddTag}
+                data-testid="button-bulk-add-tag-baby-kb"
+              >
+                Add tag
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selectedEntryIds.length === 0 || !bulkTagInput.trim()}
+                onClick={onBulkRemoveTag}
+                data-testid="button-bulk-remove-tag-baby-kb"
+              >
+                Remove tag
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {visibleEntries.length === 0 ? (
@@ -757,10 +852,30 @@ function BabyReviewBoard({
                   <h3 className="text-sm font-semibold">{group.label}</h3>
                   <p className="text-xs text-muted-foreground">{group.entries.length} entries</p>
                 </div>
+                {groupBy !== "none" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onToggleGroupCollapsed(group.key)}
+                    data-testid={`button-toggle-baby-group-${group.key}`}
+                  >
+                    {collapsedSet.has(group.key) ? (
+                      <>
+                        <ChevronRight className="mr-2 h-4 w-4" /> Expand
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4" /> Collapse
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
-              <div className="grid gap-3">
+              {!collapsedSet.has(group.key) && <div className="grid gap-3">
                 {group.entries.map((entry) => {
                   const notePreview = previewNotes(entry.notes ?? "");
+                  const promotions = promotionsByEntryId.get(entry.id) ?? [];
+                  const promotedSurfaces = new Set(promotions.map((promotion) => promotion.targetSurface));
                   return (
                     <article
                       key={entry.id}
@@ -770,6 +885,11 @@ function BabyReviewBoard({
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
+                            <Checkbox
+                              checked={selectedSet.has(entry.id)}
+                              onCheckedChange={() => onToggleEntrySelected(entry.id)}
+                              data-testid={`checkbox-select-baby-entry-${entry.id}`}
+                            />
                             <h4 className="text-sm font-semibold">{entry.name || "Untitled imported note"}</h4>
                             {entry.isImported && (
                               <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px]">Imported from packet</span>
@@ -784,6 +904,14 @@ function BabyReviewBoard({
                                 Verified personal truth
                               </span>
                             )}
+                            {promotions.map((promotion) => (
+                              <span
+                                key={`${promotion.targetSurface}-${promotion.targetContainerKey}`}
+                                className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                              >
+                                {BABY_PROMOTION_BADGE_LABELS[promotion.targetSurface]}
+                              </span>
+                            ))}
                           </div>
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             {entry.sourceLabel && <span>Source: {entry.sourceLabel}</span>}
@@ -791,17 +919,27 @@ function BabyReviewBoard({
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {entry.isImported && !entry.isVerified && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onPromote(entry)}
-                              disabled={promotingId === entry.id}
-                              data-testid={`button-verify-baby-entry-${entry.id}`}
-                            >
-                              {promotingId === entry.id ? "Saving..." : "Mark verified"}
-                            </Button>
-                          )}
+                          {(["daily", "weekly", "vision"] as BabyKbPromotion["targetSurface"][]).map((surface) => {
+                            const promotionKey = `${entry.id}:${surface}`;
+                            const isPromoting = promotingKey === promotionKey;
+                            const alreadyPromoted = promotedSurfaces.has(surface);
+                            return (
+                              <Button
+                                key={surface}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onPromoteToSurface(entry, surface)}
+                                disabled={isPromoting || alreadyPromoted}
+                                data-testid={`button-promote-baby-entry-${entry.id}-${surface}`}
+                              >
+                                {isPromoting
+                                  ? "Linking..."
+                                  : alreadyPromoted
+                                    ? BABY_PROMOTION_BADGE_LABELS[surface]
+                                    : BABY_PROMOTION_BUTTON_LABELS[surface]}
+                              </Button>
+                            );
+                          })}
                           <Button variant="outline" size="sm" onClick={() => onEdit(entry.id)} data-testid={`button-edit-baby-entry-${entry.id}`}>
                             Edit
                           </Button>
@@ -829,7 +967,7 @@ function BabyReviewBoard({
                     </article>
                   );
                 })}
-              </div>
+              </div>}
             </section>
           ))}
         </div>
@@ -916,19 +1054,26 @@ function SubscriptionAuditPanel() {
 
 export default function LifeLedgerPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>("people");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [babyFilter, setBabyFilter] = useState<BabyReviewFilter>("all");
   const [babyGroupBy, setBabyGroupBy] = useState<BabyGroupBy>("source");
   const [babySearch, setBabySearch] = useState("");
-  const [promotingId, setPromotingId] = useState<number | null>(null);
+  const [selectedBabyEntryIds, setSelectedBabyEntryIds] = useState<number[]>([]);
+  const [collapsedBabyGroups, setCollapsedBabyGroups] = useState<string[]>([]);
+  const [bulkTagInput, setBulkTagInput] = useState("");
+  const [promotingKey, setPromotingKey] = useState<string | null>(null);
   const { isAdmin } = usePermissions();
   const { data: parentPacketImports } = useParentPacketImports(isAdmin);
   const { data: parentPacketMaterializations } = useParentPacketMaterializations(isAdmin);
+  const { data: babyKbPromotions } = useBabyKbPromotions(isAdmin);
   const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
   const activeTabCopy = TAB_COPY[activeTab];
   const latestParentPacketImport = parentPacketImports?.[0];
+  const todayDate = getTodayDateString();
+  const currentWeekStart = getMondayOfCurrentWeek();
 
   const { data: entries, isLoading } = useListLifeLedgerEntries(activeTab, {
     query: {
@@ -939,6 +1084,8 @@ export default function LifeLedgerPage() {
   const createMutation = useCreateLifeLedgerEntry();
   const updateMutation = useUpdateLifeLedgerEntry();
   const deleteMutation = useDeleteLifeLedgerEntry();
+  const bulkUpdateBabyKbMutation = useBulkUpdateBabyKbEntries();
+  const createBabyKbPromotionMutation = useCreateBabyKbPromotion();
   const { isSurfaceComplete } = useOnboardingProgress();
 
   useEffect(() => {
@@ -948,6 +1095,14 @@ export default function LifeLedgerPage() {
       setEditingId(null);
     }
   }, [activeTab, isAdmin]);
+
+  useEffect(() => {
+    if (activeTab !== "baby") {
+      setSelectedBabyEntryIds([]);
+      setCollapsedBabyGroups([]);
+      setBulkTagInput("");
+    }
+  }, [activeTab]);
 
   const invalidateTab = (tab: Tab) => {
     queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey(tab) });
@@ -989,6 +1144,14 @@ export default function LifeLedgerPage() {
     });
   }, [babyEntries, babyFilter, babySearch]);
 
+  const babyPromotionsByEntryId = useMemo(() => {
+    const grouped = new Map<number, BabyKbPromotion[]>();
+    for (const promotion of babyKbPromotions ?? []) {
+      grouped.set(promotion.sourceEntryId, [...(grouped.get(promotion.sourceEntryId) ?? []), promotion]);
+    }
+    return grouped;
+  }, [babyKbPromotions]);
+
   const handleCreate = (data: LifeLedgerEntryBody) => {
     createMutation.mutate({ tab: activeTab, data }, {
       onSuccess: () => {
@@ -1011,18 +1174,85 @@ export default function LifeLedgerPage() {
     deleteMutation.mutate({ tab: activeTab, id }, { onSuccess: () => invalidateTab(activeTab) });
   };
 
-  const handlePromote = (entry: BabyReviewEntry) => {
-    setPromotingId(entry.id);
+  const invalidateBabyKbState = () => {
+    invalidateTab("baby");
+    queryClient.invalidateQueries({ queryKey: BABY_KB_PROMOTIONS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+  };
 
-    const nextTags = Array.from(
-      new Set([...entry.tagsList.filter((tag) => tag !== "Needs verification"), "Verified personal truth"]),
-    );
+  const handleBulkBabyUpdate = (operation: "mark-verified" | "add-tag" | "remove-tag", tag?: string) => {
+    if (selectedBabyEntryIds.length === 0) return;
 
-    updateMutation.mutate(
-      { tab: "baby", id: entry.id, data: toLifeLedgerEntryBody(entry, nextTags) },
+    bulkUpdateBabyKbMutation.mutate(
       {
-        onSuccess: () => invalidateTab("baby"),
-        onSettled: () => setPromotingId(null),
+        entryIds: selectedBabyEntryIds,
+        operation,
+        tag: tag?.trim() || undefined,
+      },
+      {
+        onSuccess: (result) => {
+          invalidateBabyKbState();
+          if (operation !== "mark-verified") {
+            setBulkTagInput("");
+          }
+          toast({
+            title: "Baby KB updated",
+            description:
+              operation === "mark-verified"
+                ? `${result.updatedCount} entries marked as verified.`
+                : `${result.updatedCount} entries updated.`,
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Baby KB update failed",
+            description: getErrorMessage(error, "The selected entries could not be updated."),
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  const handlePromoteToSurface = (entry: BabyReviewEntry, surface: BabyKbPromotion["targetSurface"]) => {
+    const targetContainerKey =
+      surface === "daily" ? todayDate : surface === "weekly" ? currentWeekStart : "me";
+    const mutationKey = `${entry.id}:${surface}`;
+    setPromotingKey(mutationKey);
+
+    createBabyKbPromotionMutation.mutate(
+      {
+        sourceEntryId: entry.id,
+        targetSurface: surface,
+        targetContainerKey,
+      },
+      {
+        onSuccess: (promotion) => {
+          invalidateBabyKbState();
+          if (surface === "daily") {
+            queryClient.invalidateQueries({ queryKey: getGetDailyFrameQueryKey(todayDate) });
+          }
+          if (surface === "weekly") {
+            queryClient.invalidateQueries({ queryKey: getGetWeeklyFrameQueryKey(currentWeekStart) });
+          }
+          if (surface === "vision") {
+            queryClient.invalidateQueries({ queryKey: getGetVisionFrameQueryKey() });
+          }
+          toast({
+            title: promotion.existing ? "Already linked" : "Baby KB item promoted",
+            description: promotion.existing
+              ? `${entry.name} was already linked to ${surface}.`
+              : `${entry.name} is now linked to ${surface}.`,
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Promotion failed",
+            description: getErrorMessage(error, "This Baby KB item could not be linked."),
+            variant: "destructive",
+          });
+        },
+        onSettled: () => setPromotingKey(null),
       },
     );
   };
@@ -1176,13 +1406,43 @@ export default function LifeLedgerPage() {
             groupBy={babyGroupBy}
             search={babySearch}
             editingId={editingId}
+            selectedEntryIds={selectedBabyEntryIds}
+            collapsedGroupKeys={collapsedBabyGroups}
+            bulkTagInput={bulkTagInput}
+            promotionsByEntryId={babyPromotionsByEntryId}
+            promotingKey={promotingKey}
             onFilterChange={setBabyFilter}
             onGroupByChange={setBabyGroupBy}
             onSearchChange={setBabySearch}
+            onToggleSelectAllVisible={() => {
+              const visibleIds = filteredBabyEntries
+                .filter((entry) => entry.id !== editingId)
+                .map((entry) => entry.id);
+              const allSelected =
+                visibleIds.length > 0 && visibleIds.every((entryId) => selectedBabyEntryIds.includes(entryId));
+              setSelectedBabyEntryIds((current) =>
+                allSelected
+                  ? current.filter((entryId) => !visibleIds.includes(entryId))
+                  : Array.from(new Set([...current, ...visibleIds])),
+              );
+            }}
+            onToggleEntrySelected={(entryId) =>
+              setSelectedBabyEntryIds((current) =>
+                current.includes(entryId) ? current.filter((value) => value !== entryId) : [...current, entryId],
+              )
+            }
+            onToggleGroupCollapsed={(groupKey) =>
+              setCollapsedBabyGroups((current) =>
+                current.includes(groupKey) ? current.filter((value) => value !== groupKey) : [...current, groupKey],
+              )
+            }
+            onBulkTagInputChange={setBulkTagInput}
+            onBulkVerify={() => handleBulkBabyUpdate("mark-verified")}
+            onBulkAddTag={() => handleBulkBabyUpdate("add-tag", bulkTagInput)}
+            onBulkRemoveTag={() => handleBulkBabyUpdate("remove-tag", bulkTagInput)}
             onEdit={(id) => { setShowForm(false); setEditingId(id); }}
             onDelete={handleDelete}
-            onPromote={handlePromote}
-            promotingId={promotingId}
+            onPromoteToSurface={handlePromoteToSurface}
           />
         ) : entries && entries.length > 0 ? (
           <TabTable

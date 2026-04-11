@@ -4,6 +4,7 @@ import { useAuthSession } from "@/hooks/use-auth-session";
 
 export const PARENT_PACKET_IMPORTS_QUERY_KEY = ["parent-packet-imports"] as const;
 export const PARENT_PACKET_MATERIALIZATIONS_QUERY_KEY = ["parent-packet-materializations"] as const;
+export const BABY_KB_PROMOTIONS_QUERY_KEY = ["baby-kb-promotions"] as const;
 
 export type ParentPacketImportFileSummary = {
   sourcePath: string;
@@ -53,6 +54,26 @@ export type ParentPacketMaterialization = {
   updatedAt: string;
 };
 
+export type BabyKbPromotion = {
+  id: number;
+  sourceEntryId: number;
+  sourceMaterializationId: number | null;
+  targetSurface: "daily" | "weekly" | "vision";
+  targetContainerKey: string;
+  targetRecordId: number;
+  targetItemId: string;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  existing?: boolean;
+};
+
+export type BabyKbBulkUpdateResult = {
+  updatedCount: number;
+  updatedIds: number[];
+};
+
 export function useParentPacketImports(enabled = true) {
   const { status, userId } = useAuthSession();
 
@@ -78,6 +99,18 @@ export function useParentPacketMaterializations(enabled = true) {
   });
 }
 
+export function useBabyKbPromotions(enabled = true) {
+  const { status, userId } = useAuthSession();
+
+  return useQuery<BabyKbPromotion[]>({
+    queryKey: BABY_KB_PROMOTIONS_QUERY_KEY,
+    queryFn: () => customFetch<BabyKbPromotion[]>("/api/admin/baby-kb/promotions", { responseType: "json" }),
+    enabled: enabled && status === "ready" && Boolean(userId),
+    staleTime: 30_000,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
 export function useCreateParentPacketImport() {
   return useMutation({
     mutationFn: async (reachFileId: number) =>
@@ -85,6 +118,38 @@ export function useCreateParentPacketImport() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reachFileId }),
+        responseType: "json",
+      }),
+  });
+}
+
+export function useCreateBabyKbPromotion() {
+  return useMutation({
+    mutationFn: async (payload: {
+      sourceEntryId: number;
+      targetSurface: "daily" | "weekly" | "vision";
+      targetContainerKey: string;
+    }) =>
+      customFetch<BabyKbPromotion>("/api/admin/baby-kb/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        responseType: "json",
+      }),
+  });
+}
+
+export function useBulkUpdateBabyKbEntries() {
+  return useMutation({
+    mutationFn: async (payload: {
+      entryIds: number[];
+      operation: "mark-verified" | "add-tag" | "remove-tag";
+      tag?: string;
+    }) =>
+      customFetch<BabyKbBulkUpdateResult>("/api/admin/baby-kb/bulk-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
         responseType: "json",
       }),
   });

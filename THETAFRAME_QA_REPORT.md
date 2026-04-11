@@ -1,6 +1,6 @@
 # Thetaframe QA Report
 
-Date: 2026-04-10
+Date: 2026-04-11
 
 ## Local Validation
 - `pnpm run typecheck` — passed
@@ -20,6 +20,7 @@ Date: 2026-04-10
 - Owner bootstrap still reconciles admin access and full module access.
 - REACH file flows still use the normal upload URL -> storage PUT -> file record creation chain.
 - Life Ledger now supports an admin-only `Baby KB` tab that reuses the existing CRUD flow while blocking non-admin direct API access.
+- Baby KB now supports admin-only bulk review actions and linked promotion into Daily, Weekly, and Vision without mutating import provenance.
 
 ## Production Runtime Checks Completed
 - `GET /api/healthz` returns `200`
@@ -95,6 +96,11 @@ Date: 2026-04-10
   - exact `403` UX on deliberately restricted accounts
   - per-surface onboarding clearing in a live signed-in session
 - `Baby KB` needs one live admin smoke test and one non-admin API probe to confirm the admin-only lane behaves as intended after deploy.
+- Baby KB promotion flows still need signed-in browser confirmation against the real admin account:
+  - bulk verify
+  - bulk tag add/remove
+  - idempotent promotion to Daily, Weekly, and Vision
+  - visible promotion badges after linking
 - Clerk social login is still intentionally bypassed in ThetaFrame until the Google provider is configured correctly in the production Clerk tenant.
 
 ## Manual Acceptance Checklist
@@ -104,3 +110,9 @@ Date: 2026-04-10
 - Save one real item in each surface and confirm only that surface’s onboarding disappears.
 - Confirm an account without a module grant lands on `Access Denied` for that lane.
 - Confirm owner/admin can reach Admin and perform a permission mutation successfully.
+- Confirm Baby KB bulk verify removes `Needs verification` and adds `Verified personal truth`.
+- Confirm one Baby KB item can be promoted into:
+  - Daily Tier B
+  - Weekly steps
+  - Vision next steps
+- Confirm re-promoting the same Baby KB item into the same target container does not duplicate it.

@@ -68,6 +68,7 @@ Date: 2026-04-10
 - Owner bootstrap for `mark@speaklymedia.com` remains deterministic and idempotent.
 - `Admin` remains separately gated by admin semantics.
 - `Baby KB` is admin-only inside Life Ledger and is hidden from non-admin users in the UI while also returning `403` to non-admin direct API calls on `/api/life-ledger/baby`.
+- `Baby KB` now includes an admin-only review board for imported packet content with bulk verification, bulk tag editing, source/phase grouping, and promotion into Daily, Weekly, and Vision.
 
 ### Onboarding Model
 - Onboarding progress remains persisted in `onboarding_progress`.
@@ -99,6 +100,11 @@ Date: 2026-04-10
 - Users cannot manually open unauthorized module pages or call unauthorized module APIs successfully.
 - Signed-in users land on an allowed lane from `/`.
 - `mark@speaklymedia.com` retains effective owner/admin access across environments.
+- Admin-only Baby KB review actions preserve import provenance and never convert packet content into generic default app data.
+- Promoting a Baby KB item creates a linked operational copy without bidirectional sync:
+  - Daily -> `Tier B`
+  - Weekly -> `steps`
+  - Vision -> `nextSteps`
 
 ## Residual Manual QA Lane
 - Signed-in browser verification is still required for final acceptance of:

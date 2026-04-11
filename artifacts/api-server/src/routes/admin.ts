@@ -11,6 +11,11 @@ import {
   listParentPacketImportRunsForUser,
   listParentPacketMaterializationsForUser,
 } from "../lib/parentPacketImport.js";
+import {
+  bulkUpdateBabyKbEntries,
+  listBabyKbPromotionsForUser,
+  promoteBabyKbEntry,
+} from "../lib/babyKbAdmin.js";
 
 const router = Router();
 
@@ -76,6 +81,25 @@ const ParentPacketImportBody = z
       });
     }
   });
+const BabyPromotionSurfaceSchema = z.enum(["daily", "weekly", "vision"]);
+const CreateBabyKbPromotionBody = z.object({
+  sourceEntryId: z.coerce.number().int().positive(),
+  targetSurface: BabyPromotionSurfaceSchema,
+  targetContainerKey: z.string().min(1),
+});
+const BulkUpdateBabyKbBody = z.object({
+  entryIds: z.array(z.coerce.number().int().positive()).min(1),
+  operation: z.enum(["mark-verified", "add-tag", "remove-tag"]),
+  tag: z.string().trim().min(1).optional(),
+}).superRefine((value, ctx) => {
+  if ((value.operation === "add-tag" || value.operation === "remove-tag") && !value.tag) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["tag"],
+      message: "tag is required for add-tag and remove-tag operations",
+    });
+  }
+});
 
 function serializePreset(preset: typeof accessPresetsTable.$inferSelect) {
   return {
@@ -206,6 +230,12 @@ router.get("/admin/parent-packet-materializations", requireAdmin, async (req: Re
   res.json(materializations);
 });
 
+router.get("/admin/baby-kb/promotions", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const adminUserId = (req as AdminRequest).adminUserId;
+  const promotions = await listBabyKbPromotionsForUser(adminUserId);
+  res.json(promotions);
+});
+
 router.post("/admin/parent-packet-imports", requireAdmin, async (req: Request, res: Response): Promise<void> => {
   const body = ParentPacketImportBody.safeParse(req.body);
   if (!body.success) {
@@ -227,6 +257,47 @@ router.post("/admin/parent-packet-imports", requireAdmin, async (req: Request, r
 
   const imported = await importParentPacketFromReachFile(sourceFile, adminUserId);
   res.status(201).json(imported);
+});
+
+router.post("/admin/baby-kb/promotions", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const body = CreateBabyKbPromotionBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const adminUserId = (req as AdminRequest).adminUserId;
+
+  try {
+    const promotion = await promoteBabyKbEntry(
+      adminUserId,
+      body.data.sourceEntryId,
+      body.data.targetSurface,
+      body.data.targetContainerKey,
+    );
+    res.status(201).json(promotion);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to promote Baby KB entry";
+    res.status(409).json({ error: message });
+  }
+});
+
+router.post("/admin/baby-kb/bulk-update", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const body = BulkUpdateBabyKbBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const adminUserId = (req as AdminRequest).adminUserId;
+  const result = await bulkUpdateBabyKbEntries(
+    adminUserId,
+    body.data.entryIds,
+    body.data.operation,
+    body.data.tag ?? null,
+  );
+
+  res.json(result);
 });
 
 router.post("/admin/presets", requireAdmin, async (req: Request, res: Response): Promise<void> => {

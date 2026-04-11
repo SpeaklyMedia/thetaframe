@@ -8,3 +8,4 @@ export * from "./reach";
 export * from "./admin";
 export * from "./onboarding";
 export * from "./parent-packet-imports";
+export * from "./parent-packet-promotions";
