@@ -256,6 +256,16 @@ function phaseLabel(phase: string | null): string | null {
     .join(" / ");
 }
 
+function humanizeToken(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const cleaned = value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+  return cleaned.replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 function previewNotes(notes: string | null, maxLines = 6): string {
   if (!notes) return "";
   const lines = notes.split("\n");
@@ -276,6 +286,38 @@ function inferPhase(entry: LifeLedgerEntry, materialization?: ParentPacketMateri
   return BABY_PHASE_ORDER.find((phase) => tags.includes(phase)) ?? null;
 }
 
+function deriveBabyEntryTitle(entry: LifeLedgerEntry, materialization?: ParentPacketMaterialization): string {
+  if (entry.name.trim()) {
+    return entry.name.trim();
+  }
+
+  const metadata = asRecord(materialization?.metadata);
+  const sourceRecordKey = metadataString(metadata, "sourceRecordKey");
+  const sourceRecordLeaf = sourceRecordKey?.split("::").reverse().find((segment) => segment.trim());
+  const fromMetadata =
+    humanizeToken(sourceRecordLeaf) ??
+    humanizeToken(metadataString(metadata, "category")) ??
+    humanizeToken(metadataString(metadata, "module")) ??
+    humanizeToken(metadataString(metadata, "milestoneType")) ??
+    humanizeToken(metadataString(metadata, "timingWindow")) ??
+    humanizeToken(metadataString(metadata, "phase"));
+
+  if (fromMetadata) {
+    return fromMetadata;
+  }
+
+  const firstMeaningfulLine = (entry.notes ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => {
+      const match = line.match(/^[A-Za-z /-]+:\s*(.+)$/);
+      return Boolean(match?.[1]?.trim());
+    });
+
+  const fromNotes = humanizeToken(firstMeaningfulLine?.replace(/^[A-Za-z /-]+:\s*/, ""));
+  return fromNotes ?? "Untitled imported note";
+}
+
 function buildBabyReviewEntry(
   entry: LifeLedgerEntry,
   materialization?: ParentPacketMaterialization,
@@ -288,6 +330,7 @@ function buildBabyReviewEntry(
 
   return {
     ...entry,
+    name: deriveBabyEntryTitle(entry, materialization),
     isImported: Boolean(materialization),
     isVerified: tagsList.includes("Verified personal truth"),
     contentType: contentType ?? null,

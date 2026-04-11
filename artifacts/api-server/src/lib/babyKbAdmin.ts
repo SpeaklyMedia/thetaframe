@@ -17,6 +17,7 @@ export type BabyBulkOperation = "mark-verified" | "add-tag" | "remove-tag";
 type TierTask = { id: string; text: string; completed: boolean };
 type WeeklyStep = { id: string; text: string; emoji?: string | null };
 type VisionGoal = { id: string; text: string };
+type MaterializationMetadata = Record<string, unknown>;
 
 let babyKbAdminSchemaReady: Promise<void> | null = null;
 
@@ -49,6 +50,59 @@ function getVisionGoals(value: unknown): VisionGoal[] {
           Boolean(item && typeof item === "object" && typeof (item as VisionGoal).id === "string" && typeof (item as VisionGoal).text === "string"),
       )
     : [];
+}
+
+function metadataString(metadata: MaterializationMetadata | null | undefined, key: string): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function humanizeToken(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const cleaned = value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+  return cleaned.replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function deriveLabelFromNotes(notes: string | null | undefined): string | null {
+  if (!notes) return null;
+
+  const lines = notes.split("\n").map((line) => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    const match = line.match(/^[A-Za-z /-]+:\s*(.+)$/);
+    const value = match?.[1]?.trim();
+    if (value) {
+      return humanizeToken(value);
+    }
+  }
+
+  return null;
+}
+
+function getPromotionText(
+  sourceEntry: typeof lifeLedgerBabyTable.$inferSelect,
+  sourceMaterialization: typeof parentPacketMaterializationsTable.$inferSelect | undefined,
+) {
+  if (sourceEntry.name.trim()) {
+    return sourceEntry.name.trim();
+  }
+
+  const metadata = (sourceMaterialization?.metadata ?? null) as MaterializationMetadata | null;
+  const sourceRecordKey = metadataString(metadata, "sourceRecordKey");
+  const sourceRecordLeaf = sourceRecordKey?.split("::").reverse().find((segment) => segment.trim());
+  const derived =
+    humanizeToken(sourceRecordLeaf) ??
+    humanizeToken(metadataString(metadata, "category")) ??
+    humanizeToken(metadataString(metadata, "module")) ??
+    humanizeToken(metadataString(metadata, "milestoneType")) ??
+    humanizeToken(metadataString(metadata, "timingWindow")) ??
+    humanizeToken(metadataString(metadata, "phase")) ??
+    deriveLabelFromNotes(sourceEntry.notes);
+
+  return derived ?? "Baby KB follow-up";
 }
 
 function fillFirstBlankStep(steps: WeeklyStep[], text: string): { steps: WeeklyStep[]; itemId: string; reusedBlank: boolean } {
@@ -220,6 +274,7 @@ export async function promoteBabyKbEntry(
     .select()
     .from(parentPacketMaterializationsTable)
     .where(eq(parentPacketMaterializationsTable.targetEntryId, sourceEntry.id));
+  const promotionText = getPromotionText(sourceEntry, sourceMaterialization);
 
   const [existingPromotion] = await db
     .select()
@@ -256,7 +311,7 @@ export async function promoteBabyKbEntry(
         date: targetContainerKey,
         colourState: existingFrame?.colourState ?? "green",
         tierA: getTierTasks(existingFrame?.tierA),
-        tierB: [...nextTierB, { id: targetItemId, text: sourceEntry.name, completed: false }],
+        tierB: [...nextTierB, { id: targetItemId, text: promotionText, completed: false }],
         timeBlocks: Array.isArray(existingFrame?.timeBlocks) ? existingFrame?.timeBlocks : [],
         microWin: existingFrame?.microWin ?? null,
         skipProtocolUsed: existingFrame?.skipProtocolUsed ?? false,
@@ -267,7 +322,7 @@ export async function promoteBabyKbEntry(
         set: {
           colourState: existingFrame?.colourState ?? "green",
           tierA: getTierTasks(existingFrame?.tierA),
-          tierB: [...nextTierB, { id: targetItemId, text: sourceEntry.name, completed: false }],
+          tierB: [...nextTierB, { id: targetItemId, text: promotionText, completed: false }],
           timeBlocks: Array.isArray(existingFrame?.timeBlocks) ? existingFrame?.timeBlocks : [],
           microWin: existingFrame?.microWin ?? null,
           skipProtocolUsed: existingFrame?.skipProtocolUsed ?? false,
@@ -308,7 +363,7 @@ export async function promoteBabyKbEntry(
       .where(and(eq(weeklyFramesTable.userId, userId), eq(weeklyFramesTable.weekStart, targetContainerKey)));
 
     const steps = getWeeklySteps(existingFrame?.steps);
-    const next = fillFirstBlankStep(steps, sourceEntry.name);
+    const next = fillFirstBlankStep(steps, promotionText);
 
     const [frame] = await db
       .insert(weeklyFramesTable)
@@ -362,7 +417,7 @@ export async function promoteBabyKbEntry(
     .where(eq(visionFramesTable.userId, userId));
 
   const nextSteps = getVisionGoals(existingVisionFrame?.nextSteps);
-  const next = fillFirstBlankVisionStep(nextSteps, sourceEntry.name);
+  const next = fillFirstBlankVisionStep(nextSteps, promotionText);
 
   const [visionFrame] = await db
     .insert(visionFramesTable)

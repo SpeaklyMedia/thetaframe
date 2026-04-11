@@ -159,6 +159,15 @@ function titleFromPath(sourcePath: string): string {
     .replace(/\b\w/g, (match) => match.toUpperCase()) ?? sourcePath;
 }
 
+function preferredTitle(...values: Array<string | null | undefined>): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "Baby KB entry";
+}
+
 function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
   const contents = unzipSync(new Uint8Array(zipBytes));
   const entries: PacketEntry[] = [];
@@ -228,7 +237,7 @@ function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
     return {
       sourcePath: "STRUCTURED_DATA/baby_kb_appointments_and_screenings.csv",
       sourceRecordKey: key,
-      name: record.item,
+      name: preferredTitle(record.item, record.standard_status, record.timing_window, record.phase),
       notes: [
         `Phase: ${record.phase}`,
         `Timing window: ${record.timing_window}`,
@@ -256,7 +265,7 @@ function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
     return {
       sourcePath: "STRUCTURED_DATA/baby_kb_milestones.csv",
       sourceRecordKey: key,
-      name: record.item,
+      name: preferredTitle(record.item, record.milestone_type, record.timing_window, record.phase),
       notes: [
         `Phase: ${record.phase}`,
         `Milestone type: ${record.milestone_type}`,
@@ -283,7 +292,7 @@ function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
     return {
       sourcePath: "STRUCTURED_DATA/family_planning.csv",
       sourceRecordKey: key,
-      name: record["Topic / Decision"],
+      name: preferredTitle(record["Topic / Decision"], record.Category, record["Question or Need"]),
       notes: [
         `Category: ${record.Category}`,
         `Question or need: ${record["Question or Need"]}`,
@@ -308,7 +317,7 @@ function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
     return {
       sourcePath: "STRUCTURED_DATA/life_admin.csv",
       sourceRecordKey: key,
-      name: record.Item,
+      name: preferredTitle(record.Item, record.Cluster, record["Suggested Next Step"]),
       notes: [
         `Cluster: ${record.Cluster}`,
         `Linked area: ${record["Linked Area"]}`,
