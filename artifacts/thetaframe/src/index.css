@@ -172,3 +172,12 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+.auth-shell [class*="cl-socialButtons"],
+.auth-shell [class*="cl-socialButtons"] * {
+  display: none !important;
+}
+
+.auth-shell [class*="cl-dividerRow"] {
+  display: none !important;
+}

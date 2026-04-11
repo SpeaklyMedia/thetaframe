@@ -11,38 +11,73 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { useAuthSession } from "@/hooks/use-auth-session";
 
-export function SkipProtocol() {
+type SkipProtocolFrameState = {
+  colourState: "green" | "yellow" | "red" | "blue" | "purple";
+  tierA: Array<{ id: string; text: string; completed: boolean }>;
+  tierB: Array<{ id: string; text: string; completed: boolean }>;
+  timeBlocks: Array<{ id: string; startTime: string; action: string }>;
+  microWin: string | null;
+  skipProtocolUsed: boolean;
+  skipProtocolChoice: "micro-win" | "intentional-recovery" | null;
+};
+
+type SkipProtocolProps = {
+  frameState?: SkipProtocolFrameState;
+  onSaveSkip?: (used: boolean, choice: "micro-win" | "intentional-recovery" | null) => void;
+  isPending?: boolean;
+};
+
+export function SkipProtocol({ frameState, onSaveSkip, isPending = false }: SkipProtocolProps) {
   const date = getTodayDateString();
   const { isLoaded: isAuthLoaded, userId } = useAuth();
   const { status: authSessionStatus } = useAuthSession();
   const queryClient = useQueryClient();
+  const shouldUseInternalFrameQuery = !frameState || !onSaveSkip;
   const { data: frame } = useGetDailyFrame(date, {
     query: {
-      enabled: isLoadedAndReady(isAuthLoaded, userId, authSessionStatus) && !!date,
+      enabled: shouldUseInternalFrameQuery && isLoadedAndReady(isAuthLoaded, userId, authSessionStatus) && !!date,
       queryKey: getGetDailyFrameQueryKey(date),
       retry: 0,
     },
   });
   const upsert = useUpsertDailyFrame();
+  const resolvedFrame = frameState ?? (
+    frame
+      ? {
+          colourState: (frame.colourState ?? "green") as "green" | "yellow" | "red" | "blue" | "purple",
+          tierA: (frame.tierA as Array<{ id: string; text: string; completed: boolean }>) ?? [],
+          tierB: (frame.tierB as Array<{ id: string; text: string; completed: boolean }>) ?? [],
+          timeBlocks: (frame.timeBlocks as Array<{ id: string; startTime: string; action: string }>) ?? [],
+          microWin: frame.microWin ?? null,
+          skipProtocolUsed: frame.skipProtocolUsed,
+          skipProtocolChoice: (frame.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null,
+        }
+      : undefined
+  );
 
   const [skipUsed, setSkipUsed] = useState(false);
   const [skipChoice, setSkipChoice] = useState<"micro-win" | "intentional-recovery" | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    if (frame) {
-      setSkipUsed(frame.skipProtocolUsed);
-      setSkipChoice((frame.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null);
+    if (resolvedFrame) {
+      setSkipUsed(resolvedFrame.skipProtocolUsed);
+      setSkipChoice(resolvedFrame.skipProtocolChoice);
     }
-  }, [frame]);
+  }, [resolvedFrame]);
 
   const saveSkip = (used: boolean, choice: "micro-win" | "intentional-recovery" | null) => {
+    if (onSaveSkip) {
+      onSaveSkip(used, choice);
+      return;
+    }
+
     const base = {
-      colourState: (frame?.colourState ?? "green") as "green" | "yellow" | "red" | "blue" | "purple",
-      tierA: (frame?.tierA as Array<{ id: string; text: string; completed: boolean }>) ?? [],
-      tierB: (frame?.tierB as Array<{ id: string; text: string; completed: boolean }>) ?? [],
-      timeBlocks: (frame?.timeBlocks as Array<{ id: string; startTime: string; action: string }>) ?? [],
-      microWin: frame?.microWin ?? null,
+      colourState: resolvedFrame?.colourState ?? "green",
+      tierA: resolvedFrame?.tierA ?? [],
+      tierB: resolvedFrame?.tierB ?? [],
+      timeBlocks: resolvedFrame?.timeBlocks ?? [],
+      microWin: resolvedFrame?.microWin ?? null,
       skipProtocolUsed: used,
       skipProtocolChoice: choice,
     };
@@ -80,7 +115,7 @@ export function SkipProtocol() {
           variant="outline"
           size="sm"
           onClick={triggerSkip}
-          disabled={upsert.isPending}
+          disabled={isPending || upsert.isPending}
           data-testid="button-skip-protocol"
         >
           <AlertTriangle className="w-4 h-4 mr-2" />

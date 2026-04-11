@@ -31,6 +31,7 @@ Date: 2026-04-10
 - `Life Ledger`
   - Goal: keep obligations, people, finances, subscriptions, and plans in one structured place.
   - First useful action: save one real entry in any tab.
+  - Admin extension: `Baby KB` exists as an admin-only tab inside Life Ledger for structured notes, milestones, routines, observations, and follow-ups.
 - `REACH`
   - Goal: store, open, and reuse the files the user needs across workflows.
   - First useful action: upload one real file through the normal upload chain.
@@ -66,6 +67,7 @@ Date: 2026-04-10
 - Backend module APIs for those same surfaces now enforce module access through middleware.
 - Owner bootstrap for `mark@speaklymedia.com` remains deterministic and idempotent.
 - `Admin` remains separately gated by admin semantics.
+- `Baby KB` is admin-only inside Life Ledger and is hidden from non-admin users in the UI while also returning `403` to non-admin direct API calls on `/api/life-ledger/baby`.
 
 ### Onboarding Model
 - Onboarding progress remains persisted in `onboarding_progress`.

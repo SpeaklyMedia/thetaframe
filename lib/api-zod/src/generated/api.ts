@@ -727,7 +727,14 @@ export const DeleteBizdevBrandParams = zod.object({
  * @summary List entries for a Life Ledger tab
  */
 export const ListLifeLedgerEntriesParams = zod.object({
-  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  tab: zod.enum([
+    "people",
+    "events",
+    "financial",
+    "subscriptions",
+    "travel",
+    "baby",
+  ]),
 });
 
 export const ListLifeLedgerEntriesResponseItem = zod.object({
@@ -772,7 +779,14 @@ export const ListLifeLedgerEntriesResponse = zod.array(
  * @summary Create a Life Ledger entry
  */
 export const CreateLifeLedgerEntryParams = zod.object({
-  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  tab: zod.enum([
+    "people",
+    "events",
+    "financial",
+    "subscriptions",
+    "travel",
+    "baby",
+  ]),
 });
 
 export const CreateLifeLedgerEntryBody = zod.object({
@@ -809,7 +823,14 @@ export const CreateLifeLedgerEntryBody = zod.object({
  * @summary Get a single Life Ledger entry
  */
 export const GetLifeLedgerEntryParams = zod.object({
-  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  tab: zod.enum([
+    "people",
+    "events",
+    "financial",
+    "subscriptions",
+    "travel",
+    "baby",
+  ]),
   id: zod.coerce.number(),
 });
 
@@ -852,7 +873,14 @@ export const GetLifeLedgerEntryResponse = zod.object({
  * @summary Update a Life Ledger entry
  */
 export const UpdateLifeLedgerEntryParams = zod.object({
-  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  tab: zod.enum([
+    "people",
+    "events",
+    "financial",
+    "subscriptions",
+    "travel",
+    "baby",
+  ]),
   id: zod.coerce.number(),
 });
 
@@ -925,7 +953,14 @@ export const UpdateLifeLedgerEntryResponse = zod.object({
  * @summary Delete a Life Ledger entry
  */
 export const DeleteLifeLedgerEntryParams = zod.object({
-  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  tab: zod.enum([
+    "people",
+    "events",
+    "financial",
+    "subscriptions",
+    "travel",
+    "baby",
+  ]),
   id: zod.coerce.number(),
 });
 

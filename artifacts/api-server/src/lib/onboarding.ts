@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
+  lifeLedgerBabyTable,
   bizdevBrandsTable,
   dailyFramesTable,
   lifeLedgerEventsTable,
@@ -84,7 +85,8 @@ async function hasRowsForUser(
     | typeof lifeLedgerEventsTable
     | typeof lifeLedgerFinancialTable
     | typeof lifeLedgerSubscriptionsTable
-    | typeof lifeLedgerTravelTable,
+    | typeof lifeLedgerTravelTable
+    | typeof lifeLedgerBabyTable,
   userId: string,
 ): Promise<boolean> {
   const rows = await db
@@ -113,6 +115,7 @@ async function deriveCompletedFromExistingData(userId: string, surface: Onboardi
         hasRowsForUser(lifeLedgerFinancialTable, userId),
         hasRowsForUser(lifeLedgerSubscriptionsTable, userId),
         hasRowsForUser(lifeLedgerTravelTable, userId),
+        hasRowsForUser(lifeLedgerBabyTable, userId),
       ]);
       return results.some(Boolean);
     }

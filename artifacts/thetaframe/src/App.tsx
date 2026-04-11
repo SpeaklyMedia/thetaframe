@@ -140,15 +140,12 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
-  const clerkProxyUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/__clerk`
-      : import.meta.env.VITE_CLERK_PROXY_URL?.trim() || undefined;
+  const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL?.trim();
 
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
+      {...(clerkProxyUrl ? { proxyUrl: clerkProxyUrl } : {})}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       signInFallbackRedirectUrl={homeRedirectUrl}

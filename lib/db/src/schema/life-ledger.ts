@@ -25,5 +25,6 @@ export const lifeLedgerEventsTable = lifeLedgerTable("life_ledger_events");
 export const lifeLedgerFinancialTable = lifeLedgerTable("life_ledger_financial");
 export const lifeLedgerSubscriptionsTable = lifeLedgerTable("life_ledger_subscriptions");
 export const lifeLedgerTravelTable = lifeLedgerTable("life_ledger_travel");
+export const lifeLedgerBabyTable = lifeLedgerTable("life_ledger_baby");
 
 export type LifeLedgerEntry = typeof lifeLedgerPeopleTable.$inferSelect;

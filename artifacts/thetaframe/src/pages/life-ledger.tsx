@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout";
 import {
   useListLifeLedgerEntries,
@@ -31,15 +31,17 @@ import {
 import { Plus, X, ChevronDown, Pencil, Calendar, TrendingUp } from "lucide-react";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
+import { usePermissions } from "@/hooks/usePermissions";
 
-type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
+type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 
-const TABS: { key: Tab; label: string }[] = [
+const TABS: Array<{ key: Tab; label: string; adminOnly?: boolean }> = [
   { key: "people", label: "People" },
   { key: "events", label: "Events & Obligations" },
   { key: "financial", label: "Financial Obligations" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "travel", label: "Travel & Experiences" },
+  { key: "baby", label: "Baby KB", adminOnly: true },
 ];
 
 const IMPACT_LEVELS = ["low", "medium", "high"];
@@ -102,6 +104,55 @@ const TAB_TAG_SUGGESTIONS: Record<Tab, string[]> = {
     "ll_qualifier_booked",
     "ll_qualifier_planned",
   ],
+  baby: [
+    "milestone",
+    "sleep",
+    "feeding",
+    "appointment",
+    "concern",
+    "routine",
+    "admin",
+    "follow-up",
+  ],
+};
+
+const TAB_COPY: Record<Tab, { intro: string; empty: string; newLabel: string; formTitle: string }> = {
+  people: {
+    intro: "Track the relationships, follow-ups, and personal context that you do not want to drop.",
+    empty: "No people entries yet. Add one relationship or follow-up to start building your ledger.",
+    newLabel: "New Entry",
+    formTitle: "New Entry",
+  },
+  events: {
+    intro: "Keep time-sensitive obligations, appointments, and key dates visible before they become a scramble.",
+    empty: "No event entries yet. Add one real date or obligation to start building your ledger.",
+    newLabel: "New Entry",
+    formTitle: "New Entry",
+  },
+  financial: {
+    intro: "Capture the payments, debts, and financial commitments that need active attention.",
+    empty: "No financial entries yet. Add one obligation to start tracking what needs attention.",
+    newLabel: "New Entry",
+    formTitle: "New Entry",
+  },
+  subscriptions: {
+    intro: "Review recurring services in one place so you can keep what matters and cut what does not.",
+    empty: "No subscriptions yet. Add one recurring service to start your audit trail.",
+    newLabel: "New Entry",
+    formTitle: "New Entry",
+  },
+  travel: {
+    intro: "Keep trips, bookings, and travel planning details in one place you can revisit quickly.",
+    empty: "No travel entries yet. Add one plan, booking, or reminder to start your ledger.",
+    newLabel: "New Entry",
+    formTitle: "New Entry",
+  },
+  baby: {
+    intro: "Keep milestones, routines, observations, and follow-ups in one admin-only reference lane.",
+    empty: "No Baby KB notes yet. Add one milestone, routine, or follow-up to start the knowledge base.",
+    newLabel: "New Baby Note",
+    formTitle: "New Baby Note",
+  },
 };
 
 const EMPTY_FORM: LifeLedgerEntryBody = {
@@ -517,6 +568,9 @@ export default function LifeLedgerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("people");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { isAdmin } = usePermissions();
+  const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
+  const activeTabCopy = TAB_COPY[activeTab];
 
   const { data: entries, isLoading } = useListLifeLedgerEntries(activeTab, {
     query: {
@@ -528,6 +582,14 @@ export default function LifeLedgerPage() {
   const updateMutation = useUpdateLifeLedgerEntry();
   const deleteMutation = useDeleteLifeLedgerEntry();
   const { isSurfaceComplete } = useOnboardingProgress();
+
+  useEffect(() => {
+    if (activeTab === "baby" && !isAdmin) {
+      setActiveTab("people");
+      setShowForm(false);
+      setEditingId(null);
+    }
+  }, [activeTab, isAdmin]);
 
   const invalidateTab = (tab: Tab) => {
     queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey(tab) });
@@ -566,11 +628,11 @@ export default function LifeLedgerPage() {
         <header className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight" data-testid="text-life-ledger-title">Life Ledger</h1>
-            <p className="text-muted-foreground mt-1">Keep the people, deadlines, finances, and plans that shape your life in one place.</p>
+            <p className="text-muted-foreground mt-1">{activeTabCopy.intro}</p>
           </div>
           {!showForm && editingId === null && (
             <Button onClick={() => setShowForm(true)} data-testid="button-new-entry">
-              <Plus className="w-4 h-4 mr-2" /> New Entry
+              <Plus className="w-4 h-4 mr-2" /> {activeTabCopy.newLabel}
             </Button>
           )}
         </header>
@@ -581,8 +643,17 @@ export default function LifeLedgerPage() {
 
         {activeTab === "subscriptions" && <SubscriptionAuditPanel />}
 
+        {activeTab === "baby" && (
+          <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-2" data-testid="baby-kb-intro">
+            <h2 className="text-sm font-semibold">Baby KB</h2>
+            <p className="text-sm text-muted-foreground">
+              Use this admin-only lane for notes, milestones, routines, appointments, and follow-ups you want to keep searchable and easy to revisit.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-1 border-b" data-testid="tab-bar">
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.key}
               onClick={() => {
@@ -605,7 +676,7 @@ export default function LifeLedgerPage() {
         {(showForm || editingId !== null) && (
           <div className="bg-card border rounded-2xl p-6 shadow-sm" data-testid="entry-form-panel">
             <h2 className="text-lg font-semibold mb-5">
-              {editingId !== null ? "Edit Entry" : "New Entry"}
+              {editingId !== null ? (activeTab === "baby" ? "Edit Baby Note" : "Edit Entry") : activeTabCopy.formTitle}
             </h2>
             <EntryForm
               tab={activeTab}
@@ -652,9 +723,9 @@ export default function LifeLedgerPage() {
           />
         ) : !showForm ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground">No entries in {activeTab} yet. Add one real obligation or reminder to start building your ledger.</p>
+            <p className="text-muted-foreground">{activeTabCopy.empty}</p>
             <Button variant="outline" className="mt-4" onClick={() => setShowForm(true)} data-testid="button-empty-new-entry">
-              <Plus className="w-4 h-4 mr-2" /> Add first entry
+              <Plus className="w-4 h-4 mr-2" /> {activeTab === "baby" ? "Add first note" : "Add first entry"}
             </Button>
           </div>
         ) : null}

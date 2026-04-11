@@ -418,7 +418,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [people, events, financial, subscriptions, travel]
+            enum: [people, events, financial, subscriptions, travel, baby]
       responses:
         "200":
           description: List of entries
@@ -438,7 +438,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [people, events, financial, subscriptions, travel]
+            enum: [people, events, financial, subscriptions, travel, baby]
       requestBody:
         required: true
         content:
@@ -464,7 +464,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [people, events, financial, subscriptions, travel]
+            enum: [people, events, financial, subscriptions, travel, baby]
         - name: id
           in: path
           required: true
@@ -493,7 +493,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [people, events, financial, subscriptions, travel]
+            enum: [people, events, financial, subscriptions, travel, baby]
         - name: id
           in: path
           required: true
@@ -528,7 +528,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [people, events, financial, subscriptions, travel]
+            enum: [people, events, financial, subscriptions, travel, baby]
         - name: id
           in: path
           required: true

@@ -60,7 +60,9 @@ export default function DailyPage() {
       retry: 0,
     },
   });
+  const isFirstRunDaily = error instanceof ApiError && error.status === 404;
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
+  const remainingSurfaces = surfaces.filter((surface) => surface.surface !== "daily" && !surface.isComplete);
   const upsert = useUpsertDailyFrame();
 
   const [colourState, setColourState] = useState<DailyFrameColourState>("green");
@@ -223,14 +225,86 @@ export default function DailyPage() {
     save({ timeBlocks: updated });
   };
 
+  const saveSkipProtocol = (
+    used: boolean,
+    choice: "micro-win" | "intentional-recovery" | null,
+  ) => {
+    const payload = {
+      colourState,
+      tierA,
+      tierB,
+      timeBlocks,
+      microWin,
+      skipProtocolUsed: used,
+      skipProtocolChoice: choice,
+    };
+
+    upsert.mutate({ date, data: payload }, {
+      onSuccess: (newFrame) => {
+        queryClient.setQueryData(getGetDailyFrameQueryKey(date), newFrame);
+        queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+      },
+    });
+  };
+
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
+        {!isSurfaceComplete("daily") && <SurfaceOnboardingCard surface="daily" />}
+
+        {isFirstRunDaily ? (
+          <section
+            className="rounded-2xl border bg-card px-5 py-4 shadow-sm space-y-4"
+            data-testid="daily-first-run-setup"
+          >
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                First Daily Setup
+              </p>
+              <h2 className="text-lg font-semibold">Start your first Daily Frame</h2>
+              <p className="text-sm text-muted-foreground">
+                Today does not have a saved frame yet. Use the Daily page normally, and ThetaFrame will create it on your first real save.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border bg-background px-4 py-3">
+                <p className="text-sm font-medium">1. Match your energy</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Pick the color that best fits how today feels right now.
+                </p>
+              </div>
+              <div className="rounded-xl border bg-background px-4 py-3">
+                <p className="text-sm font-medium">2. Protect one real task</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Add at least one Tier A task you want to protect today.
+                </p>
+              </div>
+              <div className="rounded-xl border bg-background px-4 py-3">
+                <p className="text-sm font-medium">3. Save by working</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Any real Daily edit will create today&apos;s frame through the normal workflow.
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {remainingSurfaces.length > 0 ? (
+          <OnboardingChecklist
+            surfaces={remainingSurfaces}
+            completedCount={surfaces.filter((surface) => surface.isComplete).length}
+            totalCount={surfaces.length}
+          />
+        ) : null}
 
         {/* Emotion Header */}
         <header className="space-y-4">
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-daily-title">Daily Frame</h1>
-          <p className="text-muted-foreground">How are you feeling right now?</p>
+          <p className="text-muted-foreground">
+            {isFirstRunDaily
+              ? "Set up today with a realistic starting point."
+              : "How are you feeling right now?"}
+          </p>
           <div className="flex flex-wrap gap-2" data-testid="emotion-colour-picker">
             {(["green", "yellow", "red", "blue", "purple"] as DailyFrameColourState[]).map(c => (
               <button
@@ -254,12 +328,20 @@ export default function DailyPage() {
           )}
         </header>
 
-        <OnboardingChecklist surfaces={surfaces} />
-
         {/* Skip Protocol — shared component */}
-        <SkipProtocol />
-
-        {!isSurfaceComplete("daily") && <SurfaceOnboardingCard surface="daily" />}
+        <SkipProtocol
+          frameState={{
+            colourState,
+            tierA,
+            tierB,
+            timeBlocks,
+            microWin: microWin || null,
+            skipProtocolUsed: frame?.skipProtocolUsed ?? false,
+            skipProtocolChoice: (frame?.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null,
+          }}
+          onSaveSkip={saveSkipProtocol}
+          isPending={upsert.isPending}
+        />
 
         {/* Tier A & B */}
         <div className="grid gap-6 md:grid-cols-2">

@@ -1700,13 +1700,13 @@ export const useDeleteBizdevBrand = <
  * @summary List entries for a Life Ledger tab
  */
 export const getListLifeLedgerEntriesUrl = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
 ) => {
   return `/api/life-ledger/${tab}`;
 };
 
 export const listLifeLedgerEntries = async (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   options?: RequestInit,
 ): Promise<LifeLedgerEntry[]> => {
   return customFetch<LifeLedgerEntry[]>(getListLifeLedgerEntriesUrl(tab), {
@@ -1716,7 +1716,7 @@ export const listLifeLedgerEntries = async (
 };
 
 export const getListLifeLedgerEntriesQueryKey = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
 ) => {
   return [`/api/life-ledger/${tab}`] as const;
 };
@@ -1725,7 +1725,7 @@ export const getListLifeLedgerEntriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listLifeLedgerEntries>>,
   TError = ErrorType<unknown>,
 >(
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof listLifeLedgerEntries>>,
@@ -1769,7 +1769,7 @@ export function useListLifeLedgerEntries<
   TData = Awaited<ReturnType<typeof listLifeLedgerEntries>>,
   TError = ErrorType<unknown>,
 >(
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof listLifeLedgerEntries>>,
@@ -1792,13 +1792,13 @@ export function useListLifeLedgerEntries<
  * @summary Create a Life Ledger entry
  */
 export const getCreateLifeLedgerEntryUrl = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
 ) => {
   return `/api/life-ledger/${tab}`;
 };
 
 export const createLifeLedgerEntry = async (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   lifeLedgerEntryBody: LifeLedgerEntryBody,
   options?: RequestInit,
 ): Promise<LifeLedgerEntry> => {
@@ -1818,7 +1818,13 @@ export const getCreateLifeLedgerEntryMutationOptions = <
     Awaited<ReturnType<typeof createLifeLedgerEntry>>,
     TError,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       data: BodyType<LifeLedgerEntryBody>;
     },
     TContext
@@ -1828,7 +1834,13 @@ export const getCreateLifeLedgerEntryMutationOptions = <
   Awaited<ReturnType<typeof createLifeLedgerEntry>>,
   TError,
   {
-    tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+    tab:
+      | "people"
+      | "events"
+      | "financial"
+      | "subscriptions"
+      | "travel"
+      | "baby";
     data: BodyType<LifeLedgerEntryBody>;
   },
   TContext
@@ -1845,7 +1857,13 @@ export const getCreateLifeLedgerEntryMutationOptions = <
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createLifeLedgerEntry>>,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       data: BodyType<LifeLedgerEntryBody>;
     }
   > = (props) => {
@@ -1874,7 +1892,13 @@ export const useCreateLifeLedgerEntry = <
     Awaited<ReturnType<typeof createLifeLedgerEntry>>,
     TError,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       data: BodyType<LifeLedgerEntryBody>;
     },
     TContext
@@ -1884,7 +1908,13 @@ export const useCreateLifeLedgerEntry = <
   Awaited<ReturnType<typeof createLifeLedgerEntry>>,
   TError,
   {
-    tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+    tab:
+      | "people"
+      | "events"
+      | "financial"
+      | "subscriptions"
+      | "travel"
+      | "baby";
     data: BodyType<LifeLedgerEntryBody>;
   },
   TContext
@@ -1896,14 +1926,14 @@ export const useCreateLifeLedgerEntry = <
  * @summary Get a single Life Ledger entry
  */
 export const getGetLifeLedgerEntryUrl = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
 ) => {
   return `/api/life-ledger/${tab}/${id}`;
 };
 
 export const getLifeLedgerEntry = async (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
   options?: RequestInit,
 ): Promise<LifeLedgerEntry> => {
@@ -1914,7 +1944,7 @@ export const getLifeLedgerEntry = async (
 };
 
 export const getGetLifeLedgerEntryQueryKey = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
 ) => {
   return [`/api/life-ledger/${tab}/${id}`] as const;
@@ -1924,7 +1954,7 @@ export const getGetLifeLedgerEntryQueryOptions = <
   TData = Awaited<ReturnType<typeof getLifeLedgerEntry>>,
   TError = ErrorType<ErrorResponse>,
 >(
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
   options?: {
     query?: UseQueryOptions<
@@ -1970,7 +2000,7 @@ export function useGetLifeLedgerEntry<
   TData = Awaited<ReturnType<typeof getLifeLedgerEntry>>,
   TError = ErrorType<ErrorResponse>,
 >(
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
   options?: {
     query?: UseQueryOptions<
@@ -1994,14 +2024,14 @@ export function useGetLifeLedgerEntry<
  * @summary Update a Life Ledger entry
  */
 export const getUpdateLifeLedgerEntryUrl = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
 ) => {
   return `/api/life-ledger/${tab}/${id}`;
 };
 
 export const updateLifeLedgerEntry = async (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
   lifeLedgerEntryBody: LifeLedgerEntryBody,
   options?: RequestInit,
@@ -2022,7 +2052,13 @@ export const getUpdateLifeLedgerEntryMutationOptions = <
     Awaited<ReturnType<typeof updateLifeLedgerEntry>>,
     TError,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       id: number;
       data: BodyType<LifeLedgerEntryBody>;
     },
@@ -2033,7 +2069,13 @@ export const getUpdateLifeLedgerEntryMutationOptions = <
   Awaited<ReturnType<typeof updateLifeLedgerEntry>>,
   TError,
   {
-    tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+    tab:
+      | "people"
+      | "events"
+      | "financial"
+      | "subscriptions"
+      | "travel"
+      | "baby";
     id: number;
     data: BodyType<LifeLedgerEntryBody>;
   },
@@ -2051,7 +2093,13 @@ export const getUpdateLifeLedgerEntryMutationOptions = <
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateLifeLedgerEntry>>,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       id: number;
       data: BodyType<LifeLedgerEntryBody>;
     }
@@ -2081,7 +2129,13 @@ export const useUpdateLifeLedgerEntry = <
     Awaited<ReturnType<typeof updateLifeLedgerEntry>>,
     TError,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       id: number;
       data: BodyType<LifeLedgerEntryBody>;
     },
@@ -2092,7 +2146,13 @@ export const useUpdateLifeLedgerEntry = <
   Awaited<ReturnType<typeof updateLifeLedgerEntry>>,
   TError,
   {
-    tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+    tab:
+      | "people"
+      | "events"
+      | "financial"
+      | "subscriptions"
+      | "travel"
+      | "baby";
     id: number;
     data: BodyType<LifeLedgerEntryBody>;
   },
@@ -2105,14 +2165,14 @@ export const useUpdateLifeLedgerEntry = <
  * @summary Delete a Life Ledger entry
  */
 export const getDeleteLifeLedgerEntryUrl = (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
 ) => {
   return `/api/life-ledger/${tab}/${id}`;
 };
 
 export const deleteLifeLedgerEntry = async (
-  tab: "people" | "events" | "financial" | "subscriptions" | "travel",
+  tab: "people" | "events" | "financial" | "subscriptions" | "travel" | "baby",
   id: number,
   options?: RequestInit,
 ): Promise<void> => {
@@ -2130,7 +2190,13 @@ export const getDeleteLifeLedgerEntryMutationOptions = <
     Awaited<ReturnType<typeof deleteLifeLedgerEntry>>,
     TError,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       id: number;
     },
     TContext
@@ -2140,7 +2206,13 @@ export const getDeleteLifeLedgerEntryMutationOptions = <
   Awaited<ReturnType<typeof deleteLifeLedgerEntry>>,
   TError,
   {
-    tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+    tab:
+      | "people"
+      | "events"
+      | "financial"
+      | "subscriptions"
+      | "travel"
+      | "baby";
     id: number;
   },
   TContext
@@ -2157,7 +2229,13 @@ export const getDeleteLifeLedgerEntryMutationOptions = <
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteLifeLedgerEntry>>,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       id: number;
     }
   > = (props) => {
@@ -2186,7 +2264,13 @@ export const useDeleteLifeLedgerEntry = <
     Awaited<ReturnType<typeof deleteLifeLedgerEntry>>,
     TError,
     {
-      tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+      tab:
+        | "people"
+        | "events"
+        | "financial"
+        | "subscriptions"
+        | "travel"
+        | "baby";
       id: number;
     },
     TContext
@@ -2196,7 +2280,13 @@ export const useDeleteLifeLedgerEntry = <
   Awaited<ReturnType<typeof deleteLifeLedgerEntry>>,
   TError,
   {
-    tab: "people" | "events" | "financial" | "subscriptions" | "travel";
+    tab:
+      | "people"
+      | "events"
+      | "financial"
+      | "subscriptions"
+      | "travel"
+      | "baby";
     id: number;
   },
   TContext

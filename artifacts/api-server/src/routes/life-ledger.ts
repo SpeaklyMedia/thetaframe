@@ -1,7 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, isNotNull, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
+  lifeLedgerBabyTable,
   lifeLedgerPeopleTable,
   lifeLedgerEventsTable,
   lifeLedgerFinancialTable,
@@ -19,12 +20,14 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
+import { getUserAndMaybeBootstrap, isAdminUser } from "../lib/access.js";
 import { serializeDates } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
-type Tab = "people" | "events" | "financial" | "subscriptions" | "travel";
+type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 
-const VALID_TABS: Tab[] = ["people", "events", "financial", "subscriptions", "travel"];
+const VALID_TABS: Tab[] = ["people", "events", "financial", "subscriptions", "travel", "baby"];
+const NEXT_90_DAY_TABS: Array<Exclude<Tab, "baby">> = ["people", "events", "financial", "subscriptions", "travel"];
 
 const TABLE_MAP = {
   people: lifeLedgerPeopleTable,
@@ -32,16 +35,71 @@ const TABLE_MAP = {
   financial: lifeLedgerFinancialTable,
   subscriptions: lifeLedgerSubscriptionsTable,
   travel: lifeLedgerTravelTable,
+  baby: lifeLedgerBabyTable,
 } as const;
 
-type AnyLedgerTable = typeof lifeLedgerPeopleTable;
+type AnyLedgerTable = (typeof TABLE_MAP)[keyof typeof TABLE_MAP];
 
 const router: IRouter = Router();
 router.use(requireAuth, requireModuleAccess("life-ledger"));
 
+let babyLedgerSchemaReady: Promise<void> | null = null;
+
+async function ensureBabyLedgerSchema(): Promise<void> {
+  if (!babyLedgerSchemaReady) {
+    babyLedgerSchemaReady = (async () => {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS life_ledger_baby (
+          id serial PRIMARY KEY,
+          user_id text NOT NULL,
+          tab text NOT NULL,
+          name text NOT NULL,
+          tags jsonb NOT NULL DEFAULT '[]'::jsonb,
+          impact_level text,
+          review_window text,
+          due_date text,
+          notes text,
+          amount double precision,
+          currency text,
+          is_essential boolean,
+          billing_cycle text,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        )
+      `);
+
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS life_ledger_baby_user_id_idx
+        ON life_ledger_baby (user_id)
+      `);
+    })().catch((error) => {
+      babyLedgerSchemaReady = null;
+      throw error;
+    });
+  }
+
+  await babyLedgerSchemaReady;
+}
+
 function resolveTable(tab: string): AnyLedgerTable | null {
   if (!VALID_TABS.includes(tab as Tab)) return null;
   return TABLE_MAP[tab as Tab] as AnyLedgerTable;
+}
+
+async function ensureTabAccess(req: Request, res: Response, tab: Tab): Promise<boolean> {
+  if (tab !== "baby") return true;
+
+  await ensureBabyLedgerSchema();
+
+  const userId = (req as AuthenticatedRequest).userId;
+  const user = await getUserAndMaybeBootstrap(userId, req.log);
+
+  if (!isAdminUser(user)) {
+    res.status(403).json({ error: "Forbidden: admin access required for Baby KB" });
+    return false;
+  }
+
+  return true;
 }
 
 router.get("/life-ledger/next-90-days", async (req: Request, res: Response): Promise<void> => {
@@ -54,10 +112,11 @@ router.get("/life-ledger/next-90-days", async (req: Request, res: Response): Pro
   const nowStr = now.toISOString().split("T")[0];
 
   const tabEntries = await Promise.all(
-    (Object.entries(TABLE_MAP) as Array<[Tab, AnyLedgerTable]>).map(async ([tab, table]) => {
+    NEXT_90_DAY_TABS.map(async (tab) => {
+      const table = TABLE_MAP[tab];
       const rows = await db
         .select()
-        .from(table as typeof lifeLedgerPeopleTable)
+        .from(table)
         .where(
           and(
             eq(table.userId, userId),
@@ -121,6 +180,10 @@ router.get("/life-ledger/:tab", async (req: Request, res: Response): Promise<voi
     return;
   }
 
+  if (!(await ensureTabAccess(req, res, params.data.tab))) {
+    return;
+  }
+
   const table = resolveTable(params.data.tab);
   if (!table) {
     res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
@@ -142,6 +205,10 @@ router.post("/life-ledger/:tab", async (req: Request, res: Response): Promise<vo
   const params = CreateLifeLedgerEntryParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (!(await ensureTabAccess(req, res, params.data.tab))) {
     return;
   }
 
@@ -175,6 +242,10 @@ router.get("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise
     return;
   }
 
+  if (!(await ensureTabAccess(req, res, params.data.tab))) {
+    return;
+  }
+
   const table = resolveTable(params.data.tab);
   if (!table) {
     res.status(400).json({ error: `tab must be one of: ${VALID_TABS.join(", ")}` });
@@ -200,6 +271,10 @@ router.put("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise
   const params = UpdateLifeLedgerEntryParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (!(await ensureTabAccess(req, res, params.data.tab))) {
     return;
   }
 
@@ -235,6 +310,10 @@ router.delete("/life-ledger/:tab/:id", async (req: Request, res: Response): Prom
   const params = DeleteLifeLedgerEntryParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (!(await ensureTabAccess(req, res, params.data.tab))) {
     return;
   }
 
