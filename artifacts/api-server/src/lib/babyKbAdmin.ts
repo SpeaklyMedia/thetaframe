@@ -87,7 +87,7 @@ function getPromotionText(
   sourceMaterialization: typeof parentPacketMaterializationsTable.$inferSelect | undefined,
 ) {
   if (sourceEntry.name.trim()) {
-    return sourceEntry.name.trim();
+    return humanizeToken(sourceEntry.name.trim()) ?? sourceEntry.name.trim();
   }
 
   const metadata = (sourceMaterialization?.metadata ?? null) as MaterializationMetadata | null;

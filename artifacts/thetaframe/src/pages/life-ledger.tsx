@@ -288,7 +288,7 @@ function inferPhase(entry: LifeLedgerEntry, materialization?: ParentPacketMateri
 
 function deriveBabyEntryTitle(entry: LifeLedgerEntry, materialization?: ParentPacketMaterialization): string {
   if (entry.name.trim()) {
-    return entry.name.trim();
+    return humanizeToken(entry.name.trim()) ?? entry.name.trim();
   }
 
   const metadata = asRecord(materialization?.metadata);

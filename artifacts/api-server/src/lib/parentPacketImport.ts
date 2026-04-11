@@ -159,10 +159,23 @@ function titleFromPath(sourcePath: string): string {
     .replace(/\b\w/g, (match) => match.toUpperCase()) ?? sourcePath;
 }
 
+function formatImportedTitle(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.includes("_")) {
+    return trimmed
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+  return trimmed;
+}
+
 function preferredTitle(...values: Array<string | null | undefined>): string {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
-      return value.trim();
+      return formatImportedTitle(value);
     }
   }
   return "Baby KB entry";
@@ -265,9 +278,10 @@ function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
     return {
       sourcePath: "STRUCTURED_DATA/baby_kb_milestones.csv",
       sourceRecordKey: key,
-      name: preferredTitle(record.item, record.milestone_type, record.timing_window, record.phase),
+      name: preferredTitle(record.item, record.checkpoint, record.milestone_type, record.timing_window, record.phase),
       notes: [
         `Phase: ${record.phase}`,
+        record.checkpoint ? `Checkpoint: ${record.checkpoint}` : null,
         `Milestone type: ${record.milestone_type}`,
         `Timing window: ${record.timing_window}`,
         `Standard status: ${record.standard_status}`,
@@ -359,7 +373,7 @@ function parsePacketEntries(zipBytes: Buffer): PacketEntry[] {
     return {
       sourcePath: "STRUCTURED_DATA/insurance_and_admin_checkpoints.csv",
       sourceRecordKey: key,
-      name: record.item ?? record.category ?? "Insurance and admin checkpoint",
+      name: preferredTitle(record.checkpoint, record.item, record.category, record.timing_window),
       notes: Object.entries(record).map(([k, v]) => `${k}: ${v}`).join("\n"),
       contentType,
       tags: dedupeTags(["Imported from packet", "Planning", "Insurance", knownStatus ? statusTag(knownStatus) : null]),

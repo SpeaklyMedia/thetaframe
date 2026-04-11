@@ -89,6 +89,15 @@ Date: 2026-04-11
 - A compatibility gap was found during live import:
   - the generated client/UI used `sourceReachFileId` while the backend route expected `reachFileId`
   - the backend was patched to accept both shapes so the in-app import action can use the same production route successfully
+- A purpose-alignment gap was found during live admin QA:
+  - some imported Baby KB rows were using taxonomy tokens like `insurance_or_admin` as the entry title
+  - this made Baby KB less useful as a review-and-action lane because the card label reflected schema vocabulary instead of the actionable checkpoint
+  - the importer was corrected so milestone/checkpoint rows prefer the packet's actionable `checkpoint` field before generic type fields, and legacy underscore tokens are still humanized defensively in review and promotion rendering
+- The parent packet import was re-run successfully after the importer corrections:
+  - import id: `4`
+  - `83` entries updated in place
+  - no duplicate Baby KB entries were created
+  - this preserved the existing provenance map while refreshing imported content
 
 ## Residual Risks
 - Signed-in browser-only UX remains to be manually verified:
@@ -103,6 +112,8 @@ Date: 2026-04-11
   - idempotent promotion to Daily, Weekly, and Vision
   - visible promotion badges after linking
   - `Items in Motion` queue state changes after verification and promotion
+- One final live verification remains after the latest deploy:
+  - confirm the corrected milestone/checkpoint titles now render as actionable labels in the Baby KB UI rather than generic taxonomy tokens
 - Clerk social login is still intentionally bypassed in ThetaFrame until the Google provider is configured correctly in the production Clerk tenant.
 
 ## Manual Acceptance Checklist
