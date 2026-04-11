@@ -90,6 +90,7 @@ The stable contracts are:
   - bulk remove tag
   - grouping by source file or phase
   - source-aware collapse and expand
+- Baby KB now also exposes an admin-only `Items in Motion` queue so the imported parenting framework can be reviewed as an input to the live operating system.
 - These actions only mutate the Baby KB entry tags and editable content. They do not rewrite the import registry or original packet provenance.
 
 ## Current Promotion Layer
@@ -100,6 +101,9 @@ The stable contracts are:
 - Promotions are tracked separately from the source entry through a dedicated registry.
 - Promotions are idempotent per source entry and target container, so rerunning the same promotion does not duplicate the operational item.
 - Promotions are snapshots, not bidirectional sync. Editing the target surface does not overwrite the Baby KB source entry, and editing Baby KB does not silently rewrite an already-promoted target item.
+- The intended use is operational support:
+  - Baby KB helps review parenting-related material
+  - Daily, Weekly, and Vision remain the live surfaces where that material turns into behavior and planning
 
 ## Product Intent
 This packet should be treated as:

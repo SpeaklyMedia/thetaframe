@@ -21,6 +21,7 @@ Date: 2026-04-11
 - REACH file flows still use the normal upload URL -> storage PUT -> file record creation chain.
 - Life Ledger now supports an admin-only `Baby KB` tab that reuses the existing CRUD flow while blocking non-admin direct API access.
 - Baby KB now supports admin-only bulk review actions and linked promotion into Daily, Weekly, and Vision without mutating import provenance.
+- Baby KB now exposes an admin-only `Items in Motion` queue so parenting framework items can be reviewed as operational inputs to Daily, Weekly, and Vision rather than as a standalone planner.
 
 ## Production Runtime Checks Completed
 - `GET /api/healthz` returns `200`
@@ -95,12 +96,13 @@ Date: 2026-04-11
   - mode badge interaction feel
   - exact `403` UX on deliberately restricted accounts
   - per-surface onboarding clearing in a live signed-in session
-- `Baby KB` needs one live admin smoke test and one non-admin API probe to confirm the admin-only lane behaves as intended after deploy.
+- `Baby KB` still needs one real browser pass to confirm the new queue and target links feel coherent in the UI rather than only in API-level verification.
 - Baby KB promotion flows still need signed-in browser confirmation against the real admin account:
   - bulk verify
   - bulk tag add/remove
   - idempotent promotion to Daily, Weekly, and Vision
   - visible promotion badges after linking
+  - `Items in Motion` queue state changes after verification and promotion
 - Clerk social login is still intentionally bypassed in ThetaFrame until the Google provider is configured correctly in the production Clerk tenant.
 
 ## Manual Acceptance Checklist
@@ -116,3 +118,4 @@ Date: 2026-04-11
   - Weekly steps
   - Vision next steps
 - Confirm re-promoting the same Baby KB item into the same target container does not duplicate it.
+- Confirm Baby KB still feels like a feeder into Daily, Weekly, and Vision rather than a separate planning surface.

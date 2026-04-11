@@ -32,6 +32,7 @@ Date: 2026-04-10
   - Goal: keep obligations, people, finances, subscriptions, and plans in one structured place.
   - First useful action: save one real entry in any tab.
   - Admin extension: `Baby KB` exists as an admin-only tab inside Life Ledger for structured notes, milestones, routines, observations, and follow-ups.
+  - Parent OS role: Baby KB is a supporting review and planning lane that feeds Daily, Weekly, and Vision. It is not a separate planner.
 - `REACH`
   - Goal: store, open, and reuse the files the user needs across workflows.
   - First useful action: upload one real file through the normal upload chain.
@@ -68,7 +69,7 @@ Date: 2026-04-10
 - Owner bootstrap for `mark@speaklymedia.com` remains deterministic and idempotent.
 - `Admin` remains separately gated by admin semantics.
 - `Baby KB` is admin-only inside Life Ledger and is hidden from non-admin users in the UI while also returning `403` to non-admin direct API calls on `/api/life-ledger/baby`.
-- `Baby KB` now includes an admin-only review board for imported packet content with bulk verification, bulk tag editing, source/phase grouping, and promotion into Daily, Weekly, and Vision.
+- `Baby KB` now includes an admin-only review board for imported packet content with bulk verification, bulk tag editing, source/phase grouping, an `Items in Motion` queue, and promotion into Daily, Weekly, and Vision.
 
 ### Onboarding Model
 - Onboarding progress remains persisted in `onboarding_progress`.
@@ -101,6 +102,7 @@ Date: 2026-04-10
 - Signed-in users land on an allowed lane from `/`.
 - `mark@speaklymedia.com` retains effective owner/admin access across environments.
 - Admin-only Baby KB review actions preserve import provenance and never convert packet content into generic default app data.
+- Baby KB should improve overview of parenting-related items in motion without replacing the operating surfaces where real execution happens.
 - Promoting a Baby KB item creates a linked operational copy without bidirectional sync:
   - Daily -> `Tier B`
   - Weekly -> `steps`

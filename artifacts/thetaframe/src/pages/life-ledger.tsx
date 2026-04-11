@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import {
   useListLifeLedgerEntries,
@@ -51,6 +52,7 @@ import { getMondayOfCurrentWeek, getTodayDateString } from "@/lib/dates";
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 type BabyReviewFilter = "all" | "framework" | "planning" | "reference" | "must-verify" | "verified";
 type BabyGroupBy = "source" | "phase" | "none";
+type BabyOperationalState = "needs-review" | "ready-to-promote" | "in-motion" | "already-represented";
 
 type BabyReviewEntry = LifeLedgerEntry & {
   isImported: boolean;
@@ -97,6 +99,18 @@ const BABY_PROMOTION_BUTTON_LABELS: Record<BabyKbPromotion["targetSurface"], str
   daily: "Promote to Daily",
   weekly: "Promote to Weekly",
   vision: "Promote to Vision",
+};
+const BABY_OPERATIONAL_STATE_LABELS: Record<BabyOperationalState, string> = {
+  "needs-review": "Needs review",
+  "ready-to-promote": "Ready to promote",
+  "in-motion": "In motion",
+  "already-represented": "Already represented",
+};
+const BABY_OPERATIONAL_STATE_DESCRIPTIONS: Record<BabyOperationalState, string> = {
+  "needs-review": "Framework items that still need a trust check before they should steer live planning.",
+  "ready-to-promote": "Items that are ready to move into a real Daily, Weekly, or Vision lane.",
+  "in-motion": "Items already linked into at least one live surface and active inside the system.",
+  "already-represented": "Items already linked broadly enough that Baby KB is now source truth and review context.",
 };
 
 const TAB_TAG_SUGGESTIONS: Record<Tab, string[]> = {
@@ -340,6 +354,132 @@ function groupBabyEntries(entries: BabyReviewEntry[], groupBy: BabyGroupBy) {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function getPromotionTargetHref(surface: BabyKbPromotion["targetSurface"]) {
+  if (surface === "daily") return "/daily";
+  if (surface === "weekly") return "/weekly";
+  return "/vision";
+}
+
+function getPromotionTargetLabel(surface: BabyKbPromotion["targetSurface"]) {
+  if (surface === "daily") return "Open Daily";
+  if (surface === "weekly") return "Open Weekly";
+  return "Open Vision";
+}
+
+function getBabyOperationalState(entry: BabyReviewEntry, promotions: BabyKbPromotion[]): BabyOperationalState {
+  const needsReview = entry.contentType === "must-verify" || entry.tagsList.includes("Needs verification");
+
+  if (needsReview) return "needs-review";
+  if (promotions.length === 0) return "ready-to-promote";
+  if (promotions.length >= 3) return "already-represented";
+  return "in-motion";
+}
+
+function getBabyActionSummary(entry: BabyReviewEntry, promotions: BabyKbPromotion[]) {
+  const state = getBabyOperationalState(entry, promotions);
+  const source = entry.sourceLabel ? `from ${entry.sourceLabel}` : "from Baby KB";
+
+  if (state === "needs-review") {
+    return `${source}. Review this framework item before it starts shaping a live Daily, Weekly, or Vision lane.`;
+  }
+
+  if (state === "ready-to-promote") {
+    return `${source}. This item is not represented in a live operating surface yet, so it is a candidate for Daily, Weekly, or Vision.`;
+  }
+
+  if (state === "already-represented") {
+    return `${source}. This item is already linked across Daily, Weekly, and Vision, so Baby KB is now the provenance and review layer.`;
+  }
+
+  const linkedSurfaces = promotions
+    .map((promotion) => BABY_PROMOTION_BADGE_LABELS[promotion.targetSurface].replace("Promoted to ", ""))
+    .join(", ");
+  return `${source}. This item is already active in ${linkedSurfaces} and can still be reviewed here without overwriting those live copies.`;
+}
+
+function BabyOperationalQueue({
+  entries,
+  promotionsByEntryId,
+}: {
+  entries: BabyReviewEntry[];
+  promotionsByEntryId: Map<number, BabyKbPromotion[]>;
+}) {
+  const groups = new Map<BabyOperationalState, BabyReviewEntry[]>(
+    (Object.keys(BABY_OPERATIONAL_STATE_LABELS) as BabyOperationalState[]).map((state) => [state, []]),
+  );
+
+  for (const entry of entries) {
+    const state = getBabyOperationalState(entry, promotionsByEntryId.get(entry.id) ?? []);
+    groups.set(state, [...(groups.get(state) ?? []), entry]);
+  }
+
+  return (
+    <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4" data-testid="baby-kb-operational-queue">
+      <div className="space-y-1">
+        <h2 className="text-sm font-semibold">Items in Motion</h2>
+        <p className="text-sm text-muted-foreground">
+          Use Baby KB as the parenting review and source-truth lane, then move the right items into Daily, Weekly, and Vision where real behavior change happens.
+        </p>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-4">
+        {(Object.keys(BABY_OPERATIONAL_STATE_LABELS) as BabyOperationalState[]).map((state) => {
+          const stateEntries = (groups.get(state) ?? []).sort((a, b) => a.name.localeCompare(b.name));
+
+          return (
+            <section key={state} className="rounded-xl border bg-muted/20 p-4 space-y-3" data-testid={`baby-kb-queue-${state}`}>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">{BABY_OPERATIONAL_STATE_LABELS[state]}</h3>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {stateEntries.length}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">{BABY_OPERATIONAL_STATE_DESCRIPTIONS[state]}</p>
+              </div>
+
+              {stateEntries.length === 0 ? (
+                <div className="text-xs text-muted-foreground">No items currently in this state.</div>
+              ) : (
+                <div className="space-y-2">
+                  {stateEntries.slice(0, 4).map((entry) => {
+                    const promotions = promotionsByEntryId.get(entry.id) ?? [];
+                    return (
+                      <div key={entry.id} className="rounded-lg border bg-background/80 p-3 space-y-2">
+                        <div className="text-sm font-medium">{entry.name || "Untitled imported note"}</div>
+                        <p className="text-xs text-muted-foreground">{getBabyActionSummary(entry, promotions)}</p>
+                        {promotions.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {promotions.map((promotion) => (
+                              <Link key={`${promotion.targetSurface}-${promotion.targetContainerKey}`} href={getPromotionTargetHref(promotion.targetSurface)}>
+                                <a
+                                  className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+                                  data-testid={`link-baby-kb-queue-target-${entry.id}-${promotion.targetSurface}`}
+                                >
+                                  {getPromotionTargetLabel(promotion.targetSurface)}
+                                </a>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {stateEntries.length > 4 && (
+                    <div className="text-xs text-muted-foreground">
+                      {stateEntries.length - 4} more items are currently in this state.
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function EntryForm({
@@ -917,6 +1057,9 @@ function BabyReviewBoard({
                             {entry.sourceLabel && <span>Source: {entry.sourceLabel}</span>}
                             {entry.phase && <span>Phase: {phaseLabel(entry.phase)}</span>}
                           </div>
+                          <p className="max-w-2xl text-xs text-muted-foreground">
+                            {getBabyActionSummary(entry, promotions)}
+                          </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {(["daily", "weekly", "vision"] as BabyKbPromotion["targetSurface"][]).map((surface) => {
@@ -955,6 +1098,21 @@ function BabyReviewBoard({
                             <span key={tag} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
                               {tag}
                             </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {promotions.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {promotions.map((promotion) => (
+                            <Link key={`${promotion.targetSurface}-${promotion.targetContainerKey}`} href={getPromotionTargetHref(promotion.targetSurface)}>
+                              <a
+                                className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                                data-testid={`link-baby-kb-target-${entry.id}-${promotion.targetSurface}`}
+                              >
+                                {getPromotionTargetLabel(promotion.targetSurface)}
+                              </a>
+                            </Link>
                           ))}
                         </div>
                       )}
@@ -1281,60 +1439,64 @@ export default function LifeLedgerPage() {
         {activeTab === "subscriptions" && <SubscriptionAuditPanel />}
 
         {activeTab === "baby" && (
-          <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-2" data-testid="baby-kb-intro">
-              <h2 className="text-sm font-semibold">Baby KB</h2>
-              <p className="text-sm text-muted-foreground">
-                Use this admin-only lane for notes, milestones, routines, appointments, and follow-ups you want to keep searchable and easy to revisit.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Imported packet entries stay marked as framework or needs-verification content until you revise them with real personal details.
-              </p>
-            </div>
-            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3" data-testid="baby-kb-import-summary">
-              <div>
-                <h2 className="text-sm font-semibold">Parent Packet Source</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  The raw archive lives in REACH. Materialized Baby KB notes stay linked to that source so they can be reworked without becoming default app data.
+          <div className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+              <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-2" data-testid="baby-kb-intro">
+                <h2 className="text-sm font-semibold">Baby KB</h2>
+                <p className="text-sm text-muted-foreground">
+                  Use this admin-only lane to turn parenting framework content into better daily pacing, weekly alignment, and longer-range visibility without losing the source material.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Baby KB is a supporting review and planning lane. Daily, Weekly, and Vision remain the live operating surfaces for action.
                 </p>
               </div>
-              {latestParentPacketImport ? (
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <div className="font-medium">{latestParentPacketImport.sourceReachFileName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Imported {new Date(latestParentPacketImport.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-xl bg-muted p-2">
-                      <div className="text-base font-semibold">{latestParentPacketImport.summary.materializedEntryCount}</div>
-                      <div className="text-[11px] text-muted-foreground">materialized</div>
-                    </div>
-                    <div className="rounded-xl bg-muted p-2">
-                      <div className="text-base font-semibold">{latestParentPacketImport.summary.createdCount}</div>
-                      <div className="text-[11px] text-muted-foreground">created</div>
-                    </div>
-                    <div className="rounded-xl bg-muted p-2">
-                      <div className="text-base font-semibold">{latestParentPacketImport.summary.updatedCount}</div>
-                      <div className="text-[11px] text-muted-foreground">updated</div>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    {latestParentPacketImport.summary.files.slice(0, 5).map((fileSummary) => (
-                      <div key={fileSummary.sourcePath} className="flex items-center justify-between text-xs">
-                        <span className="truncate pr-3">{fileSummary.sourcePath}</span>
-                        <span className="text-muted-foreground">{fileSummary.entryCount}</span>
-                      </div>
-                    ))}
-                  </div>
+              <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3" data-testid="baby-kb-import-summary">
+                <div>
+                  <h2 className="text-sm font-semibold">Parent Packet Source</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The raw archive lives in REACH. Materialized Baby KB notes stay linked to that source so they can be reworked without becoming default app data.
+                  </p>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No parent packet imported yet. Upload the source zip in REACH, then run the admin import from that file.
-                </p>
-              )}
+                {latestParentPacketImport ? (
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <div className="font-medium">{latestParentPacketImport.sourceReachFileName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Imported {new Date(latestParentPacketImport.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-xl bg-muted p-2">
+                        <div className="text-base font-semibold">{latestParentPacketImport.summary.materializedEntryCount}</div>
+                        <div className="text-[11px] text-muted-foreground">materialized</div>
+                      </div>
+                      <div className="rounded-xl bg-muted p-2">
+                        <div className="text-base font-semibold">{latestParentPacketImport.summary.createdCount}</div>
+                        <div className="text-[11px] text-muted-foreground">created</div>
+                      </div>
+                      <div className="rounded-xl bg-muted p-2">
+                        <div className="text-base font-semibold">{latestParentPacketImport.summary.updatedCount}</div>
+                        <div className="text-[11px] text-muted-foreground">updated</div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {latestParentPacketImport.summary.files.slice(0, 5).map((fileSummary) => (
+                        <div key={fileSummary.sourcePath} className="flex items-center justify-between text-xs">
+                          <span className="truncate pr-3">{fileSummary.sourcePath}</span>
+                          <span className="text-muted-foreground">{fileSummary.entryCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No parent packet imported yet. Upload the source zip in REACH, then run the admin import from that file.
+                  </p>
+                )}
+              </div>
             </div>
+
+            <BabyOperationalQueue entries={babyEntries} promotionsByEntryId={babyPromotionsByEntryId} />
           </div>
         )}
 
