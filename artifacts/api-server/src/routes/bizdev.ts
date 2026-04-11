@@ -14,7 +14,7 @@ import { serializeDates } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
-router.use(requireAuth, requireModuleAccess("bizdev"));
+router.use("/bizdev", requireAuth, requireModuleAccess("bizdev"));
 
 router.get("/bizdev/brands/summary", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;

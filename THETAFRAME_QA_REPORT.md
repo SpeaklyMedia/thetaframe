@@ -110,32 +110,142 @@ Date: 2026-04-11
     - Baby KB remains the admin-only review/provenance lane
     - Daily, Weekly, and Vision remain the live operating surfaces where action actually lands
 
-## Residual Risks
-- Signed-in browser-only UX remains to be manually verified:
-  - onboarding modal first appearance
-  - mode badge interaction feel
-  - exact `403` UX on deliberately restricted accounts
-  - per-surface onboarding clearing in a live signed-in session
-- `Baby KB` still needs one real browser pass to confirm the new queue and target links feel coherent in the UI rather than only in API-level verification.
-- Baby KB promotion flows still need signed-in browser confirmation against the real admin account:
-  - bulk verify
-  - bulk tag add/remove
-  - idempotent promotion to Daily, Weekly, and Vision
-  - visible promotion badges after linking
-  - `Items in Motion` queue state changes after verification and promotion
-- Clerk social login is still intentionally bypassed in ThetaFrame until the Google provider is configured correctly in the production Clerk tenant.
+## Final PASS QA Run
+Run date: `2026-04-11`
 
-## Manual Acceptance Checklist
-- Sign in on desktop and confirm the onboarding modal appears for incomplete surfaces.
-- Dismiss the modal and confirm local onboarding cards remain on incomplete pages.
-- Set `Build`, refresh, and confirm the mode badge still shows `Build`.
-- Save one real item in each surface and confirm only that surface’s onboarding disappears.
-- Confirm an account without a module grant lands on `Access Denied` for that lane.
-- Confirm owner/admin can reach Admin and perform a permission mutation successfully.
-- Confirm Baby KB bulk verify removes `Needs verification` and adds `Verified personal truth`.
-- Confirm one Baby KB item can be promoted into:
-  - Daily Tier B
-  - Weekly steps
-  - Vision next steps
-- Confirm re-promoting the same Baby KB item into the same target container does not duplicate it.
-- Confirm Baby KB still feels like a feeder into Daily, Weekly, and Vision rather than a separate planning surface.
+Acceptance URL:
+- `https://thetaframe.mrksylvstr.com`
+
+Evidence directory used during the live browser pass:
+- `/tmp/thetaframe-playwright-check/final-pass-out`
+
+### Findings
+- Blocker found and fixed during the run:
+  - module-guard middleware in multiple API routers was mounted at router scope instead of path scope
+  - because `daily-frames` was mounted first, non-daily users could receive `403 {"module":"daily"}` from unrelated endpoints like `/api/me/permissions`, which broke the restricted-user shell and access-denied flow
+  - fixed by scoping module middleware to the router's actual path prefixes:
+    - `/daily-frames`
+    - `/weekly-frames`
+    - `/vision-frames`
+    - `/bizdev`
+    - `/life-ledger`
+    - `/reach`
+  - local validation passed after the fix:
+    - `pnpm run typecheck`
+    - `pnpm run build`
+  - production deploy for the fix:
+    - deployment id: `dpl_J243bEs2bKVuxWUmEUeUudxN3EGp`
+    - deployment URL: `https://thetaframe-eqfau25qg-marks-projects-f03fd1cc.vercel.app`
+
+### Owner/Admin Lane: PASS
+- Sign-in succeeded through the live Clerk production tenant using the production custom domain.
+- The signed-in onboarding modal appeared and dismissed without breaking the handoff.
+- Daily loaded as the real current-day execution lane, not a partial screen.
+- Mode persistence passed:
+  - set `Build`
+  - refreshed
+  - header still showed `Build`
+- Baby KB passed as an admin-only supporting lane:
+  - `Baby KB` tab rendered under Life Ledger
+  - `Items in Motion` queue rendered
+  - review board and bulk actions rendered
+  - provenance and target links rendered
+- Live Baby KB workflow passed against a real imported entry:
+  - source entry id: `24`
+  - label: `First Pediatric Well Visit`
+  - verified in Baby KB
+  - promoted to Daily, Weekly, and Vision
+  - target links rendered in Baby KB
+- Admin passed:
+  - Admin route rendered
+  - permission editor rendered
+  - one real preset mutation succeeded during QA and was then cleaned up
+
+### Promotion Verification: PASS
+The earlier browser assertion failure here was a harness issue, not a product defect. The promoted values live in input controls, so body-text matching was the wrong assertion method. Production state was verified through both API and browser input values.
+
+Verified live target state for `First Pediatric Well Visit`:
+- Daily `2026-04-11`
+  - landed in `Tier B`
+  - browser input values: `["", "First Pediatric Well Visit"]`
+- Weekly `2026-04-06`
+  - landed in `steps`
+  - browser input values: `["First Pediatric Well Visit"]`
+- Vision `me`
+  - landed in `nextSteps`
+  - browser input values include `First Pediatric Well Visit`
+
+This confirms the documented product contract still holds:
+- Daily remained the current-day action lane
+- Weekly remained weekly alignment
+- Vision remained longer-range continuity
+- Baby KB remained the feeder/provenance lane rather than becoming a separate planner
+
+### Restricted Lane: PASS
+Temporary restricted account used:
+- `thetaframe-restricted+1775936899@mrksylvstr.com`
+
+Permission model used:
+- `reach` only in `production`
+
+Results after the route-scoping fix:
+- signed-in landing redirected to `/reach`
+- Admin nav was hidden
+- `/daily` showed a coherent denied state
+- `/life-ledger` showed a coherent denied state
+- `/admin` showed a coherent denied state
+- direct API access to Baby KB was denied:
+  - `GET /api/life-ledger/baby -> 403`
+  - module reported: `life-ledger`
+
+Cleanup completed:
+- temporary Clerk user deleted
+- related app-side rows removed from the production database
+
+### Daily First-Run Lane: PASS
+Temporary daily-only account used:
+- `thetaframe-daily+1775936899@mrksylvstr.com`
+
+Permission model used:
+- `daily` only in `production`
+
+Results:
+- onboarding modal appeared on first sign-in
+- dismissing it still left Daily in a first-run setup state
+- `daily-first-run-setup` rendered
+- first real save created the daily frame and marked Daily onboarding complete
+- verified live frame after save:
+  - `GET /api/daily-frames/2026-04-11 -> 200`
+  - saved Tier A task: `QA: daily first-run acceptance`
+- verified onboarding state after save:
+  - `daily` moved to `completed`
+
+Cleanup completed:
+- temporary Clerk user deleted
+- related app-side rows removed from the production database
+
+### Production Runtime Checks Reconfirmed
+- `GET /api/healthz -> 200`
+- signed-out `GET /api/onboarding -> 401`
+- restricted bearer checks after the middleware fix:
+  - `GET /api/me/permissions -> 200 {"modules":["reach"],"environment":"production","isAdmin":false}`
+  - `GET /api/reach/files -> 200`
+  - `GET /api/daily-frames/2026-04-11 -> 403 {"module":"daily"}`
+
+## PASS Decision
+ThetaFrame now qualifies as `PASS` against the current documented product contract.
+
+Reasoning:
+- shared shell behavior is stable enough for production acceptance
+- onboarding modal behavior was browser-verified
+- Daily normal-load and first-run states were both browser-verified
+- mode persistence was browser-verified
+- admin visibility and mutation flow were browser-verified
+- Baby KB is functionally useful as an admin-only review/provenance lane that feeds Daily, Weekly, and Vision
+- restricted-user access behavior is now coherent in both UI and API
+- imported parent-packet content remains user-specific framework/reference data, not ThetaFrame seed data
+
+## Residual Non-Blocking Follow-Up
+- Clerk social login remains intentionally bypassed until the production Google provider is configured correctly.
+- The frontend bundle still emits a large-chunk warning during build and should be code-split in a later optimization pass.
+- The new admin-only Baby KB endpoints are live and in use, but the OpenAPI/generated-client surface for them can still be cleaned up further.

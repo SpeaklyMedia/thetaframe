@@ -13,7 +13,7 @@ import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-router.use(requireAuth, requireModuleAccess("reach"));
+router.use("/reach", requireAuth, requireModuleAccess("reach"));
 
 router.get("/reach/files", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;

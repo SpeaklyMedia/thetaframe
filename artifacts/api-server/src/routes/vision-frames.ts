@@ -15,7 +15,7 @@ import { serializeDates } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
-router.use(requireAuth, requireModuleAccess("vision"));
+router.use("/vision-frames", requireAuth, requireModuleAccess("vision"));
 
 const upsertVision = async (userId: string, goals: unknown, nextSteps: unknown) => {
   const [frame] = await db

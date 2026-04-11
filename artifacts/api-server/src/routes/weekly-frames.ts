@@ -17,7 +17,7 @@ import { serializeDates, isValidDateString } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 
 const router: IRouter = Router();
-router.use(requireAuth, requireModuleAccess("weekly"));
+router.use("/weekly-frames", requireAuth, requireModuleAccess("weekly"));
 
 router.get("/weekly-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;

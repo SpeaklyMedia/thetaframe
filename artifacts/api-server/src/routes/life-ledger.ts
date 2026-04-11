@@ -41,7 +41,7 @@ const TABLE_MAP = {
 type AnyLedgerTable = (typeof TABLE_MAP)[keyof typeof TABLE_MAP];
 
 const router: IRouter = Router();
-router.use(requireAuth, requireModuleAccess("life-ledger"));
+router.use("/life-ledger", requireAuth, requireModuleAccess("life-ledger"));
 
 let babyLedgerSchemaReady: Promise<void> | null = null;
 
