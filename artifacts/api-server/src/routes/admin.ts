@@ -2,10 +2,11 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { getAuth, clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
-import { accessPermissionsTable, accessPresetsTable } from "@workspace/db/schema";
+import { accessPermissionsTable, accessPresetsTable, reachFilesTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { ensureOwnerBootstrap, getUserAndMaybeBootstrap, isAdminUser, isOwnerUser } from "../lib/access.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
+import { importParentPacketFromReachFile, listParentPacketImportRunsForUser } from "../lib/parentPacketImport.js";
 
 const router = Router();
 
@@ -56,6 +57,21 @@ const PresetApplyParams = z.object({
   id: z.coerce.number().int().positive(),
   userId: z.string(),
 });
+const ParentPacketImportBody = z
+  .object({
+    reachFileId: z.coerce.number().int().positive().optional(),
+    sourceReachFileId: z.coerce.number().int().positive().optional(),
+    importScope: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.reachFileId == null && value.sourceReachFileId == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "reachFileId or sourceReachFileId is required",
+        path: ["reachFileId"],
+      });
+    }
+  });
 
 function serializePreset(preset: typeof accessPresetsTable.$inferSelect) {
   return {
@@ -172,6 +188,35 @@ router.put("/admin/users/:userId/permissions", requireAdmin, async (req: Request
 router.get("/admin/presets", requireAdmin, async (_req: Request, res: Response): Promise<void> => {
   const presets = await db.select().from(accessPresetsTable);
   res.json(presets.map(serializePreset));
+});
+
+router.get("/admin/parent-packet-imports", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const adminUserId = (req as AdminRequest).adminUserId;
+  const runs = await listParentPacketImportRunsForUser(adminUserId);
+  res.json(runs);
+});
+
+router.post("/admin/parent-packet-imports", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const body = ParentPacketImportBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const adminUserId = (req as AdminRequest).adminUserId;
+  const reachFileId = body.data.reachFileId ?? body.data.sourceReachFileId;
+  const [sourceFile] = await db
+    .select()
+    .from(reachFilesTable)
+    .where(and(eq(reachFilesTable.id, reachFileId!), eq(reachFilesTable.userId, adminUserId)));
+
+  if (!sourceFile) {
+    res.status(404).json({ error: "Reach source file not found" });
+    return;
+  }
+
+  const imported = await importParentPacketFromReachFile(sourceFile, adminUserId);
+  res.status(201).json(imported);
 });
 
 router.post("/admin/presets", requireAdmin, async (req: Request, res: Response): Promise<void> => {

@@ -1183,6 +1183,48 @@ export const CreateAdminPresetBody = zod.object({
 });
 
 /**
+ * @summary List parent packet import runs for the current admin
+ */
+export const ListAdminParentPacketImportsResponseItem = zod.object({
+  id: zod.number(),
+  packetKey: zod.string(),
+  packetVersion: zod.string(),
+  importScope: zod.string(),
+  status: zod.string(),
+  sourceReachFileId: zod.number(),
+  sourceReachFileName: zod.string(),
+  sourceObjectPath: zod.string(),
+  summary: zod.object({
+    packetKey: zod.string(),
+    packetVersion: zod.string(),
+    sourceReachFileId: zod.number(),
+    sourceReachFileName: zod.string(),
+    materializedEntryCount: zod.number(),
+    createdCount: zod.number(),
+    updatedCount: zod.number(),
+    sourceFileCount: zod.number(),
+    files: zod.array(
+      zod.object({
+        sourcePath: zod.string(),
+        entryCount: zod.number(),
+      }),
+    ),
+  }),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListAdminParentPacketImportsResponse = zod.array(
+  ListAdminParentPacketImportsResponseItem,
+);
+
+/**
+ * @summary Import a parent packet from a REACH file (admin only)
+ */
+export const CreateAdminParentPacketImportBody = zod.object({
+  reachFileId: zod.number(),
+});
+
+/**
  * @summary Delete an access preset (admin only)
  */
 export const DeleteAdminPresetParams = zod.object({

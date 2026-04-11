@@ -22,6 +22,12 @@ import {
 import { Upload, Trash2, FileText, File, Image, FileArchive, ChevronDown, Search, X, ExternalLink } from "lucide-react";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useToast } from "@/hooks/use-toast";
+import {
+  PARENT_PACKET_IMPORTS_QUERY_KEY,
+  useCreateParentPacketImport,
+} from "@/hooks/use-parent-packet-imports";
 
 function fileIcon(fileType: string | null | undefined) {
   if (!fileType) return <File className="w-5 h-5 text-muted-foreground" />;
@@ -57,14 +63,27 @@ function getFileAccessUrl(objectPath: string): string {
   return `/api/storage${encodeURI(objectPath)}`;
 }
 
+function isArchiveFile(file: ReachFile): boolean {
+  if (file.fileType?.includes("zip") || file.fileType?.includes("archive") || file.fileType?.includes("tar")) {
+    return true;
+  }
+  return /\.zip$|\.tar$|\.tgz$|\.gz$/i.test(file.name);
+}
+
 function FileCard({
   file,
   onDelete,
   isDeleting,
+  onImportPacket,
+  isImportingPacket,
+  canImportPacket,
 }: {
   file: ReachFile;
   onDelete: () => void;
   isDeleting: boolean;
+  onImportPacket?: () => void;
+  isImportingPacket?: boolean;
+  canImportPacket?: boolean;
 }) {
   return (
     <div
@@ -96,6 +115,18 @@ function FileCard({
       >
         <Trash2 className="w-4 h-4 text-destructive" />
       </Button>
+      {canImportPacket && onImportPacket && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onImportPacket}
+          disabled={Boolean(isImportingPacket)}
+          className="shrink-0"
+          data-testid={`button-import-parent-packet-${file.id}`}
+        >
+          {isImportingPacket ? "Importing..." : "Import Packet"}
+        </Button>
+      )}
       <Button asChild variant="ghost" size="icon" aria-label="Open file" className="shrink-0" data-testid={`link-open-file-${file.id}`}>
         <a href={getFileAccessUrl(file.objectPath)} target="_blank" rel="noreferrer">
           <ExternalLink className="w-4 h-4" />
@@ -108,12 +139,15 @@ function FileCard({
 export default function ReachPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isAdmin } = usePermissions();
+  const { toast } = useToast();
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pendingNotes, setPendingNotes] = useState<Record<string, string>>({});
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; file: File }>>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [importingId, setImportingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("All");
 
@@ -124,12 +158,14 @@ export default function ReachPage() {
   const requestUploadUrl = useRequestUploadUrl();
   const createFileMutation = useCreateReachFile();
   const deleteFileMutation = useDeleteReachFile();
+  const importParentPacketMutation = useCreateParentPacketImport();
   const { isSurfaceComplete } = useOnboardingProgress();
 
   const invalidate = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: getListReachFilesQueryKey() }),
       queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: PARENT_PACKET_IMPORTS_QUERY_KEY }),
     ]);
 
   const typeOptions = useMemo(() => {
@@ -214,6 +250,27 @@ export default function ReachPage() {
       },
       onError: () => setDeletingId(null),
     });
+  };
+
+  const handleImportPacket = async (file: ReachFile) => {
+    setImportingId(file.id);
+    try {
+      const run = await importParentPacketMutation.mutateAsync(file.id);
+      await invalidate();
+      toast({
+        title: "Parent packet imported",
+        description: `${run.summary.materializedEntryCount} Baby KB entries materialized from ${run.sourceReachFileName}.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The parent packet could not be imported.";
+      toast({
+        title: "Parent packet import failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setImportingId(null);
+    }
   };
 
   return (
@@ -352,6 +409,9 @@ export default function ReachPage() {
                 file={file}
                 onDelete={() => handleDelete(file.id)}
                 isDeleting={deletingId === file.id}
+                canImportPacket={isAdmin && isArchiveFile(file)}
+                isImportingPacket={importingId === file.id}
+                onImportPacket={() => handleImportPacket(file)}
               />
             ))}
           </div>

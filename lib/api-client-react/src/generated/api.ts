@@ -23,6 +23,7 @@ import type {
   BizdevBrandBody,
   BizdevSummary,
   CreateDailyFrameBody,
+  CreateParentPacketImportBody,
   CreatePresetBody,
   CreateWeeklyFrameBody,
   DailyFrame,
@@ -32,6 +33,7 @@ import type {
   LifeLedgerEntryBody,
   MyPermissionsResponse,
   Next90DaysResponse,
+  ParentPacketImportRun,
   PutUserPermissionsBody,
   ReachFile,
   ReachFileBody,
@@ -3426,6 +3428,176 @@ export const useCreateAdminPreset = <
   TContext
 > => {
   return useMutation(getCreateAdminPresetMutationOptions(options));
+};
+
+/**
+ * @summary List parent packet import runs for the current admin
+ */
+export const getListAdminParentPacketImportsUrl = () => {
+  return `/api/admin/parent-packet-imports`;
+};
+
+export const listAdminParentPacketImports = async (
+  options?: RequestInit,
+): Promise<ParentPacketImportRun[]> => {
+  return customFetch<ParentPacketImportRun[]>(
+    getListAdminParentPacketImportsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAdminParentPacketImportsQueryKey = () => {
+  return [`/api/admin/parent-packet-imports`] as const;
+};
+
+export const getListAdminParentPacketImportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminParentPacketImports>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminParentPacketImports>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAdminParentPacketImportsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminParentPacketImports>>
+  > = ({ signal }) =>
+    listAdminParentPacketImports({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminParentPacketImports>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminParentPacketImportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminParentPacketImports>>
+>;
+export type ListAdminParentPacketImportsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List parent packet import runs for the current admin
+ */
+
+export function useListAdminParentPacketImports<
+  TData = Awaited<ReturnType<typeof listAdminParentPacketImports>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminParentPacketImports>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminParentPacketImportsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Import a parent packet from a REACH file (admin only)
+ */
+export const getCreateAdminParentPacketImportUrl = () => {
+  return `/api/admin/parent-packet-imports`;
+};
+
+export const createAdminParentPacketImport = async (
+  createParentPacketImportBody: CreateParentPacketImportBody,
+  options?: RequestInit,
+): Promise<ParentPacketImportRun> => {
+  return customFetch<ParentPacketImportRun>(
+    getCreateAdminParentPacketImportUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createParentPacketImportBody),
+    },
+  );
+};
+
+export const getCreateAdminParentPacketImportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminParentPacketImport>>,
+    TError,
+    { data: BodyType<CreateParentPacketImportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminParentPacketImport>>,
+  TError,
+  { data: BodyType<CreateParentPacketImportBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdminParentPacketImport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminParentPacketImport>>,
+    { data: BodyType<CreateParentPacketImportBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminParentPacketImport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminParentPacketImportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminParentPacketImport>>
+>;
+export type CreateAdminParentPacketImportMutationBody =
+  BodyType<CreateParentPacketImportBody>;
+export type CreateAdminParentPacketImportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import a parent packet from a REACH file (admin only)
+ */
+export const useCreateAdminParentPacketImport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminParentPacketImport>>,
+    TError,
+    { data: BodyType<CreateParentPacketImportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminParentPacketImport>>,
+  TError,
+  { data: BodyType<CreateParentPacketImportBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdminParentPacketImportMutationOptions(options));
 };
 
 /**

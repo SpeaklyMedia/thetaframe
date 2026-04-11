@@ -593,3 +593,38 @@ export interface CreatePresetBody {
   name: string;
   permissions: PermissionEntry[];
 }
+
+export interface CreateParentPacketImportBody {
+  reachFileId: number;
+}
+
+export interface ParentPacketImportFileSummary {
+  sourcePath: string;
+  entryCount: number;
+}
+
+export interface ParentPacketImportSummary {
+  packetKey: string;
+  packetVersion: string;
+  sourceReachFileId: number;
+  sourceReachFileName: string;
+  materializedEntryCount: number;
+  createdCount: number;
+  updatedCount: number;
+  sourceFileCount: number;
+  files: ParentPacketImportFileSummary[];
+}
+
+export interface ParentPacketImportRun {
+  id: number;
+  packetKey: string;
+  packetVersion: string;
+  importScope: string;
+  status: string;
+  sourceReachFileId: number;
+  sourceReachFileName: string;
+  sourceObjectPath: string;
+  summary: ParentPacketImportSummary;
+  createdAt: string;
+  updatedAt: string;
+}

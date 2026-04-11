@@ -68,6 +68,26 @@ Date: 2026-04-10
   - Clerk rejected `proxy_url = https://thetaframe.mrksylvstr.com/api/__clerk` for this production instance with `Proxy url is invalid. Cannot be on a different domain`.
   - That means Thetaframe cannot rely on the old proxy workaround for this Clerk domain configuration and must use Clerk's real frontend domain once it becomes healthy.
 
+## Parent Packet Import Completed
+- The parent packet archive `SESSION_4_REVIEW_GATE__20260324_R1(1).zip` was uploaded through the normal production REACH flow as admin-owned content, not inserted directly into the database.
+- Production REACH source record:
+  - file id: `1`
+  - object path: `/objects/uploads/a6b3476b-4c07-4078-9834-5ef75738d087`
+- Production import run:
+  - import id: `1`
+  - packet key: `SESSION_4_REVIEW_GATE__20260324_R1`
+  - scope: `broader-dual-layer`
+  - status: `completed`
+- Materialization results:
+  - `83` Baby KB entries materialized
+  - `71` created
+  - `12` updated during import
+  - `12` packet source files materialized
+- Imported content remains user-specific framework/reference content for parenting-related planning and routine adjustment. It is not Thetaframe default seed data.
+- A compatibility gap was found during live import:
+  - the generated client/UI used `sourceReachFileId` while the backend route expected `reachFileId`
+  - the backend was patched to accept both shapes so the in-app import action can use the same production route successfully
+
 ## Residual Risks
 - Signed-in browser-only UX remains to be manually verified:
   - onboarding modal first appearance

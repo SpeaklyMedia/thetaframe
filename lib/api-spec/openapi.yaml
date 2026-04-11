@@ -768,6 +768,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/AccessPreset"
 
+  /admin/parent-packet-imports:
+    get:
+      operationId: listAdminParentPacketImports
+      tags: [admin]
+      summary: List parent packet import runs for the current admin
+      responses:
+        "200":
+          description: List of parent packet imports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParentPacketImportRun"
+    post:
+      operationId: createAdminParentPacketImport
+      tags: [admin]
+      summary: Import a parent packet from a REACH file (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateParentPacketImportBody"
+      responses:
+        "201":
+          description: Imported parent packet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParentPacketImportRun"
+
   /admin/presets/{id}:
     delete:
       operationId: deleteAdminPreset
@@ -1574,3 +1606,94 @@ components:
       required:
         - name
         - permissions
+
+    CreateParentPacketImportBody:
+      type: object
+      properties:
+        reachFileId:
+          type: integer
+      required:
+        - reachFileId
+
+    ParentPacketImportFileSummary:
+      type: object
+      properties:
+        sourcePath:
+          type: string
+        entryCount:
+          type: integer
+      required:
+        - sourcePath
+        - entryCount
+
+    ParentPacketImportSummary:
+      type: object
+      properties:
+        packetKey:
+          type: string
+        packetVersion:
+          type: string
+        sourceReachFileId:
+          type: integer
+        sourceReachFileName:
+          type: string
+        materializedEntryCount:
+          type: integer
+        createdCount:
+          type: integer
+        updatedCount:
+          type: integer
+        sourceFileCount:
+          type: integer
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParentPacketImportFileSummary"
+      required:
+        - packetKey
+        - packetVersion
+        - sourceReachFileId
+        - sourceReachFileName
+        - materializedEntryCount
+        - createdCount
+        - updatedCount
+        - sourceFileCount
+        - files
+
+    ParentPacketImportRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        packetKey:
+          type: string
+        packetVersion:
+          type: string
+        importScope:
+          type: string
+        status:
+          type: string
+        sourceReachFileId:
+          type: integer
+        sourceReachFileName:
+          type: string
+        sourceObjectPath:
+          type: string
+        summary:
+          $ref: "#/components/schemas/ParentPacketImportSummary"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - packetKey
+        - packetVersion
+        - importScope
+        - status
+        - sourceReachFileId
+        - sourceReachFileName
+        - sourceObjectPath
+        - summary
+        - createdAt
+        - updatedAt

@@ -32,6 +32,7 @@ import { Plus, X, ChevronDown, Pencil, Calendar, TrendingUp } from "lucide-react
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useParentPacketImports } from "@/hooks/use-parent-packet-imports";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 
@@ -569,8 +570,10 @@ export default function LifeLedgerPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const { isAdmin } = usePermissions();
+  const { data: parentPacketImports } = useParentPacketImports(isAdmin);
   const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
   const activeTabCopy = TAB_COPY[activeTab];
+  const latestParentPacketImport = parentPacketImports?.[0];
 
   const { data: entries, isLoading } = useListLifeLedgerEntries(activeTab, {
     query: {
@@ -644,11 +647,60 @@ export default function LifeLedgerPage() {
         {activeTab === "subscriptions" && <SubscriptionAuditPanel />}
 
         {activeTab === "baby" && (
-          <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-2" data-testid="baby-kb-intro">
-            <h2 className="text-sm font-semibold">Baby KB</h2>
-            <p className="text-sm text-muted-foreground">
-              Use this admin-only lane for notes, milestones, routines, appointments, and follow-ups you want to keep searchable and easy to revisit.
-            </p>
+          <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-2" data-testid="baby-kb-intro">
+              <h2 className="text-sm font-semibold">Baby KB</h2>
+              <p className="text-sm text-muted-foreground">
+                Use this admin-only lane for notes, milestones, routines, appointments, and follow-ups you want to keep searchable and easy to revisit.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Imported packet entries stay marked as framework or needs-verification content until you revise them with real personal details.
+              </p>
+            </div>
+            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3" data-testid="baby-kb-import-summary">
+              <div>
+                <h2 className="text-sm font-semibold">Parent Packet Source</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The raw archive lives in REACH. Materialized Baby KB notes stay linked to that source so they can be reworked without becoming default app data.
+                </p>
+              </div>
+              {latestParentPacketImport ? (
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <div className="font-medium">{latestParentPacketImport.sourceReachFileName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Imported {new Date(latestParentPacketImport.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl bg-muted p-2">
+                      <div className="text-base font-semibold">{latestParentPacketImport.summary.materializedEntryCount}</div>
+                      <div className="text-[11px] text-muted-foreground">materialized</div>
+                    </div>
+                    <div className="rounded-xl bg-muted p-2">
+                      <div className="text-base font-semibold">{latestParentPacketImport.summary.createdCount}</div>
+                      <div className="text-[11px] text-muted-foreground">created</div>
+                    </div>
+                    <div className="rounded-xl bg-muted p-2">
+                      <div className="text-base font-semibold">{latestParentPacketImport.summary.updatedCount}</div>
+                      <div className="text-[11px] text-muted-foreground">updated</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {latestParentPacketImport.summary.files.slice(0, 5).map((fileSummary) => (
+                      <div key={fileSummary.sourcePath} className="flex items-center justify-between text-xs">
+                        <span className="truncate pr-3">{fileSummary.sourcePath}</span>
+                        <span className="text-muted-foreground">{fileSummary.entryCount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No parent packet imported yet. Upload the source zip in REACH, then run the admin import from that file.
+                </p>
+              )}
+            </div>
           </div>
         )}
 
