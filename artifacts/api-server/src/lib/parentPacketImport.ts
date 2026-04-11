@@ -385,6 +385,42 @@ export async function listParentPacketImportRunsForUser(userId: string) {
   }));
 }
 
+export async function listParentPacketMaterializationsForUser(userId: string) {
+  await ensureParentPacketSchema();
+
+  const rows = await db
+    .select({
+      id: parentPacketMaterializationsTable.id,
+      latestImportRunId: parentPacketMaterializationsTable.latestImportRunId,
+      sourceReachFileId: parentPacketMaterializationsTable.sourceReachFileId,
+      packetKey: parentPacketMaterializationsTable.packetKey,
+      sourcePath: parentPacketMaterializationsTable.sourcePath,
+      sourceRecordKey: parentPacketMaterializationsTable.sourceRecordKey,
+      targetKind: parentPacketMaterializationsTable.targetKind,
+      targetTab: parentPacketMaterializationsTable.targetTab,
+      targetEntryId: parentPacketMaterializationsTable.targetEntryId,
+      contentType: parentPacketMaterializationsTable.contentType,
+      status: parentPacketMaterializationsTable.status,
+      metadata: parentPacketMaterializationsTable.metadata,
+      createdAt: parentPacketMaterializationsTable.createdAt,
+      updatedAt: parentPacketMaterializationsTable.updatedAt,
+    })
+    .from(parentPacketMaterializationsTable)
+    .innerJoin(
+      parentPacketImportRunsTable,
+      eq(parentPacketMaterializationsTable.latestImportRunId, parentPacketImportRunsTable.id),
+    )
+    .where(eq(parentPacketImportRunsTable.uploaderUserId, userId))
+    .orderBy(parentPacketMaterializationsTable.sourcePath, parentPacketMaterializationsTable.sourceRecordKey);
+
+  return rows.map((row) => ({
+    ...row,
+    metadata: row.metadata as Record<string, unknown>,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+}
+
 export async function importParentPacketFromReachFile(
   sourceFile: ReachFile,
   uploaderUserId: string,

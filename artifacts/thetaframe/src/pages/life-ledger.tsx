@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/layout";
 import {
   useListLifeLedgerEntries,
@@ -32,9 +32,25 @@ import { Plus, X, ChevronDown, Pencil, Calendar, TrendingUp } from "lucide-react
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useParentPacketImports } from "@/hooks/use-parent-packet-imports";
+import {
+  useParentPacketImports,
+  useParentPacketMaterializations,
+  type ParentPacketMaterialization,
+} from "@/hooks/use-parent-packet-imports";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
+type BabyReviewFilter = "all" | "framework" | "planning" | "reference" | "must-verify" | "verified";
+type BabyGroupBy = "source" | "phase" | "none";
+
+type BabyReviewEntry = LifeLedgerEntry & {
+  isImported: boolean;
+  isVerified: boolean;
+  contentType: string | null;
+  sourcePath: string | null;
+  sourceLabel: string | null;
+  phase: string | null;
+  tagsList: string[];
+};
 
 const TABS: Array<{ key: Tab; label: string; adminOnly?: boolean }> = [
   { key: "people", label: "People" },
@@ -48,6 +64,20 @@ const TABS: Array<{ key: Tab; label: string; adminOnly?: boolean }> = [
 const IMPACT_LEVELS = ["low", "medium", "high"];
 const REVIEW_WINDOWS = ["annual", "quarterly", "monthly", "situational"];
 const BILLING_CYCLES = ["monthly", "annual"];
+const BABY_PHASE_ORDER = ["prenatal", "delivery/newborn", "newborn", "postpartum", "infant", "admin"];
+const BABY_REVIEW_FILTER_LABELS: Record<BabyReviewFilter, string> = {
+  all: "All imported content",
+  framework: "Framework",
+  planning: "Planning",
+  reference: "Reference",
+  "must-verify": "Needs verification",
+  verified: "Verified personal truth",
+};
+const BABY_GROUP_BY_LABELS: Record<BabyGroupBy, string> = {
+  source: "Group by source file",
+  phase: "Group by phase",
+  none: "No grouping",
+};
 
 const TAB_TAG_SUGGESTIONS: Record<Tab, string[]> = {
   people: [
@@ -168,6 +198,140 @@ const EMPTY_FORM: LifeLedgerEntryBody = {
   isEssential: null,
   billingCycle: null,
 };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function metadataString(metadata: Record<string, unknown> | null, key: string): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function sourceLabelFromPath(sourcePath: string | null): string | null {
+  if (!sourcePath) return null;
+  const leaf = sourcePath.split("/").pop();
+  return leaf ?? sourcePath;
+}
+
+function phaseLabel(phase: string | null): string | null {
+  if (!phase) return null;
+  return phase
+    .split("/")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" / ");
+}
+
+function previewNotes(notes: string | null, maxLines = 6): string {
+  if (!notes) return "";
+  const lines = notes.split("\n");
+  const clipped = lines.slice(0, maxLines).join("\n");
+  return lines.length > maxLines ? `${clipped}\n…` : clipped;
+}
+
+function inferPhase(entry: LifeLedgerEntry, materialization?: ParentPacketMaterialization): string | null {
+  const metadata = asRecord(materialization?.metadata);
+  const fromMetadata = metadataString(metadata, "phase");
+  if (fromMetadata) return fromMetadata;
+
+  const notes = entry.notes ?? "";
+  const match = notes.match(/^Phase:\s*(.+)$/im);
+  if (match?.[1]) return match[1].trim().toLowerCase();
+
+  const tags = (entry.tags as string[]) ?? [];
+  return BABY_PHASE_ORDER.find((phase) => tags.includes(phase)) ?? null;
+}
+
+function toLifeLedgerEntryBody(entry: LifeLedgerEntry, tagsOverride?: string[]): LifeLedgerEntryBody {
+  return {
+    name: entry.name,
+    tags: tagsOverride ?? ((entry.tags as string[]) ?? []),
+    impactLevel: entry.impactLevel ?? null,
+    reviewWindow: entry.reviewWindow ?? null,
+    dueDate: entry.dueDate ?? null,
+    notes: entry.notes ?? null,
+    amount: entry.amount ?? null,
+    currency: entry.currency ?? null,
+    isEssential: entry.isEssential ?? null,
+    billingCycle: entry.billingCycle ?? null,
+  };
+}
+
+function buildBabyReviewEntry(
+  entry: LifeLedgerEntry,
+  materialization?: ParentPacketMaterialization,
+): BabyReviewEntry {
+  const tagsList = ((entry.tags as string[]) ?? []).slice();
+  const metadata = asRecord(materialization?.metadata);
+  const sourcePath = metadataString(metadata, "sourcePath");
+  const contentType = materialization?.contentType ?? metadataString(metadata, "contentType");
+  const phase = inferPhase(entry, materialization);
+
+  return {
+    ...entry,
+    isImported: Boolean(materialization),
+    isVerified: tagsList.includes("Verified personal truth"),
+    contentType: contentType ?? null,
+    sourcePath,
+    sourceLabel: sourceLabelFromPath(sourcePath),
+    phase,
+    tagsList,
+  };
+}
+
+function matchesBabyFilter(entry: BabyReviewEntry, filter: BabyReviewFilter) {
+  switch (filter) {
+    case "all":
+      return true;
+    case "verified":
+      return entry.isVerified;
+    case "must-verify":
+      return entry.contentType === "must-verify" || entry.tagsList.includes("Needs verification");
+    default:
+      return entry.contentType === filter;
+  }
+}
+
+function groupBabyEntries(entries: BabyReviewEntry[], groupBy: BabyGroupBy) {
+  if (groupBy === "none") {
+    return [{ key: "all", label: "All Baby KB items", entries }];
+  }
+
+  const grouped = new Map<string, BabyReviewEntry[]>();
+
+  for (const entry of entries) {
+    const label =
+      groupBy === "source"
+        ? entry.sourceLabel ?? "Manual Baby KB entries"
+        : entry.phase
+          ? phaseLabel(entry.phase) ?? entry.phase
+          : entry.isImported
+            ? "No phase attached"
+            : "Manual Baby KB entries";
+    const key = `${groupBy}:${label}`;
+    grouped.set(key, [...(grouped.get(key) ?? []), entry]);
+  }
+
+  const groups = Array.from(grouped.entries()).map(([key, groupedEntries]) => ({
+    key,
+    label: key.split(":").slice(1).join(":"),
+    entries: groupedEntries.sort((a, b) => a.name.localeCompare(b.name)),
+  }));
+
+  if (groupBy === "phase") {
+    groups.sort((a, b) => {
+      const aIndex = BABY_PHASE_ORDER.indexOf(a.label.toLowerCase().replace(/\s+\/\s+/g, "/"));
+      const bIndex = BABY_PHASE_ORDER.indexOf(b.label.toLowerCase().replace(/\s+\/\s+/g, "/"));
+      const normalizedA = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+      const normalizedB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+      return normalizedA - normalizedB || a.label.localeCompare(b.label);
+    });
+  } else {
+    groups.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  return groups;
+}
 
 function EntryForm({
   tab,
@@ -488,6 +652,192 @@ function TabTable({
   );
 }
 
+function BabyReviewBoard({
+  entries,
+  filter,
+  groupBy,
+  search,
+  editingId,
+  onFilterChange,
+  onGroupByChange,
+  onSearchChange,
+  onEdit,
+  onDelete,
+  onPromote,
+  promotingId,
+}: {
+  entries: BabyReviewEntry[];
+  filter: BabyReviewFilter;
+  groupBy: BabyGroupBy;
+  search: string;
+  editingId: number | null;
+  onFilterChange: (filter: BabyReviewFilter) => void;
+  onGroupByChange: (groupBy: BabyGroupBy) => void;
+  onSearchChange: (value: string) => void;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+  onPromote: (entry: BabyReviewEntry) => void;
+  promotingId: number | null;
+}) {
+  const visibleEntries = entries.filter((entry) => entry.id !== editingId);
+  const groups = groupBabyEntries(visibleEntries, groupBy);
+  const importedCount = entries.filter((entry) => entry.isImported).length;
+  const verifiedCount = entries.filter((entry) => entry.isVerified).length;
+  const needsVerificationCount = entries.filter((entry) => entry.tagsList.includes("Needs verification")).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4" data-testid="baby-kb-review-controls">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold">Review imported Baby KB content</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Filter the imported framework, group it by source or phase, and promote individual items into verified personal truth without losing the original packet link.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-muted px-2.5 py-1">{importedCount} imported</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{needsVerificationCount} need verification</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{verifiedCount} verified</span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_220px]">
+          <Input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search notes, source files, phases, or tags..."
+            data-testid="input-baby-kb-search"
+          />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-between" data-testid="select-baby-filter">
+                <span>{BABY_REVIEW_FILTER_LABELS[filter]}</span>
+                <ChevronDown className="w-4 h-4 ml-2 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {(Object.keys(BABY_REVIEW_FILTER_LABELS) as BabyReviewFilter[]).map((value) => (
+                <DropdownMenuItem key={value} onClick={() => onFilterChange(value)}>
+                  {BABY_REVIEW_FILTER_LABELS[value]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-between" data-testid="select-baby-group-by">
+                <span>{BABY_GROUP_BY_LABELS[groupBy]}</span>
+                <ChevronDown className="w-4 h-4 ml-2 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {(Object.keys(BABY_GROUP_BY_LABELS) as BabyGroupBy[]).map((value) => (
+                <DropdownMenuItem key={value} onClick={() => onGroupByChange(value)}>
+                  {BABY_GROUP_BY_LABELS[value]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {visibleEntries.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          No Baby KB entries match the current review filters.
+        </div>
+      ) : (
+        <div className="space-y-5" data-testid="baby-kb-review-board">
+          {groups.map((group) => (
+            <section key={group.key} className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold">{group.label}</h3>
+                  <p className="text-xs text-muted-foreground">{group.entries.length} entries</p>
+                </div>
+              </div>
+              <div className="grid gap-3">
+                {group.entries.map((entry) => {
+                  const notePreview = previewNotes(entry.notes ?? "");
+                  return (
+                    <article
+                      key={entry.id}
+                      className="rounded-2xl border bg-card p-4 shadow-sm space-y-3"
+                      data-testid={`baby-kb-card-${entry.id}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="text-sm font-semibold">{entry.name || "Untitled imported note"}</h4>
+                            {entry.isImported && (
+                              <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px]">Imported from packet</span>
+                            )}
+                            {entry.contentType && (
+                              <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] capitalize">
+                                {entry.contentType === "must-verify" ? "Needs verification" : entry.contentType}
+                              </span>
+                            )}
+                            {entry.isVerified && (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                                Verified personal truth
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            {entry.sourceLabel && <span>Source: {entry.sourceLabel}</span>}
+                            {entry.phase && <span>Phase: {phaseLabel(entry.phase)}</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {entry.isImported && !entry.isVerified && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onPromote(entry)}
+                              disabled={promotingId === entry.id}
+                              data-testid={`button-verify-baby-entry-${entry.id}`}
+                            >
+                              {promotingId === entry.id ? "Saving..." : "Mark verified"}
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => onEdit(entry.id)} data-testid={`button-edit-baby-entry-${entry.id}`}>
+                            Edit
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => onDelete(entry.id)} data-testid={`button-delete-baby-entry-${entry.id}`}>
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+
+                      {entry.tagsList.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {entry.tagsList.map((tag) => (
+                            <span key={tag} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {notePreview && (
+                        <pre className="whitespace-pre-wrap break-words rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground font-sans">
+                          {notePreview}
+                        </pre>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Next90DaysPanel() {
   const { data } = useGetNext90Days({ query: { queryKey: getGetNext90DaysQueryKey(), refetchOnWindowFocus: false } });
 
@@ -569,8 +919,13 @@ export default function LifeLedgerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("people");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [babyFilter, setBabyFilter] = useState<BabyReviewFilter>("all");
+  const [babyGroupBy, setBabyGroupBy] = useState<BabyGroupBy>("source");
+  const [babySearch, setBabySearch] = useState("");
+  const [promotingId, setPromotingId] = useState<number | null>(null);
   const { isAdmin } = usePermissions();
   const { data: parentPacketImports } = useParentPacketImports(isAdmin);
+  const { data: parentPacketMaterializations } = useParentPacketMaterializations(isAdmin);
   const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
   const activeTabCopy = TAB_COPY[activeTab];
   const latestParentPacketImport = parentPacketImports?.[0];
@@ -601,6 +956,39 @@ export default function LifeLedgerPage() {
     queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
   };
 
+  const babyEntries = useMemo(() => {
+    if (activeTab !== "baby" || !entries) return [] as BabyReviewEntry[];
+
+    const materializationMap = new Map<number, ParentPacketMaterialization>();
+    for (const materialization of parentPacketMaterializations ?? []) {
+      materializationMap.set(materialization.targetEntryId, materialization);
+    }
+
+    return entries.map((entry) => buildBabyReviewEntry(entry, materializationMap.get(entry.id)));
+  }, [activeTab, entries, parentPacketMaterializations]);
+
+  const filteredBabyEntries = useMemo(() => {
+    const normalizedQuery = babySearch.trim().toLowerCase();
+
+    return babyEntries.filter((entry) => {
+      if (!matchesBabyFilter(entry, babyFilter)) return false;
+      if (!normalizedQuery) return true;
+
+      const haystack = [
+        entry.name,
+        entry.notes ?? "",
+        entry.sourcePath ?? "",
+        entry.sourceLabel ?? "",
+        entry.phase ?? "",
+        ...entry.tagsList,
+      ]
+        .join("\n")
+        .toLowerCase();
+
+      return haystack.includes(normalizedQuery);
+    });
+  }, [babyEntries, babyFilter, babySearch]);
+
   const handleCreate = (data: LifeLedgerEntryBody) => {
     createMutation.mutate({ tab: activeTab, data }, {
       onSuccess: () => {
@@ -621,6 +1009,22 @@ export default function LifeLedgerPage() {
 
   const handleDelete = (id: number) => {
     deleteMutation.mutate({ tab: activeTab, id }, { onSuccess: () => invalidateTab(activeTab) });
+  };
+
+  const handlePromote = (entry: BabyReviewEntry) => {
+    setPromotingId(entry.id);
+
+    const nextTags = Array.from(
+      new Set([...entry.tagsList.filter((tag) => tag !== "Needs verification"), "Verified personal truth"]),
+    );
+
+    updateMutation.mutate(
+      { tab: "baby", id: entry.id, data: toLifeLedgerEntryBody(entry, nextTags) },
+      {
+        onSuccess: () => invalidateTab("baby"),
+        onSettled: () => setPromotingId(null),
+      },
+    );
   };
 
   const editingEntry = entries?.find((e) => e.id === editingId);
@@ -765,6 +1169,21 @@ export default function LifeLedgerPage() {
           <div className="space-y-2">
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
+        ) : activeTab === "baby" && entries && entries.length > 0 ? (
+          <BabyReviewBoard
+            entries={filteredBabyEntries}
+            filter={babyFilter}
+            groupBy={babyGroupBy}
+            search={babySearch}
+            editingId={editingId}
+            onFilterChange={setBabyFilter}
+            onGroupByChange={setBabyGroupBy}
+            onSearchChange={setBabySearch}
+            onEdit={(id) => { setShowForm(false); setEditingId(id); }}
+            onDelete={handleDelete}
+            onPromote={handlePromote}
+            promotingId={promotingId}
+          />
         ) : entries && entries.length > 0 ? (
           <TabTable
             tab={activeTab}

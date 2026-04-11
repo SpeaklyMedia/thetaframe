@@ -3,6 +3,7 @@ import { customFetch } from "@workspace/api-client-react";
 import { useAuthSession } from "@/hooks/use-auth-session";
 
 export const PARENT_PACKET_IMPORTS_QUERY_KEY = ["parent-packet-imports"] as const;
+export const PARENT_PACKET_MATERIALIZATIONS_QUERY_KEY = ["parent-packet-materializations"] as const;
 
 export type ParentPacketImportFileSummary = {
   sourcePath: string;
@@ -35,12 +36,42 @@ export type ParentPacketImportRun = {
   updatedAt: string;
 };
 
+export type ParentPacketMaterialization = {
+  id: number;
+  latestImportRunId: number;
+  sourceReachFileId: number;
+  packetKey: string;
+  sourcePath: string;
+  sourceRecordKey: string;
+  targetKind: string;
+  targetTab: string;
+  targetEntryId: number;
+  contentType: string;
+  status: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export function useParentPacketImports(enabled = true) {
   const { status, userId } = useAuthSession();
 
   return useQuery<ParentPacketImportRun[]>({
     queryKey: PARENT_PACKET_IMPORTS_QUERY_KEY,
     queryFn: () => customFetch<ParentPacketImportRun[]>("/api/admin/parent-packet-imports", { responseType: "json" }),
+    enabled: enabled && status === "ready" && Boolean(userId),
+    staleTime: 30_000,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useParentPacketMaterializations(enabled = true) {
+  const { status, userId } = useAuthSession();
+
+  return useQuery<ParentPacketMaterialization[]>({
+    queryKey: PARENT_PACKET_MATERIALIZATIONS_QUERY_KEY,
+    queryFn: () =>
+      customFetch<ParentPacketMaterialization[]>("/api/admin/parent-packet-materializations", { responseType: "json" }),
     enabled: enabled && status === "ready" && Boolean(userId),
     staleTime: 30_000,
     placeholderData: (previousData) => previousData,

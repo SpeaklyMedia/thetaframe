@@ -6,7 +6,11 @@ import { accessPermissionsTable, accessPresetsTable, reachFilesTable } from "@wo
 import { eq, and, inArray } from "drizzle-orm";
 import { ensureOwnerBootstrap, getUserAndMaybeBootstrap, isAdminUser, isOwnerUser } from "../lib/access.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
-import { importParentPacketFromReachFile, listParentPacketImportRunsForUser } from "../lib/parentPacketImport.js";
+import {
+  importParentPacketFromReachFile,
+  listParentPacketImportRunsForUser,
+  listParentPacketMaterializationsForUser,
+} from "../lib/parentPacketImport.js";
 
 const router = Router();
 
@@ -194,6 +198,12 @@ router.get("/admin/parent-packet-imports", requireAdmin, async (req: Request, re
   const adminUserId = (req as AdminRequest).adminUserId;
   const runs = await listParentPacketImportRunsForUser(adminUserId);
   res.json(runs);
+});
+
+router.get("/admin/parent-packet-materializations", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const adminUserId = (req as AdminRequest).adminUserId;
+  const materializations = await listParentPacketMaterializationsForUser(adminUserId);
+  res.json(materializations);
 });
 
 router.post("/admin/parent-packet-imports", requireAdmin, async (req: Request, res: Response): Promise<void> => {
