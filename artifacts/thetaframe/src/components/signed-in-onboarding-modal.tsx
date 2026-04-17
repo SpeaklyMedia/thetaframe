@@ -126,8 +126,11 @@ export function SignedInOnboardingModal() {
 
   return (
     <Dialog open={shouldOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="signed-in-onboarding-modal">
-        <DialogHeader>
+      <DialogContent
+        className="max-w-3xl !flex !max-h-[calc(100dvh-2rem)] !gap-0 !overflow-hidden !p-0"
+        data-testid="signed-in-onboarding-modal"
+      >
+        <DialogHeader className="shrink-0 pb-3 pl-5 pr-12 pt-5 sm:pl-6 sm:pr-14">
           <DialogTitle>{useBasicStartGuide ? "Start Here" : "Welcome to ThetaFrame"}</DialogTitle>
           <DialogDescription>
             {useBasicStartGuide
@@ -136,53 +139,55 @@ export function SignedInOnboardingModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {isError ? (
-          <div className="space-y-4">
-            <div className="rounded-2xl border bg-card px-5 py-4 shadow-sm space-y-2">
-              <h2 className="text-lg font-semibold">Your getting-started guide could not load</h2>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6" data-testid="signed-in-onboarding-modal-body">
+          {isError ? (
+            <div className="space-y-4">
+              <div className="space-y-2 rounded-lg border bg-card px-5 py-4 shadow-sm">
+                <h2 className="text-lg font-semibold">Your getting-started guide could not load</h2>
+                <p className="text-sm text-muted-foreground">
+                  The app is available, but the onboarding checklist did not load yet. You can retry or go straight to your next lane.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY })}
+                  data-testid="button-retry-onboarding-modal"
+                >
+                  Retry guide
+                </Button>
+                <Button asChild type="button" data-testid="link-open-fallback-lane">
+                  <Link href={fallbackHref} onClick={handleDismiss}>
+                    Open your next lane
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ) : isLoading && openedOnce ? (
+            <div className="space-y-2 rounded-lg border bg-card px-5 py-4 shadow-sm">
+              <h2 className="text-lg font-semibold">Loading your getting-started plan</h2>
               <p className="text-sm text-muted-foreground">
-                The app is available, but the onboarding checklist did not load yet. You can retry or go straight to your next lane.
+                ThetaFrame is preparing your onboarding state for this session.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY })}
-                data-testid="button-retry-onboarding-modal"
-              >
-                Retry guide
-              </Button>
-              <Button asChild type="button" data-testid="link-open-fallback-lane">
-                <Link href={fallbackHref} onClick={handleDismiss}>
-                  Open your next lane
-                </Link>
-              </Button>
-            </div>
-          </div>
-        ) : isLoading && openedOnce ? (
-          <div className="rounded-2xl border bg-card px-5 py-4 shadow-sm space-y-2">
-            <h2 className="text-lg font-semibold">Loading your getting-started plan</h2>
-            <p className="text-sm text-muted-foreground">
-              ThetaFrame is preparing your onboarding state for this session.
-            </p>
-          </div>
-        ) : useBasicStartGuide ? (
-          <BasicStartGuide
-            surfaces={basicSurfaces}
-            onNavigate={handleDismiss}
-            focusedLane={focusedLane}
-          />
-        ) : (
-          <OnboardingChecklist
-            surfaces={incompleteSurfaces}
-            onNavigate={handleDismiss}
-            completedCount={completedCount}
-            totalCount={surfaces.length}
-          />
-        )}
+          ) : useBasicStartGuide ? (
+            <BasicStartGuide
+              surfaces={basicSurfaces}
+              onNavigate={handleDismiss}
+              focusedLane={focusedLane}
+            />
+          ) : (
+            <OnboardingChecklist
+              surfaces={incompleteSurfaces}
+              onNavigate={handleDismiss}
+              completedCount={completedCount}
+              totalCount={surfaces.length}
+            />
+          )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t bg-background px-5 py-4 sm:px-6">
           <Button variant="outline" onClick={handleDismiss} data-testid="button-dismiss-onboarding-modal">
             Continue to the app
           </Button>

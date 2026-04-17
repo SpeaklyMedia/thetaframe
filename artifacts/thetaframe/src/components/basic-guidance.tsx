@@ -41,12 +41,12 @@ export function BasicStartGuide({
   );
 
   return (
-    <section className="space-y-5" data-testid="basic-start-guide">
-      <div className="space-y-2">
+    <section className="space-y-4" data-testid="basic-start-guide">
+      <div className="space-y-1.5">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Start Here
         </p>
-        <h2 className="text-xl font-semibold">Use one small step at a time.</h2>
+        <h2 className="text-lg font-semibold sm:text-xl">Use one small step at a time.</h2>
         <p className="text-sm text-muted-foreground">
           Start with Today, This Week, and Goals. You can come back here any time.
         </p>
@@ -68,7 +68,7 @@ export function BasicStartGuide({
               type="button"
               role="tab"
               aria-selected={isSelected}
-              className={`flex min-h-11 items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              className={`flex min-h-10 items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 isSelected
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-accent"
@@ -84,11 +84,11 @@ export function BasicStartGuide({
       </div>
 
       <div
-        className="rounded-lg border bg-background/90 p-4 shadow-sm"
+        className="rounded-lg border bg-background/90 p-3 shadow-sm sm:p-4"
         data-testid="guide-restart-current-surface"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 space-y-1.5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Restart Here
             </p>
@@ -107,9 +107,9 @@ export function BasicStartGuide({
           </Button>
         </div>
 
-        <div className="mt-4 grid gap-2 md:grid-cols-2">
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
           {selectedActionSteps.map((step) => (
-            <div key={step.stepNumber} className="flex gap-3 rounded-md border bg-card/70 p-3">
+            <div key={step.stepNumber} className="flex gap-2.5 rounded-md border bg-card/70 p-2.5">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                 {step.stepNumber}
               </div>
@@ -122,14 +122,14 @@ export function BasicStartGuide({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-3">
         {BASIC_LANE_ORDER.map((lane, index) => {
           const step = BASIC_LANE_STEPS[lane];
           const isComplete = getSurfaceCompletion(surfaces, lane);
           return (
             <div
               key={lane}
-              className="rounded-lg border bg-card/80 px-4 py-4 shadow-sm"
+              className="rounded-lg border bg-card/80 px-3 py-3 shadow-sm"
               data-testid={`guide-step-${lane}`}
             >
               <div className="flex items-center justify-between gap-3">
@@ -139,9 +139,9 @@ export function BasicStartGuide({
                   {isComplete ? "Done once" : "Start"}
                 </span>
               </div>
-              <p className="mt-3 text-sm font-medium">{step.headline}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{isComplete ? step.resetStep : step.nextStep}</p>
-              <Button asChild type="button" size="sm" className="mt-4">
+              <p className="mt-2 text-sm font-medium">{step.headline}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{isComplete ? step.resetStep : step.nextStep}</p>
+              <Button asChild type="button" size="sm" className="mt-3">
                 <Link href={step.href} onClick={onNavigate}>
                   {step.primaryAction}
                 </Link>

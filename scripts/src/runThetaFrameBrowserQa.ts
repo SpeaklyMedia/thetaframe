@@ -93,6 +93,38 @@ async function expectAccessDenied(page: Page, pathname: string, label: string) {
   await page.getByTestId("text-access-denied").waitFor();
 }
 
+async function expectModalViewportFit(page: Page, label: string) {
+  const modalBox = await page.getByTestId("signed-in-onboarding-modal").boundingBox();
+  const bodyBox = await page.getByTestId("signed-in-onboarding-modal-body").boundingBox();
+  const footerBox = await page.getByTestId("button-dismiss-onboarding-modal").boundingBox();
+
+  if (!modalBox || !bodyBox || !footerBox) {
+    throw new Error(`${label} modal fit check could not read modal, body, or footer bounds.`);
+  }
+
+  const viewport = page.viewportSize();
+  if (!viewport) {
+    throw new Error(`${label} modal fit check could not read viewport size.`);
+  }
+
+  const viewportBottom = viewport.height + 1;
+  const viewportRight = viewport.width + 1;
+  const isInViewport =
+    modalBox.y >= -1 &&
+    modalBox.x >= -1 &&
+    modalBox.y + modalBox.height <= viewportBottom &&
+    modalBox.x + modalBox.width <= viewportRight &&
+    footerBox.y + footerBox.height <= viewportBottom &&
+    bodyBox.y + bodyBox.height <= footerBox.y + 1;
+
+  if (!isInViewport) {
+    throw new Error(
+      `${label} modal exceeds viewport or footer is not visible. ` +
+      `modal=${JSON.stringify(modalBox)} body=${JSON.stringify(bodyBox)} footer=${JSON.stringify(footerBox)} viewport=${JSON.stringify(viewport)}`,
+    );
+  }
+}
+
 function parseSelectAuthorizedModules(): Set<string> {
   const raw = process.env.THETAFRAME_BROWSER_SELECT_AUTHORIZED_MODULES ?? "life-ledger";
   return new Set(
@@ -485,6 +517,8 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("guide-tab-weekly").waitFor();
         await page.getByTestId("guide-tab-vision").waitFor();
         await page.getByTestId("guide-restart-current-surface").waitFor();
+        await page.getByTestId("button-dismiss-onboarding-modal").waitFor();
+        await expectModalViewportFit(page, "Daily Start Here desktop");
         if (await page.getByTestId("guide-tab-daily").getAttribute("aria-selected") !== "true") {
           throw new Error("Start Here did not focus Today when opened from Daily.");
         }
@@ -532,6 +566,7 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("basic-start-guide").waitFor();
         await page.getByTestId("guide-surface-tabs").waitFor();
         await page.setViewportSize({ width: 390, height: 844 });
+        await expectModalViewportFit(page, "Dashboard Start Here mobile");
         await captureEvidence(page, "c37-basic-guide-dashboard-mobile");
         await page.setViewportSize({ width: 1440, height: 960 });
         await page.getByTestId("button-dismiss-onboarding-modal").click();
