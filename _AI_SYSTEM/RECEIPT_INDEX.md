@@ -64,6 +64,11 @@ Status: Current high-signal receipt map
   - Keeps desktop hover CSS-only and uses touch-only scroll-focus for mobile/tablet.
   - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C44-production-qa-doc-hardening__2026-04-17__R1.md`
+  - Verifies finished Habit Canvas work in production after C43.
+  - Updates durable AI-facing docs to the after-C43 current truth.
+  - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
