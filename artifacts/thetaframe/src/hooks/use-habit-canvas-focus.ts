@@ -51,6 +51,7 @@ export function useHabitCanvasFocus(): void {
     let raf: number | null = null;
     let isListening = false;
     let startupCheck: number | null = null;
+    let observer: MutationObserver | null = null;
 
     const clearFocusedCards = () => {
       removeFocusClass(focusedCards);
@@ -117,6 +118,8 @@ export function useHabitCanvasFocus(): void {
       scheduleFocusSample();
       window.addEventListener("scroll", scheduleFocusSample, { passive: true });
       window.addEventListener("resize", scheduleFocusSample, { passive: true });
+      observer = new MutationObserver(scheduleFocusSample);
+      observer.observe(document.body, { childList: true, subtree: true });
     };
 
     const stopTouchFocus = () => {
@@ -127,6 +130,8 @@ export function useHabitCanvasFocus(): void {
       if (isListening) {
         window.removeEventListener("scroll", scheduleFocusSample);
         window.removeEventListener("resize", scheduleFocusSample);
+        observer?.disconnect();
+        observer = null;
         isListening = false;
       }
       clearFocusedCards();
