@@ -59,6 +59,11 @@ Status: Current high-signal receipt map
   - Adds frontend-only canvas primitives and browser QA assertions for the new canvas markers.
   - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C43-habit-canvas-hover-focus__2026-04-17__R1.md`
+  - Adds a scoped Habit Canvas hover/focus interaction layer inspired by Speakly's hover system.
+  - Keeps desktop hover CSS-only and uses touch-only scroll-focus for mobile/tablet.
+  - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
