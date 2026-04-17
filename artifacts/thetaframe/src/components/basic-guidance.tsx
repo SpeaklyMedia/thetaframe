@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { CheckCircle2, ChevronDown, Lightbulb, Route } from "lucide-react";
+import { CheckCircle2, ChevronDown, Route } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { OnboardingSurfaceProgress } from "@/hooks/use-onboarding";
@@ -48,7 +48,7 @@ export function BasicStartGuide({
         </p>
         <h2 className="text-lg font-semibold sm:text-xl">Use one small step at a time.</h2>
         <p className="text-sm text-muted-foreground">
-          Start with Today, This Week, and Goals. You can come back here any time.
+          Start with Today, This Week, and Goals. AI can make drafts from messy notes, but you choose what to save.
         </p>
       </div>
 
@@ -148,15 +148,6 @@ export function BasicStartGuide({
             </div>
           );
         })}
-      </div>
-
-      <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3" data-testid="basic-ai-review-note">
-        <div className="flex items-start gap-3">
-          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p className="text-sm text-muted-foreground">
-            AI can make a draft from messy notes. You choose what to save.
-          </p>
-        </div>
       </div>
     </section>
   );
