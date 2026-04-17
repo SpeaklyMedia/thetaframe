@@ -82,6 +82,7 @@ async function ensureParentPacketSchema(): Promise<void> {
       await db.execute(sql`
         CREATE TABLE IF NOT EXISTS parent_packet_materializations (
           id serial PRIMARY KEY,
+          uploader_user_id text NOT NULL,
           latest_import_run_id integer NOT NULL,
           source_reach_file_id integer NOT NULL,
           packet_key text NOT NULL,
@@ -99,8 +100,44 @@ async function ensureParentPacketSchema(): Promise<void> {
       `);
 
       await db.execute(sql`
+        ALTER TABLE parent_packet_materializations
+        ADD COLUMN IF NOT EXISTS uploader_user_id text
+      `);
+
+      await db.execute(sql`
+        UPDATE parent_packet_materializations AS materialization
+        SET uploader_user_id = import_run.uploader_user_id
+        FROM parent_packet_import_runs AS import_run
+        WHERE materialization.latest_import_run_id = import_run.id
+          AND materialization.uploader_user_id IS NULL
+      `);
+
+      await db.execute(sql`
+        UPDATE parent_packet_materializations AS materialization
+        SET uploader_user_id = baby_entry.user_id
+        FROM life_ledger_baby AS baby_entry
+        WHERE materialization.target_entry_id = baby_entry.id
+          AND materialization.uploader_user_id IS NULL
+      `);
+
+      await db.execute(sql`
+        UPDATE parent_packet_materializations
+        SET uploader_user_id = 'system:legacy-unowned'
+        WHERE uploader_user_id IS NULL
+      `);
+
+      await db.execute(sql`
+        ALTER TABLE parent_packet_materializations
+        ALTER COLUMN uploader_user_id SET NOT NULL
+      `);
+
+      await db.execute(sql`
+        DROP INDEX IF EXISTS parent_packet_materializations_source_idx
+      `);
+
+      await db.execute(sql`
         CREATE UNIQUE INDEX IF NOT EXISTS parent_packet_materializations_source_idx
-        ON parent_packet_materializations (packet_key, source_path, source_record_key)
+        ON parent_packet_materializations (uploader_user_id, packet_key, source_path, source_record_key)
       `);
     })().catch((error) => {
       parentPacketSchemaReady = null;
@@ -414,6 +451,7 @@ export async function listParentPacketMaterializationsForUser(userId: string) {
   const rows = await db
     .select({
       id: parentPacketMaterializationsTable.id,
+      uploaderUserId: parentPacketMaterializationsTable.uploaderUserId,
       latestImportRunId: parentPacketMaterializationsTable.latestImportRunId,
       sourceReachFileId: parentPacketMaterializationsTable.sourceReachFileId,
       packetKey: parentPacketMaterializationsTable.packetKey,
@@ -429,11 +467,7 @@ export async function listParentPacketMaterializationsForUser(userId: string) {
       updatedAt: parentPacketMaterializationsTable.updatedAt,
     })
     .from(parentPacketMaterializationsTable)
-    .innerJoin(
-      parentPacketImportRunsTable,
-      eq(parentPacketMaterializationsTable.latestImportRunId, parentPacketImportRunsTable.id),
-    )
-    .where(eq(parentPacketImportRunsTable.uploaderUserId, userId))
+    .where(eq(parentPacketMaterializationsTable.uploaderUserId, userId))
     .orderBy(parentPacketMaterializationsTable.sourcePath, parentPacketMaterializationsTable.sourceRecordKey);
 
   return rows.map((row) => ({
@@ -481,6 +515,7 @@ export async function importParentPacketFromReachFile(
       .from(parentPacketMaterializationsTable)
       .where(
         and(
+          eq(parentPacketMaterializationsTable.uploaderUserId, uploaderUserId),
           eq(parentPacketMaterializationsTable.packetKey, PARENT_PACKET_KEY),
           eq(parentPacketMaterializationsTable.sourcePath, entry.sourcePath),
           eq(parentPacketMaterializationsTable.sourceRecordKey, entry.sourceRecordKey),
@@ -498,7 +533,12 @@ export async function importParentPacketFromReachFile(
           tags: entry.tags,
           updatedAt: new Date(),
         })
-        .where(eq(lifeLedgerBabyTable.id, existingMaterialization.targetEntryId))
+        .where(
+          and(
+            eq(lifeLedgerBabyTable.id, existingMaterialization.targetEntryId),
+            eq(lifeLedgerBabyTable.userId, uploaderUserId),
+          ),
+        )
         .returning();
 
       if (updatedEntry) {
@@ -538,6 +578,7 @@ export async function importParentPacketFromReachFile(
     await db
       .insert(parentPacketMaterializationsTable)
       .values({
+        uploaderUserId,
         latestImportRunId: run.id,
         sourceReachFileId: sourceFile.id,
         packetKey: PARENT_PACKET_KEY,
@@ -552,6 +593,7 @@ export async function importParentPacketFromReachFile(
       })
       .onConflictDoUpdate({
         target: [
+          parentPacketMaterializationsTable.uploaderUserId,
           parentPacketMaterializationsTable.packetKey,
           parentPacketMaterializationsTable.sourcePath,
           parentPacketMaterializationsTable.sourceRecordKey,

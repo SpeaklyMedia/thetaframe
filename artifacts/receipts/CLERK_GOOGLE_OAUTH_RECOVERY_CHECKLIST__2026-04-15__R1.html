@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ThetaFrame Clerk + Google OAuth Recovery Checklist</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f4ed;
+        --card: #fffdf8;
+        --ink: #1f1d18;
+        --muted: #675f52;
+        --accent: #6c7a53;
+        --border: #d8d1c2;
+        --warn: #8a5a1f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 16px/1.55 "Plus Jakarta Sans", system-ui, sans-serif;
+        background: linear-gradient(180deg, #f4efe6 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 40px 20px 72px;
+      }
+      h1, h2, h3 { line-height: 1.15; margin: 0 0 14px; }
+      h1 { font-size: 2rem; margin-bottom: 10px; }
+      h2 { font-size: 1.25rem; margin-top: 28px; }
+      p, li { color: var(--ink); }
+      .lede { color: var(--muted); max-width: 70ch; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 20px 22px;
+        margin-top: 18px;
+        box-shadow: 0 10px 30px rgba(31, 29, 24, 0.05);
+      }
+      .callout {
+        background: #fff7ea;
+        border-left: 4px solid var(--warn);
+        padding: 14px 16px;
+        border-radius: 12px;
+        margin: 18px 0;
+      }
+      code, pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #f1ece2;
+        border-radius: 8px;
+      }
+      code { padding: 2px 6px; }
+      pre { padding: 12px 14px; overflow: auto; }
+      ol, ul { padding-left: 22px; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+      .pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #e9efdf;
+        color: #354323;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      a { color: #224b7a; }
+      .footer {
+        margin-top: 32px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <span class="pill">ThetaFrame / Clerk / Google OAuth</span>
+      <h1>Recovery Checklist</h1>
+      <p class="lede">
+        This is the exact checklist to get Google sign-in working again for ThetaFrame production.
+        Repo-side blockers have already been removed; what remains is Clerk and Google Cloud configuration plus one production verification pass.
+      </p>
+
+      <div class="callout">
+        <strong>Important:</strong> your Gmail browser session is not the OAuth configuration itself.
+        Google sign-in only comes back online when <strong>Clerk</strong> has a working Google social connection
+        and <strong>Google Cloud</strong> has the matching OAuth client, domains, and redirect URI.
+      </div>
+
+      <section class="card">
+        <h2>What I already fixed in ThetaFrame</h2>
+        <ul>
+          <li>Clerk social buttons are no longer hidden by app CSS.</li>
+          <li>The sign-in and sign-up pages no longer claim that Google is disabled.</li>
+          <li>The repo’s expected Clerk proxy path is <code>/api/__clerk</code>.</li>
+        </ul>
+        <p>After the next deploy/build, the Google button should appear automatically <em>if</em> Clerk is correctly configured.</p>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Exact ThetaFrame production values</h2>
+          <ul>
+            <li>App domain: <code>https://thetaframe.mrksylvstr.com</code></li>
+            <li>Clerk proxy path: <code>/api/__clerk</code></li>
+            <li>Expected proxy URL: <code>https://thetaframe.mrksylvstr.com/api/__clerk</code></li>
+            <li>Frontend env var name: <code>VITE_CLERK_PROXY_URL</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Official references</h2>
+          <ul>
+            <li><a href="https://clerk.com/docs/authentication/social-connections/overview" target="_blank" rel="noreferrer">Clerk social connections overview</a></li>
+            <li><a href="https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google" target="_blank" rel="noreferrer">Clerk: Add Google as a social connection</a></li>
+            <li><a href="https://developers.google.com/identity/protocols/oauth2/web-server" target="_blank" rel="noreferrer">Google OAuth web app redirect URI rules</a></li>
+            <li><a href="https://developers.google.com/identity/protocols/oauth2/policies" target="_blank" rel="noreferrer">Google OAuth policies</a></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Step 1: Fix Clerk dashboard settings</h2>
+        <ol>
+          <li>Open the correct <strong>production Clerk application</strong> for ThetaFrame.</li>
+          <li>Go to <strong>SSO connections / Social connections</strong>.</li>
+          <li>Open the <strong>Google</strong> connection.</li>
+          <li>Ensure the Google connection is <strong>enabled</strong> for production sign-in.</li>
+          <li>If Clerk shows a generated redirect URI, copy it exactly. You will use that exact URI in Google Cloud.</li>
+          <li>If Clerk offers “use your own credentials” or custom Google OAuth credentials, turn that on for production and be ready to paste the Google client ID and secret from Step 3.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>Step 2: Fix Clerk domains and proxy</h2>
+        <ol>
+          <li>In Clerk, go to <strong>Domains</strong>.</li>
+          <li>Make sure <code>thetaframe.mrksylvstr.com</code> is registered as a production domain.</li>
+          <li>Set the Clerk proxy URL to:
+            <pre>https://thetaframe.mrksylvstr.com/api/__clerk</pre>
+          </li>
+          <li>Confirm ThetaFrame production also has:
+            <pre>VITE_CLERK_PROXY_URL=https://thetaframe.mrksylvstr.com/api/__clerk</pre>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>Step 3: Fix Google Cloud OAuth credentials</h2>
+        <ol>
+          <li>Open the correct Google Cloud project for ThetaFrame auth.</li>
+          <li>Go to <strong>Google Auth Platform / Branding</strong> and confirm the app branding/consent screen is configured for production use.</li>
+          <li>Go to <strong>Google Auth Platform / Clients</strong> and create or edit a <strong>Web application</strong> OAuth client.</li>
+          <li>Add the production JavaScript origin:
+            <pre>https://thetaframe.mrksylvstr.com</pre>
+          </li>
+          <li>Add the <strong>exact Clerk redirect URI</strong> from Step 1 under Authorized redirect URIs. Do not guess this value; paste it exactly.</li>
+          <li>Copy the OAuth client ID and client secret.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>Step 4: Connect Google Cloud credentials back into Clerk</h2>
+        <ol>
+          <li>Return to the Google social connection in Clerk.</li>
+          <li>Paste the Google client ID and client secret from Google Cloud.</li>
+          <li>Save the connection.</li>
+          <li>Ensure the Google connection is available in the same Clerk production app that ThetaFrame is using.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>Step 5: Verify ThetaFrame production</h2>
+        <ol>
+          <li>Load <code>https://thetaframe.mrksylvstr.com/sign-in</code>.</li>
+          <li>Confirm the Google button appears in the Clerk sign-in component.</li>
+          <li>Use Google sign-in and verify ThetaFrame lands on a signed-in lane shell.</li>
+          <li>Then rerun the repo-native capture flow:
+            <pre>THETAFRAME_BROWSER_BASE_URL=https://thetaframe.mrksylvstr.com pnpm run qa:browser:auth:capture</pre>
+          </li>
+          <li>After that, capture admin state and rerun browser QA.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>If Google still does not appear</h2>
+        <ul>
+          <li>Wrong Clerk app/environment</li>
+          <li>Google connection disabled in Clerk</li>
+          <li>Google OAuth client missing or using the wrong redirect URI</li>
+          <li>Clerk production domain / proxy mismatch</li>
+          <li>Deployment not updated with the current frontend changes</li>
+        </ul>
+      </section>
+
+      <p class="footer">
+        Repo-side UI suppression is already fixed. If the button is still absent after deploy, the remaining problem is Clerk or Google Cloud configuration, not ThetaFrame page code.
+      </p>
+    </main>
+  </body>
+  </html>

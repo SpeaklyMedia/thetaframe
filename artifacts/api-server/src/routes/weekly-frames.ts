@@ -15,6 +15,11 @@ import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAu
 import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates, isValidDateString } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
+import {
+  WeeklyFrameValidationError,
+  upsertWeeklyFrameForUser,
+  validateWeeklyFrameUpsertData,
+} from "../lib/weeklyFrames.js";
 
 const router: IRouter = Router();
 router.use("/weekly-frames", requireAuth, requireModuleAccess("weekly"));
@@ -39,36 +44,26 @@ router.post("/weekly-frames", async (req: Request, res: Response): Promise<void>
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (body.data.steps.length > 3) {
-    res.status(400).json({ error: "Steps may not contain more than 3 items." });
-    return;
-  }
-  if (body.data.nonNegotiables.length > 5) {
-    res.status(400).json({ error: "Non-negotiables may not contain more than 5 items." });
-    return;
-  }
-
-  const [frame] = await db
-    .insert(weeklyFramesTable)
-    .values({
-      userId,
-      weekStart: body.data.weekStart,
-      theme: body.data.theme ?? null,
+  let frame;
+  try {
+    const data = validateWeeklyFrameUpsertData({
+      theme: body.data.theme,
       steps: body.data.steps,
       nonNegotiables: body.data.nonNegotiables,
-      recoveryPlan: body.data.recoveryPlan ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [weeklyFramesTable.userId, weeklyFramesTable.weekStart],
-      set: {
-        theme: body.data.theme ?? null,
-        steps: body.data.steps,
-        nonNegotiables: body.data.nonNegotiables,
-        recoveryPlan: body.data.recoveryPlan ?? null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
+      recoveryPlan: body.data.recoveryPlan,
+    });
+    frame = await upsertWeeklyFrameForUser({
+      userId,
+      weekStart: body.data.weekStart,
+      data,
+    });
+  } catch (error) {
+    if (error instanceof WeeklyFrameValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   await markOnboardingSurfaceComplete(userId, "weekly");
   res.json(CreateWeeklyFrameResponse.parse(serializeDates(frame)));
@@ -123,36 +118,21 @@ router.put("/weekly-frames/:weekStart", async (req: Request, res: Response): Pro
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (body.data.steps.length > 3) {
-    res.status(400).json({ error: "Steps may not contain more than 3 items." });
-    return;
-  }
-  if (body.data.nonNegotiables.length > 5) {
-    res.status(400).json({ error: "Non-negotiables may not contain more than 5 items." });
-    return;
-  }
-
-  const [frame] = await db
-    .insert(weeklyFramesTable)
-    .values({
+  let frame;
+  try {
+    const data = validateWeeklyFrameUpsertData(body.data);
+    frame = await upsertWeeklyFrameForUser({
       userId,
       weekStart: params.data.weekStart,
-      theme: body.data.theme ?? null,
-      steps: body.data.steps,
-      nonNegotiables: body.data.nonNegotiables,
-      recoveryPlan: body.data.recoveryPlan ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [weeklyFramesTable.userId, weeklyFramesTable.weekStart],
-      set: {
-        theme: body.data.theme ?? null,
-        steps: body.data.steps,
-        nonNegotiables: body.data.nonNegotiables,
-        recoveryPlan: body.data.recoveryPlan ?? null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
+      data,
+    });
+  } catch (error) {
+    if (error instanceof WeeklyFrameValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   await markOnboardingSurfaceComplete(userId, "weekly");
   res.json(UpsertWeeklyFrameResponse.parse(serializeDates(frame)));

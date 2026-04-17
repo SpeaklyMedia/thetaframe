@@ -6,7 +6,14 @@
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "qa:browser": "pnpm --filter @workspace/scripts run qa:browser",
+    "qa:browser:headed": "pnpm --filter @workspace/scripts run qa:browser:headed",
+    "qa:isolation": "pnpm --filter @workspace/scripts run qa:isolation",
+    "qa:browser:auth:capture": "pnpm --filter @workspace/scripts run qa:browser:auth:capture",
+    "qa:browser:auth:capture:admin": "pnpm --filter @workspace/scripts run qa:browser:auth:capture:admin",
+    "qa:browser:auth:capture:basic": "pnpm --filter @workspace/scripts run qa:browser:auth:capture:basic",
+    "qa:browser:auth:capture:select-authorized": "pnpm --filter @workspace/scripts run qa:browser:auth:capture:select-authorized"
   },
   "private": true,
   "devDependencies": {

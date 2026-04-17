@@ -1,10 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Layout } from "@/components/layout";
+import { AIDraftReviewPanel } from "@/components/shell/AIDraftReviewPanel";
+import { LaneHero } from "@/components/shell/LaneHero";
+import { CalendarLinkStatusCard } from "@/components/shell/CalendarLinkStatusCard";
+import { MobileIntegrationStatusCard } from "@/components/shell/MobileIntegrationStatusCard";
+import { PrimaryActionIsland } from "@/components/shell/PrimaryActionIsland";
+import { SupportRail } from "@/components/shell/SupportRail";
+import { BabyHeroConsequencesCard } from "@/components/shell/BabyHeroConsequencesCard";
+import { WorkspaceMoodPicker } from "@/components/shell/WorkspaceMoodPicker";
 import { SkipProtocol } from "@/components/skip-protocol";
 import { 
+  type AIDraft,
+  type UserMode,
+  type UserModeColourState,
+  type UserModeMode,
+  useApplyAiDraft,
+  useListAiDrafts,
+  getListAiDraftsQueryKey,
+  useUpdateAiDraftReviewState,
   useGetWeeklyFrame, 
   useUpsertWeeklyFrame, 
   getGetWeeklyFrameQueryKey,
+  useGetUserMode,
+  useUpsertUserMode,
+  getGetUserModeQueryKey,
   ApiError,
 } from "@workspace/api-client-react";
 import { getMondayOfCurrentWeek } from "@/lib/dates";
@@ -15,8 +34,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAuthSession } from "@/hooks/use-auth-session";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
+import {
+  BasicAITimeSaver,
+  BasicLaneNextStep,
+  BasicLaneStepOrder,
+  BasicMoreSection,
+} from "@/components/basic-guidance";
+import {
+  getWeeklyAIDraftReviewPanelCopy,
+  weeklyAIDraftListParams,
+} from "@/lib/ai-draft-review";
+import { weeklyCalendarPlaceholder } from "@/lib/calendar-placeholders";
+import { weeklyMobilePlaceholder } from "@/lib/mobile-placeholders";
+import { useBabyKbHeroRollups } from "@/hooks/use-parent-packet-imports";
 
 const STEP_EMOJIS = ["🎯", "🔥", "💡", "🌱", "🛠️", "⚡", "📌", "✅", "🚀", "🧠", "💪", "🎨"];
 
@@ -62,12 +95,36 @@ function EmojiPicker({ value, onChange }: { value?: string | null; onChange: (e:
 export default function WeeklyPage() {
   const weekStart = getMondayOfCurrentWeek();
   const queryClient = useQueryClient();
+  const { status: authSessionStatus } = useAuthSession();
   const { data: frame, isLoading, error } = useGetWeeklyFrame(weekStart, { 
     query: { enabled: !!weekStart, queryKey: getGetWeeklyFrameQueryKey(weekStart), retry: 0 } 
   });
+  const {
+    data: aiDrafts,
+    isLoading: isAIDraftsLoading,
+    error: aiDraftsError,
+  } = useListAiDrafts(weeklyAIDraftListParams, {
+    query: {
+      enabled: !!weekStart,
+      queryKey: getListAiDraftsQueryKey(weeklyAIDraftListParams),
+      refetchOnWindowFocus: false,
+    },
+  });
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertWeeklyFrame();
+  const { data: userMode } = useGetUserMode({
+    query: {
+      enabled: authSessionStatus === "ready",
+      queryKey: getGetUserModeQueryKey(),
+      retry: 0,
+    },
+  });
+  const upsertUserMode = useUpsertUserMode();
+  const applyAiDraft = useApplyAiDraft();
+  const updateAiDraftReviewState = useUpdateAiDraftReviewState();
   const { isSurfaceComplete } = useOnboardingProgress();
+  const weeklyAIDraftReview = getWeeklyAIDraftReviewPanelCopy();
+  const { data: babyHeroRollups } = useBabyKbHeroRollups(true);
 
   const [theme, setTheme] = useState("");
   const [steps, setSteps] = useState<WeeklyStep[]>([
@@ -80,18 +137,50 @@ export default function WeeklyPage() {
     { id: crypto.randomUUID(), text: "" }
   ]);
   const [recoveryPlan, setRecoveryPlan] = useState("");
+  const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
+  const [reviewingDraftId, setReviewingDraftId] = useState<number | null>(null);
+  const [draftActionError, setDraftActionError] = useState<string | null>(null);
 
   const initRef = useRef<number | null>(null);
 
+  const hydrateWeeklyFrameState = useCallback((nextFrame: {
+    id: number;
+    theme?: string | null;
+    steps?: unknown;
+    nonNegotiables?: unknown;
+    recoveryPlan?: string | null;
+  }) => {
+    initRef.current = nextFrame.id;
+    setTheme(nextFrame.theme || "");
+    if (nextFrame.steps && Array.isArray(nextFrame.steps) && nextFrame.steps.length > 0) {
+      setSteps(nextFrame.steps as WeeklyStep[]);
+    } else {
+      setSteps([
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+      ]);
+    }
+    if (
+      nextFrame.nonNegotiables &&
+      Array.isArray(nextFrame.nonNegotiables) &&
+      nextFrame.nonNegotiables.length > 0
+    ) {
+      setNonNegotiables(nextFrame.nonNegotiables as WeeklyStep[]);
+    } else {
+      setNonNegotiables([
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+      ]);
+    }
+    setRecoveryPlan(nextFrame.recoveryPlan || "");
+  }, []);
+
   useEffect(() => {
     if (frame && initRef.current !== frame.id) {
-      initRef.current = frame.id;
-      setTheme(frame.theme || "");
-      if (frame.steps && frame.steps.length > 0) setSteps(frame.steps as WeeklyStep[]);
-      if (frame.nonNegotiables && frame.nonNegotiables.length > 0) setNonNegotiables(frame.nonNegotiables as WeeklyStep[]);
-      setRecoveryPlan(frame.recoveryPlan || "");
+      hydrateWeeklyFrameState(frame);
     }
-  }, [frame]);
+  }, [frame, hydrateWeeklyFrameState]);
 
   const save = useCallback((updates: Partial<{
     theme: string;
@@ -113,6 +202,78 @@ export default function WeeklyPage() {
       }
     });
   }, [weekStart, theme, steps, nonNegotiables, recoveryPlan, upsert, queryClient]);
+
+  const handleApplyDraft = useCallback(async (draftId: number) => {
+    setApplyingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const response = await applyAiDraft.mutateAsync({
+        id: draftId,
+        data: { weekStart },
+      });
+
+      if (!response.weeklyFrame) {
+        throw new Error("Weekly apply response did not include a weekly frame.");
+      }
+
+      hydrateWeeklyFrameState(response.weeklyFrame);
+      queryClient.setQueryData(getGetWeeklyFrameQueryKey(weekStart), response.weeklyFrame);
+      queryClient.setQueryData(getListAiDraftsQueryKey(weeklyAIDraftListParams), (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === response.draft.id ? response.draft : draft)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getGetWeeklyFrameQueryKey(weekStart) });
+      queryClient.invalidateQueries({ queryKey: getListAiDraftsQueryKey(weeklyAIDraftListParams) });
+      queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be applied. Refresh the review panel and try another draft.");
+        } else if (error.status === 422) {
+          setDraftActionError("This stored draft payload no longer matches the Weekly frame contract and could not be applied.");
+        } else {
+          setDraftActionError(`Failed to apply the draft (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to apply the draft.");
+      }
+    } finally {
+      setApplyingDraftId(null);
+    }
+  }, [applyAiDraft, hydrateWeeklyFrameState, queryClient, weekStart]);
+
+  const handleReviewStateChange = useCallback(async (draftId: number, reviewState: "approved" | "rejected") => {
+    setReviewingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const updatedDraft = await updateAiDraftReviewState.mutateAsync({
+        id: draftId,
+        data: { reviewState },
+      });
+
+      queryClient.setQueryData(getListAiDraftsQueryKey(weeklyAIDraftListParams), (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === updatedDraft.id ? updatedDraft : draft)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getListAiDraftsQueryKey(weeklyAIDraftListParams) });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be reviewed from the current state.");
+        } else {
+          setDraftActionError(`Failed to update the draft review state (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to update the draft review state.");
+      }
+    } finally {
+      setReviewingDraftId(null);
+    }
+  }, [queryClient, updateAiDraftReviewState]);
 
   const isNewFrame = !isLoading && !frame;
 
@@ -160,39 +321,99 @@ export default function WeeklyPage() {
     save({ nonNegotiables: updated });
   };
 
+  const addWeeklyStep = () => {
+    const updated = [...steps, { id: crypto.randomUUID(), text: "" }];
+    setSteps(updated);
+    save({ steps: updated });
+  };
+
+  const addMustKeep = () => {
+    const updated = [...nonNegotiables, { id: crypto.randomUUID(), text: "" }];
+    setNonNegotiables(updated);
+    save({ nonNegotiables: updated });
+  };
+
+  const handleColourChange = (color: UserModeColourState) => {
+    const userModeQueryKey = getGetUserModeQueryKey();
+    const previousMode = queryClient.getQueryData<UserMode | undefined>(userModeQueryKey);
+    const nextMode = (previousMode?.mode ?? userMode?.mode ?? "explore") as UserModeMode;
+
+    queryClient.setQueryData<UserMode>(userModeQueryKey, {
+      id: previousMode?.id ?? userMode?.id ?? 0,
+      userId: previousMode?.userId ?? userMode?.userId ?? "optimistic",
+      mode: nextMode,
+      colourState: color,
+      createdAt: previousMode?.createdAt ?? userMode?.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
+    upsertUserMode.mutate(
+      {
+        data: {
+          mode: nextMode,
+          colourState: color,
+        },
+      },
+      {
+        onSuccess: (updatedMode) => {
+          queryClient.setQueryData(userModeQueryKey, updatedMode);
+        },
+        onError: () => {
+          queryClient.setQueryData(userModeQueryKey, previousMode);
+        },
+      },
+    );
+  };
+
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
-        <header className="space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight">Weekly Rhythm</h1>
-          <p className="text-muted-foreground">Set your intention for the week of {new Date(weekStart).toLocaleDateString()}</p>
-        </header>
+        <LaneHero
+          label="This Week"
+          title="This Week"
+          subtitle={`Week of ${new Date(`${weekStart}T12:00:00`).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}`}
+        />
 
-        <SkipProtocol />
+        <WorkspaceMoodPicker
+          colourState={(userMode?.colourState ?? "green") as UserModeColourState}
+          onColourChange={handleColourChange}
+          isSaving={upsertUserMode.isPending}
+        />
 
-        {!isSurfaceComplete("weekly") && <SurfaceOnboardingCard surface="weekly" />}
+        <div className="grid gap-3 md:grid-cols-2">
+          <BasicLaneNextStep lane="weekly" isComplete={isSurfaceComplete("weekly")} />
+          <BasicAITimeSaver lane="weekly" />
+        </div>
+
+        <BasicLaneStepOrder lane="weekly" />
+
+        <PrimaryActionIsland data-testid="weekly-theme-island">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
+            <h2 className="text-lg font-semibold">Name this week</h2>
+            <p className="text-sm text-muted-foreground">Use a short name or theme.</p>
+            <Input
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              onBlur={() => save({ theme })}
+              placeholder="e.g. steady week, school focus, rest..."
+              className="max-w-md bg-transparent"
+            />
+          </div>
+        </PrimaryActionIsland>
 
         {isNewFrame && (
           <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-weekly">
-            Fresh week, fresh slate. Set your rhythm below — it autosaves as you go.
+            Start with one weekly name. It saves as you work.
           </div>
         )}
 
-        <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-          <h2 className="text-xl font-semibold">Weekly Theme</h2>
-          <Input 
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            onBlur={() => save({ theme })}
-            placeholder="e.g. Grounding, Deep Work, Recovery..."
-            className="max-w-md bg-transparent"
-          />
-        </section>
-
         <div className="grid gap-8 md:grid-cols-2">
           <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-            <h2 className="text-xl font-semibold">3 Steps</h2>
-            <p className="text-sm text-muted-foreground">What moves the needle this week?</p>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
+              <h2 className="text-xl font-semibold">Main Steps</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Write one to three steps for this week.</p>
             <div className="space-y-3" data-testid="weekly-steps">
               {steps.map((step, i) => (
                 <div key={step.id} className="flex items-center gap-2">
@@ -205,18 +426,24 @@ export default function WeeklyPage() {
                     value={step.text}
                     onChange={(e) => updateStep(step.id, e.target.value)}
                     onBlur={() => save({ steps })}
-                    placeholder="Step..."
+                    placeholder="One week step..."
                     className="flex-1 bg-transparent"
                     data-testid={`input-step-${i}`}
                   />
                 </div>
               ))}
+              <Button variant="outline" size="sm" onClick={addWeeklyStep} data-testid="button-add-weekly-step">
+                Add week step
+              </Button>
             </div>
           </section>
 
           <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-            <h2 className="text-xl font-semibold">Non-Negotiables</h2>
-            <p className="text-sm text-muted-foreground">Your baseline for stability.</p>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 3</p>
+              <h2 className="text-xl font-semibold">Must Keep</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Write the basics that help you stay okay.</p>
             <div className="space-y-3">
               {nonNegotiables.map((nn, i) => (
                 <div key={nn.id} className="flex items-center gap-3">
@@ -225,27 +452,152 @@ export default function WeeklyPage() {
                     value={nn.text}
                     onChange={(e) => updateNonNegotiable(nn.id, e.target.value)}
                     onBlur={() => save({ nonNegotiables })}
-                    placeholder="Non-negotiable..."
+                    placeholder="One must-keep item..."
                     className="flex-1 bg-transparent"
                     data-testid={`input-non-neg-${i}`}
                   />
                 </div>
               ))}
+              <Button variant="outline" size="sm" onClick={addMustKeep} data-testid="button-add-weekly-must-keep">
+                Add must-keep item
+              </Button>
             </div>
           </section>
         </div>
 
         <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-          <h2 className="text-xl font-semibold">Recovery Plan</h2>
-          <p className="text-sm text-muted-foreground">When things get overwhelming, what is the plan?</p>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 4</p>
+            <h2 className="text-xl font-semibold">If Things Get Hard</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">Write the backup plan before you need it.</p>
           <Textarea 
             value={recoveryPlan}
             onChange={(e) => setRecoveryPlan(e.target.value)}
             onBlur={() => save({ recoveryPlan })}
-            placeholder="Drop tier B, go for a walk..."
+            placeholder="Drop later tasks, take a break, ask for help..."
             className="resize-none h-24 bg-transparent"
           />
         </section>
+
+        <BasicMoreSection
+          title="Review AI drafts"
+          description="AI can make a draft. You choose what to save."
+          testId="more-ai-drafts-weekly"
+        >
+          <AIDraftReviewPanel
+            title={weeklyAIDraftReview.title}
+            emptyTitle={weeklyAIDraftReview.emptyTitle}
+            emptyDescription={weeklyAIDraftReview.emptyDescription}
+            drafts={aiDrafts}
+            isLoading={isAIDraftsLoading}
+            errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
+            actionErrorMessage={draftActionError}
+            modeBadgeLabel="Review first"
+            footerNote="Weekly drafts can be approved, rejected, or applied to this week. AI does not save changes by itself."
+            renderDraftActions={(draft) => {
+              if (draft.reviewState === "applied") {
+                return (
+                  <Button variant="outline" size="sm" disabled>
+                    Applied
+                  </Button>
+                );
+              }
+
+              const isBusy = applyingDraftId !== null || reviewingDraftId !== null;
+
+              if (draft.reviewState === "rejected") {
+                return (
+                  <Button variant="outline" size="sm" disabled>
+                    Rejected
+                  </Button>
+                );
+              }
+
+              if (draft.reviewState === "needs_review" || draft.reviewState === "approved") {
+                return (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {draft.reviewState === "needs_review" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleReviewStateChange(draft.id, "approved")}
+                        disabled={isBusy}
+                        data-testid={`button-approve-draft-${draft.id}`}
+                      >
+                        {reviewingDraftId === draft.id ? "Saving..." : "Approve draft"}
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                      disabled={isBusy}
+                      data-testid={`button-reject-draft-${draft.id}`}
+                    >
+                      {reviewingDraftId === draft.id ? "Saving..." : "Reject draft"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleApplyDraft(draft.id)}
+                      disabled={isBusy}
+                      data-testid={`button-apply-draft-${draft.id}`}
+                    >
+                      {applyingDraftId === draft.id ? "Saving..." : "Save to this week"}
+                    </Button>
+                  </div>
+                );
+              }
+
+              return null;
+            }}
+            data-testid="ai-draft-placeholder-weekly"
+          />
+        </BasicMoreSection>
+
+        <BasicMoreSection
+          title="More help"
+          description="Use these when the week needs extra support."
+          testId="more-help-weekly"
+        >
+          <SkipProtocol />
+          {!isSurfaceComplete("weekly") && <SurfaceOnboardingCard surface="weekly" />}
+          <SupportRail direction="row">
+            <span className="text-xs text-muted-foreground">Main Steps · Must Keep · If Things Get Hard</span>
+          </SupportRail>
+        </BasicMoreSection>
+
+        <BasicMoreSection
+          title="Connected tools"
+          description="Calendar, mobile, and linked system items live here."
+          testId="more-connected-tools-weekly"
+        >
+          <BabyHeroConsequencesCard
+            title="Linked items this week"
+            description="Linked assignments show here only when they shape this week."
+            items={babyHeroRollups?.weekly ?? []}
+            emptyMessage="No linked items are due this week."
+            data-testid="baby-hero-consequences-weekly"
+          />
+
+          <CalendarLinkStatusCard
+            state={weeklyCalendarPlaceholder.state}
+            title={weeklyCalendarPlaceholder.title}
+            description={weeklyCalendarPlaceholder.description}
+            chips={weeklyCalendarPlaceholder.chips}
+            note={weeklyCalendarPlaceholder.note}
+            data-testid="calendar-placeholder-weekly"
+          />
+
+          <MobileIntegrationStatusCard
+            mode={weeklyMobilePlaceholder.mode}
+            title={weeklyMobilePlaceholder.title}
+            description={weeklyMobilePlaceholder.description}
+            chips={weeklyMobilePlaceholder.chips}
+            note={weeklyMobilePlaceholder.note}
+            data-testid="mobile-placeholder-weekly"
+          />
+        </BasicMoreSection>
 
       </div>
     </Layout>

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, doublePrecision, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, doublePrecision, jsonb, integer } from "drizzle-orm/pg-core";
 
 function lifeLedgerTable(tableName: string) {
   return pgTable(tableName, {
@@ -11,6 +11,13 @@ function lifeLedgerTable(tableName: string) {
     reviewWindow: text("review_window"),
     dueDate: text("due_date"),
     notes: text("notes"),
+    sourceType: text("source_type"),
+    sourceEntryId: integer("source_entry_id"),
+    sourceAssignmentId: integer("source_assignment_id"),
+    nextDueDate: text("next_due_date"),
+    reminderPolicy: jsonb("reminder_policy").notNull().default({}),
+    completionState: text("completion_state"),
+    snoozedUntil: text("snoozed_until"),
     amount: doublePrecision("amount"),
     currency: text("currency"),
     isEssential: boolean("is_essential"),

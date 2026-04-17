@@ -273,7 +273,12 @@ export async function promoteBabyKbEntry(
   const [sourceMaterialization] = await db
     .select()
     .from(parentPacketMaterializationsTable)
-    .where(eq(parentPacketMaterializationsTable.targetEntryId, sourceEntry.id));
+    .where(
+      and(
+        eq(parentPacketMaterializationsTable.targetEntryId, sourceEntry.id),
+        eq(parentPacketMaterializationsTable.uploaderUserId, userId),
+      ),
+    );
   const promotionText = getPromotionText(sourceEntry, sourceMaterialization);
 
   const [existingPromotion] = await db

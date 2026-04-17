@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
+import { LaneHero } from "@/components/shell/LaneHero";
+import { SupportRail } from "@/components/shell/SupportRail";
 import {
   useListBizdevBrands,
   useGetBizdevSummary,
@@ -340,15 +342,21 @@ export default function BizdevPage() {
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-7xl space-y-6">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight" data-testid="text-bizdev-title">BizDev</h1>
-            <p className="text-muted-foreground mt-1">Brand and client lead tracker</p>
-          </div>
+        <div className="flex items-start justify-between gap-4">
+          <LaneHero
+            label="BizDev"
+            title="Brand and client lead tracker"
+            subtitle="Track pipeline motion, next actions, blockers, and open money across your current opportunities."
+            headingTestId="text-bizdev-title"
+          />
           <Button onClick={() => { setEditingId(null); setModalOpen(true); }} data-testid="button-new-lead">
             <Plus className="w-4 h-4 mr-2" /> New Lead
           </Button>
-        </header>
+        </div>
+
+        <SupportRail direction="row">
+          <span className="text-xs text-muted-foreground">Pipeline · Next Touch · Blockers · Money Open</span>
+        </SupportRail>
 
         {!isSurfaceComplete("bizdev") && <SurfaceOnboardingCard surface="bizdev" />}
 

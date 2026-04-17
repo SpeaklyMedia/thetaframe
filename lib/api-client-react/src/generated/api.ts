@@ -17,11 +17,16 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AIDraft,
   AccessPreset,
   AdminUser,
+  ApplyAIDraftBody,
+  ApplyAIDraftResponse,
   BizdevBrand,
   BizdevBrandBody,
   BizdevSummary,
+  CreateAIDraftBody,
+  CreateBabyKbAssignmentSuggestionBody,
   CreateDailyFrameBody,
   CreateParentPacketImportBody,
   CreatePresetBody,
@@ -31,15 +36,28 @@ import type {
   HealthStatus,
   LifeLedgerEntry,
   LifeLedgerEntryBody,
+  LifeLedgerEventExecutionStateBody,
+  LifeLedgerEventReminderPolicyBody,
+  LifeLedgerEventReminderQueueResponse,
+  ListAiDraftsParams,
+  MobileDevice,
+  MobileDeviceResponse,
+  MobileNotificationOutboxItem,
+  MobileNotificationOutboxResponse,
+  MobileQuickCaptureBody,
+  MobileQuickCaptureResponse,
   MyPermissionsResponse,
   Next90DaysResponse,
   ParentPacketImportRun,
   PutUserPermissionsBody,
   ReachFile,
   ReachFileBody,
+  RegisterMobileDeviceBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  SimulateDispatchMobileNotificationBody,
   SubscriptionAuditResponse,
+  UpdateAIDraftReviewStateBody,
   UpsertDailyFrameBody,
   UpsertUserModeBody,
   UpsertVisionFrameBody,
@@ -1925,6 +1943,971 @@ export const useCreateLifeLedgerEntry = <
 };
 
 /**
+ * @summary List reminder-active Life Ledger events for mobile return flows
+ */
+export const getGetLifeLedgerEventReminderQueueUrl = () => {
+  return `/api/life-ledger/events/reminder-queue`;
+};
+
+export const getLifeLedgerEventReminderQueue = async (
+  options?: RequestInit,
+): Promise<LifeLedgerEventReminderQueueResponse> => {
+  return customFetch<LifeLedgerEventReminderQueueResponse>(
+    getGetLifeLedgerEventReminderQueueUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetLifeLedgerEventReminderQueueQueryKey = () => {
+  return [`/api/life-ledger/events/reminder-queue`] as const;
+};
+
+export const getGetLifeLedgerEventReminderQueueQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetLifeLedgerEventReminderQueueQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>
+  > = ({ signal }) =>
+    getLifeLedgerEventReminderQueue({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLifeLedgerEventReminderQueueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>
+>;
+export type GetLifeLedgerEventReminderQueueQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List reminder-active Life Ledger events for mobile return flows
+ */
+
+export function useGetLifeLedgerEventReminderQueue<
+  TData = Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLifeLedgerEventReminderQueue>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLifeLedgerEventReminderQueueQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update execution state for a Life Ledger event
+ */
+export const getUpdateLifeLedgerEventExecutionStateUrl = (id: number) => {
+  return `/api/life-ledger/events/${id}/execution-state`;
+};
+
+export const updateLifeLedgerEventExecutionState = async (
+  id: number,
+  lifeLedgerEventExecutionStateBody: LifeLedgerEventExecutionStateBody,
+  options?: RequestInit,
+): Promise<LifeLedgerEntry> => {
+  return customFetch<LifeLedgerEntry>(
+    getUpdateLifeLedgerEventExecutionStateUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(lifeLedgerEventExecutionStateBody),
+    },
+  );
+};
+
+export const getUpdateLifeLedgerEventExecutionStateMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLifeLedgerEventExecutionState>>,
+    TError,
+    { id: number; data: BodyType<LifeLedgerEventExecutionStateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateLifeLedgerEventExecutionState>>,
+  TError,
+  { id: number; data: BodyType<LifeLedgerEventExecutionStateBody> },
+  TContext
+> => {
+  const mutationKey = ["updateLifeLedgerEventExecutionState"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateLifeLedgerEventExecutionState>>,
+    { id: number; data: BodyType<LifeLedgerEventExecutionStateBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateLifeLedgerEventExecutionState(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateLifeLedgerEventExecutionStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateLifeLedgerEventExecutionState>>
+>;
+export type UpdateLifeLedgerEventExecutionStateMutationBody =
+  BodyType<LifeLedgerEventExecutionStateBody>;
+export type UpdateLifeLedgerEventExecutionStateMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update execution state for a Life Ledger event
+ */
+export const useUpdateLifeLedgerEventExecutionState = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLifeLedgerEventExecutionState>>,
+    TError,
+    { id: number; data: BodyType<LifeLedgerEventExecutionStateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateLifeLedgerEventExecutionState>>,
+  TError,
+  { id: number; data: BodyType<LifeLedgerEventExecutionStateBody> },
+  TContext
+> => {
+  return useMutation(
+    getUpdateLifeLedgerEventExecutionStateMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Update reminder policy for a Life Ledger event
+ */
+export const getUpdateLifeLedgerEventReminderPolicyUrl = (id: number) => {
+  return `/api/life-ledger/events/${id}/reminder-policy`;
+};
+
+export const updateLifeLedgerEventReminderPolicy = async (
+  id: number,
+  lifeLedgerEventReminderPolicyBody: LifeLedgerEventReminderPolicyBody,
+  options?: RequestInit,
+): Promise<LifeLedgerEntry> => {
+  return customFetch<LifeLedgerEntry>(
+    getUpdateLifeLedgerEventReminderPolicyUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(lifeLedgerEventReminderPolicyBody),
+    },
+  );
+};
+
+export const getUpdateLifeLedgerEventReminderPolicyMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLifeLedgerEventReminderPolicy>>,
+    TError,
+    { id: number; data: BodyType<LifeLedgerEventReminderPolicyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateLifeLedgerEventReminderPolicy>>,
+  TError,
+  { id: number; data: BodyType<LifeLedgerEventReminderPolicyBody> },
+  TContext
+> => {
+  const mutationKey = ["updateLifeLedgerEventReminderPolicy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateLifeLedgerEventReminderPolicy>>,
+    { id: number; data: BodyType<LifeLedgerEventReminderPolicyBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateLifeLedgerEventReminderPolicy(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateLifeLedgerEventReminderPolicyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateLifeLedgerEventReminderPolicy>>
+>;
+export type UpdateLifeLedgerEventReminderPolicyMutationBody =
+  BodyType<LifeLedgerEventReminderPolicyBody>;
+export type UpdateLifeLedgerEventReminderPolicyMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update reminder policy for a Life Ledger event
+ */
+export const useUpdateLifeLedgerEventReminderPolicy = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLifeLedgerEventReminderPolicy>>,
+    TError,
+    { id: number; data: BodyType<LifeLedgerEventReminderPolicyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateLifeLedgerEventReminderPolicy>>,
+  TError,
+  { id: number; data: BodyType<LifeLedgerEventReminderPolicyBody> },
+  TContext
+> => {
+  return useMutation(
+    getUpdateLifeLedgerEventReminderPolicyMutationOptions(options),
+  );
+};
+
+/**
+ * @summary List queued and recent mobile reminder deliveries
+ */
+export const getGetMobileNotificationsOutboxUrl = () => {
+  return `/api/mobile/notifications/outbox`;
+};
+
+export const getMobileNotificationsOutbox = async (
+  options?: RequestInit,
+): Promise<MobileNotificationOutboxResponse> => {
+  return customFetch<MobileNotificationOutboxResponse>(
+    getGetMobileNotificationsOutboxUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMobileNotificationsOutboxQueryKey = () => {
+  return [`/api/mobile/notifications/outbox`] as const;
+};
+
+export const getGetMobileNotificationsOutboxQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMobileNotificationsOutbox>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileNotificationsOutbox>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMobileNotificationsOutboxQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMobileNotificationsOutbox>>
+  > = ({ signal }) =>
+    getMobileNotificationsOutbox({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileNotificationsOutbox>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMobileNotificationsOutboxQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMobileNotificationsOutbox>>
+>;
+export type GetMobileNotificationsOutboxQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List queued and recent mobile reminder deliveries
+ */
+
+export function useGetMobileNotificationsOutbox<
+  TData = Awaited<ReturnType<typeof getMobileNotificationsOutbox>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileNotificationsOutbox>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMobileNotificationsOutboxQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List simulated mobile devices for the current user
+ */
+export const getGetMobileDevicesUrl = () => {
+  return `/api/mobile/devices`;
+};
+
+export const getMobileDevices = async (
+  options?: RequestInit,
+): Promise<MobileDeviceResponse> => {
+  return customFetch<MobileDeviceResponse>(getGetMobileDevicesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMobileDevicesQueryKey = () => {
+  return [`/api/mobile/devices`] as const;
+};
+
+export const getGetMobileDevicesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMobileDevices>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileDevices>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMobileDevicesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMobileDevices>>
+  > = ({ signal }) => getMobileDevices({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileDevices>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMobileDevicesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMobileDevices>>
+>;
+export type GetMobileDevicesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List simulated mobile devices for the current user
+ */
+
+export function useGetMobileDevices<
+  TData = Awaited<ReturnType<typeof getMobileDevices>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMobileDevices>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMobileDevicesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Capture a mobile shortcut item into the correct live lane
+ */
+export const getCreateMobileQuickCaptureUrl = () => {
+  return `/api/mobile/quick-capture`;
+};
+
+export const createMobileQuickCapture = async (
+  mobileQuickCaptureBody: MobileQuickCaptureBody,
+  options?: RequestInit,
+): Promise<MobileQuickCaptureResponse> => {
+  return customFetch<MobileQuickCaptureResponse>(
+    getCreateMobileQuickCaptureUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(mobileQuickCaptureBody),
+    },
+  );
+};
+
+export const getCreateMobileQuickCaptureMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMobileQuickCapture>>,
+    TError,
+    { data: BodyType<MobileQuickCaptureBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMobileQuickCapture>>,
+  TError,
+  { data: BodyType<MobileQuickCaptureBody> },
+  TContext
+> => {
+  const mutationKey = ["createMobileQuickCapture"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMobileQuickCapture>>,
+    { data: BodyType<MobileQuickCaptureBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMobileQuickCapture(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMobileQuickCaptureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMobileQuickCapture>>
+>;
+export type CreateMobileQuickCaptureMutationBody =
+  BodyType<MobileQuickCaptureBody>;
+export type CreateMobileQuickCaptureMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Capture a mobile shortcut item into the correct live lane
+ */
+export const useCreateMobileQuickCapture = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMobileQuickCapture>>,
+    TError,
+    { data: BodyType<MobileQuickCaptureBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMobileQuickCapture>>,
+  TError,
+  { data: BodyType<MobileQuickCaptureBody> },
+  TContext
+> => {
+  return useMutation(getCreateMobileQuickCaptureMutationOptions(options));
+};
+
+/**
+ * @summary Register or refresh a simulated mobile device
+ */
+export const getRegisterMobileDeviceUrl = () => {
+  return `/api/mobile/devices/register`;
+};
+
+export const registerMobileDevice = async (
+  registerMobileDeviceBody: RegisterMobileDeviceBody,
+  options?: RequestInit,
+): Promise<MobileDevice> => {
+  return customFetch<MobileDevice>(getRegisterMobileDeviceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerMobileDeviceBody),
+  });
+};
+
+export const getRegisterMobileDeviceMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerMobileDevice>>,
+    TError,
+    { data: BodyType<RegisterMobileDeviceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerMobileDevice>>,
+  TError,
+  { data: BodyType<RegisterMobileDeviceBody> },
+  TContext
+> => {
+  const mutationKey = ["registerMobileDevice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerMobileDevice>>,
+    { data: BodyType<RegisterMobileDeviceBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerMobileDevice(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterMobileDeviceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerMobileDevice>>
+>;
+export type RegisterMobileDeviceMutationBody =
+  BodyType<RegisterMobileDeviceBody>;
+export type RegisterMobileDeviceMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Register or refresh a simulated mobile device
+ */
+export const useRegisterMobileDevice = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerMobileDevice>>,
+    TError,
+    { data: BodyType<RegisterMobileDeviceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerMobileDevice>>,
+  TError,
+  { data: BodyType<RegisterMobileDeviceBody> },
+  TContext
+> => {
+  return useMutation(getRegisterMobileDeviceMutationOptions(options));
+};
+
+/**
+ * @summary Deactivate a simulated mobile device
+ */
+export const getDeactivateMobileDeviceUrl = (id: number) => {
+  return `/api/mobile/devices/${id}/deactivate`;
+};
+
+export const deactivateMobileDevice = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MobileDevice> => {
+  return customFetch<MobileDevice>(getDeactivateMobileDeviceUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDeactivateMobileDeviceMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deactivateMobileDevice>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deactivateMobileDevice>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deactivateMobileDevice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deactivateMobileDevice>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deactivateMobileDevice(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeactivateMobileDeviceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deactivateMobileDevice>>
+>;
+
+export type DeactivateMobileDeviceMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Deactivate a simulated mobile device
+ */
+export const useDeactivateMobileDevice = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deactivateMobileDevice>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deactivateMobileDevice>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeactivateMobileDeviceMutationOptions(options));
+};
+
+/**
+ * @summary Mark a mobile notification outbox item as sent
+ */
+export const getMarkMobileNotificationOutboxItemSentUrl = (id: number) => {
+  return `/api/mobile/notifications/${id}/mark-sent`;
+};
+
+export const markMobileNotificationOutboxItemSent = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MobileNotificationOutboxItem> => {
+  return customFetch<MobileNotificationOutboxItem>(
+    getMarkMobileNotificationOutboxItemSentUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getMarkMobileNotificationOutboxItemSentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markMobileNotificationOutboxItemSent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markMobileNotificationOutboxItemSent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["markMobileNotificationOutboxItemSent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markMobileNotificationOutboxItemSent>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return markMobileNotificationOutboxItemSent(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkMobileNotificationOutboxItemSentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markMobileNotificationOutboxItemSent>>
+>;
+
+export type MarkMobileNotificationOutboxItemSentMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Mark a mobile notification outbox item as sent
+ */
+export const useMarkMobileNotificationOutboxItemSent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markMobileNotificationOutboxItemSent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markMobileNotificationOutboxItemSent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(
+    getMarkMobileNotificationOutboxItemSentMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Simulate dispatching a queued mobile notification to an active device
+ */
+export const getSimulateDispatchMobileNotificationOutboxItemUrl = (
+  id: number,
+) => {
+  return `/api/mobile/notifications/${id}/simulate-dispatch`;
+};
+
+export const simulateDispatchMobileNotificationOutboxItem = async (
+  id: number,
+  simulateDispatchMobileNotificationBody?: SimulateDispatchMobileNotificationBody,
+  options?: RequestInit,
+): Promise<MobileNotificationOutboxItem> => {
+  return customFetch<MobileNotificationOutboxItem>(
+    getSimulateDispatchMobileNotificationOutboxItemUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(simulateDispatchMobileNotificationBody),
+    },
+  );
+};
+
+export const getSimulateDispatchMobileNotificationOutboxItemMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof simulateDispatchMobileNotificationOutboxItem>>,
+    TError,
+    { id: number; data: BodyType<SimulateDispatchMobileNotificationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof simulateDispatchMobileNotificationOutboxItem>>,
+  TError,
+  { id: number; data: BodyType<SimulateDispatchMobileNotificationBody> },
+  TContext
+> => {
+  const mutationKey = ["simulateDispatchMobileNotificationOutboxItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof simulateDispatchMobileNotificationOutboxItem>>,
+    { id: number; data: BodyType<SimulateDispatchMobileNotificationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return simulateDispatchMobileNotificationOutboxItem(
+      id,
+      data,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SimulateDispatchMobileNotificationOutboxItemMutationResult =
+  NonNullable<
+    Awaited<ReturnType<typeof simulateDispatchMobileNotificationOutboxItem>>
+  >;
+export type SimulateDispatchMobileNotificationOutboxItemMutationBody =
+  BodyType<SimulateDispatchMobileNotificationBody>;
+export type SimulateDispatchMobileNotificationOutboxItemMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Simulate dispatching a queued mobile notification to an active device
+ */
+export const useSimulateDispatchMobileNotificationOutboxItem = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof simulateDispatchMobileNotificationOutboxItem>>,
+    TError,
+    { id: number; data: BodyType<SimulateDispatchMobileNotificationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof simulateDispatchMobileNotificationOutboxItem>>,
+  TError,
+  { id: number; data: BodyType<SimulateDispatchMobileNotificationBody> },
+  TContext
+> => {
+  return useMutation(
+    getSimulateDispatchMobileNotificationOutboxItemMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Acknowledge a mobile notification outbox item
+ */
+export const getAcknowledgeMobileNotificationOutboxItemUrl = (id: number) => {
+  return `/api/mobile/notifications/${id}/acknowledge`;
+};
+
+export const acknowledgeMobileNotificationOutboxItem = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MobileNotificationOutboxItem> => {
+  return customFetch<MobileNotificationOutboxItem>(
+    getAcknowledgeMobileNotificationOutboxItemUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getAcknowledgeMobileNotificationOutboxItemMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeMobileNotificationOutboxItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acknowledgeMobileNotificationOutboxItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["acknowledgeMobileNotificationOutboxItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acknowledgeMobileNotificationOutboxItem>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return acknowledgeMobileNotificationOutboxItem(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcknowledgeMobileNotificationOutboxItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acknowledgeMobileNotificationOutboxItem>>
+>;
+
+export type AcknowledgeMobileNotificationOutboxItemMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Acknowledge a mobile notification outbox item
+ */
+export const useAcknowledgeMobileNotificationOutboxItem = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeMobileNotificationOutboxItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acknowledgeMobileNotificationOutboxItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(
+    getAcknowledgeMobileNotificationOutboxItemMutationOptions(options),
+  );
+};
+
+/**
  * @summary Get a single Life Ledger entry
  */
 export const getGetLifeLedgerEntryUrl = (
@@ -3012,6 +3995,448 @@ export function useGetMyPermissions<
 }
 
 /**
+ * @summary List AI drafts for the current user
+ */
+export const getListAiDraftsUrl = (params?: ListAiDraftsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/ai-drafts?${stringifiedParams}`
+    : `/api/ai-drafts`;
+};
+
+export const listAiDrafts = async (
+  params?: ListAiDraftsParams,
+  options?: RequestInit,
+): Promise<AIDraft[]> => {
+  return customFetch<AIDraft[]>(getListAiDraftsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAiDraftsQueryKey = (params?: ListAiDraftsParams) => {
+  return [`/api/ai-drafts`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAiDraftsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAiDrafts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAiDraftsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAiDrafts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAiDraftsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiDrafts>>> = ({
+    signal,
+  }) => listAiDrafts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAiDrafts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAiDraftsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAiDrafts>>
+>;
+export type ListAiDraftsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List AI drafts for the current user
+ */
+
+export function useListAiDrafts<
+  TData = Awaited<ReturnType<typeof listAiDrafts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAiDraftsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAiDrafts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAiDraftsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new AI draft record
+ */
+export const getCreateAiDraftUrl = () => {
+  return `/api/ai-drafts`;
+};
+
+export const createAiDraft = async (
+  createAIDraftBody: CreateAIDraftBody,
+  options?: RequestInit,
+): Promise<AIDraft> => {
+  return customFetch<AIDraft>(getCreateAiDraftUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAIDraftBody),
+  });
+};
+
+export const getCreateAiDraftMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAiDraft>>,
+    TError,
+    { data: BodyType<CreateAIDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAiDraft>>,
+  TError,
+  { data: BodyType<CreateAIDraftBody> },
+  TContext
+> => {
+  const mutationKey = ["createAiDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAiDraft>>,
+    { data: BodyType<CreateAIDraftBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAiDraft(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAiDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAiDraft>>
+>;
+export type CreateAiDraftMutationBody = BodyType<CreateAIDraftBody>;
+export type CreateAiDraftMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new AI draft record
+ */
+export const useCreateAiDraft = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAiDraft>>,
+    TError,
+    { data: BodyType<CreateAIDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAiDraft>>,
+  TError,
+  { data: BodyType<CreateAIDraftBody> },
+  TContext
+> => {
+  return useMutation(getCreateAiDraftMutationOptions(options));
+};
+
+/**
+ * @summary Get an AI draft by id
+ */
+export const getGetAiDraftUrl = (id: number) => {
+  return `/api/ai-drafts/${id}`;
+};
+
+export const getAiDraft = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AIDraft> => {
+  return customFetch<AIDraft>(getGetAiDraftUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAiDraftQueryKey = (id: number) => {
+  return [`/api/ai-drafts/${id}`] as const;
+};
+
+export const getGetAiDraftQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAiDraft>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiDraft>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAiDraftQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiDraft>>> = ({
+    signal,
+  }) => getAiDraft(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAiDraft>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAiDraftQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAiDraft>>
+>;
+export type GetAiDraftQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get an AI draft by id
+ */
+
+export function useGetAiDraft<
+  TData = Awaited<ReturnType<typeof getAiDraft>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiDraft>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAiDraftQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update AI draft review state
+ */
+export const getUpdateAiDraftReviewStateUrl = (id: number) => {
+  return `/api/ai-drafts/${id}/review-state`;
+};
+
+export const updateAiDraftReviewState = async (
+  id: number,
+  updateAIDraftReviewStateBody: UpdateAIDraftReviewStateBody,
+  options?: RequestInit,
+): Promise<AIDraft> => {
+  return customFetch<AIDraft>(getUpdateAiDraftReviewStateUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAIDraftReviewStateBody),
+  });
+};
+
+export const getUpdateAiDraftReviewStateMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAiDraftReviewState>>,
+    TError,
+    { id: number; data: BodyType<UpdateAIDraftReviewStateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAiDraftReviewState>>,
+  TError,
+  { id: number; data: BodyType<UpdateAIDraftReviewStateBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAiDraftReviewState"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAiDraftReviewState>>,
+    { id: number; data: BodyType<UpdateAIDraftReviewStateBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAiDraftReviewState(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAiDraftReviewStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAiDraftReviewState>>
+>;
+export type UpdateAiDraftReviewStateMutationBody =
+  BodyType<UpdateAIDraftReviewStateBody>;
+export type UpdateAiDraftReviewStateMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update AI draft review state
+ */
+export const useUpdateAiDraftReviewState = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAiDraftReviewState>>,
+    TError,
+    { id: number; data: BodyType<UpdateAIDraftReviewStateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAiDraftReviewState>>,
+  TError,
+  { id: number; data: BodyType<UpdateAIDraftReviewStateBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAiDraftReviewStateMutationOptions(options));
+};
+
+/**
+ * @summary Apply a supported AI draft into live lane data
+ */
+export const getApplyAiDraftUrl = (id: number) => {
+  return `/api/ai-drafts/${id}/apply`;
+};
+
+export const applyAiDraft = async (
+  id: number,
+  applyAIDraftBody: ApplyAIDraftBody,
+  options?: RequestInit,
+): Promise<ApplyAIDraftResponse> => {
+  return customFetch<ApplyAIDraftResponse>(getApplyAiDraftUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(applyAIDraftBody),
+  });
+};
+
+export const getApplyAiDraftMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyAiDraft>>,
+    TError,
+    { id: number; data: BodyType<ApplyAIDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyAiDraft>>,
+  TError,
+  { id: number; data: BodyType<ApplyAIDraftBody> },
+  TContext
+> => {
+  const mutationKey = ["applyAiDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyAiDraft>>,
+    { id: number; data: BodyType<ApplyAIDraftBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return applyAiDraft(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyAiDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyAiDraft>>
+>;
+export type ApplyAiDraftMutationBody = BodyType<ApplyAIDraftBody>;
+export type ApplyAiDraftMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Apply a supported AI draft into live lane data
+ */
+export const useApplyAiDraft = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyAiDraft>>,
+    TError,
+    { id: number; data: BodyType<ApplyAIDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyAiDraft>>,
+  TError,
+  { id: number; data: BodyType<ApplyAIDraftBody> },
+  TContext
+> => {
+  return useMutation(getApplyAiDraftMutationOptions(options));
+};
+
+/**
  * @summary List all Clerk users with their permissions (admin only)
  */
 export const getListAdminUsersUrl = () => {
@@ -3598,6 +5023,96 @@ export const useCreateAdminParentPacketImport = <
   TContext
 > => {
   return useMutation(getCreateAdminParentPacketImportMutationOptions(options));
+};
+
+/**
+ * @summary Generate one approval-gated Baby KB assignment suggestion draft (admin only)
+ */
+export const getCreateAdminBabyKbAssignmentSuggestionUrl = () => {
+  return `/api/admin/baby-kb/assignment-suggestions`;
+};
+
+export const createAdminBabyKbAssignmentSuggestion = async (
+  createBabyKbAssignmentSuggestionBody: CreateBabyKbAssignmentSuggestionBody,
+  options?: RequestInit,
+): Promise<AIDraft> => {
+  return customFetch<AIDraft>(getCreateAdminBabyKbAssignmentSuggestionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBabyKbAssignmentSuggestionBody),
+  });
+};
+
+export const getCreateAdminBabyKbAssignmentSuggestionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminBabyKbAssignmentSuggestion>>,
+    TError,
+    { data: BodyType<CreateBabyKbAssignmentSuggestionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminBabyKbAssignmentSuggestion>>,
+  TError,
+  { data: BodyType<CreateBabyKbAssignmentSuggestionBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdminBabyKbAssignmentSuggestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminBabyKbAssignmentSuggestion>>,
+    { data: BodyType<CreateBabyKbAssignmentSuggestionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminBabyKbAssignmentSuggestion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminBabyKbAssignmentSuggestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminBabyKbAssignmentSuggestion>>
+>;
+export type CreateAdminBabyKbAssignmentSuggestionMutationBody =
+  BodyType<CreateBabyKbAssignmentSuggestionBody>;
+export type CreateAdminBabyKbAssignmentSuggestionMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate one approval-gated Baby KB assignment suggestion draft (admin only)
+ */
+export const useCreateAdminBabyKbAssignmentSuggestion = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminBabyKbAssignmentSuggestion>>,
+    TError,
+    { data: BodyType<CreateBabyKbAssignmentSuggestionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminBabyKbAssignmentSuggestion>>,
+  TError,
+  { data: BodyType<CreateBabyKbAssignmentSuggestionBody> },
+  TContext
+> => {
+  return useMutation(
+    getCreateAdminBabyKbAssignmentSuggestionMutationOptions(options),
+  );
 };
 
 /**

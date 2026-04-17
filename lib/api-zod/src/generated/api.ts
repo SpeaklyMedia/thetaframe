@@ -762,6 +762,17 @@ export const ListLifeLedgerEntriesResponseItem = zod.object({
     .nullish(),
   dueDate: zod.string().nullish(),
   notes: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  sourceEntryId: zod.number().nullish(),
+  sourceAssignmentId: zod.number().nullish(),
+  nextDueDate: zod.string().nullish(),
+  reminderPolicy: zod.record(zod.string(), zod.unknown()),
+  reminderEnabled: zod.boolean(),
+  reminderLeadDays: zod.array(zod.number()),
+  nextReminderAt: zod.coerce.date().nullable(),
+  reminderState: zod.enum(["inactive", "scheduled", "snoozed"]),
+  completionState: zod.string().nullish(),
+  snoozedUntil: zod.string().nullish(),
   amount: zod.number().nullish(),
   currency: zod.string().nullish(),
   isEssential: zod.boolean().nullish(),
@@ -820,6 +831,432 @@ export const CreateLifeLedgerEntryBody = zod.object({
 });
 
 /**
+ * @summary List reminder-active Life Ledger events for mobile return flows
+ */
+export const GetLifeLedgerEventReminderQueueResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      executionDate: zod.string(),
+      nextReminderAt: zod.coerce.date(),
+      reminderState: zod.enum(["scheduled", "snoozed"]),
+      reminderLeadDays: zod.array(zod.number()),
+      impactLevel: zod
+        .union([
+          zod.literal("low"),
+          zod.literal("medium"),
+          zod.literal("high"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      sourceType: zod.string().nullish(),
+      route: zod.string(),
+      deepLink: zod.string(),
+      notificationCategory: zod.enum(["life_ledger_due"]),
+    }),
+  ),
+});
+
+/**
+ * @summary Update execution state for a Life Ledger event
+ */
+export const UpdateLifeLedgerEventExecutionStateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateLifeLedgerEventExecutionStateBody = zod.object({
+  action: zod.enum([
+    "mark_scheduled",
+    "mark_in_motion",
+    "mark_completed",
+    "mark_superseded",
+  ]),
+});
+
+export const UpdateLifeLedgerEventExecutionStateResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  sourceEntryId: zod.number().nullish(),
+  sourceAssignmentId: zod.number().nullish(),
+  nextDueDate: zod.string().nullish(),
+  reminderPolicy: zod.record(zod.string(), zod.unknown()),
+  reminderEnabled: zod.boolean(),
+  reminderLeadDays: zod.array(zod.number()),
+  nextReminderAt: zod.coerce.date().nullable(),
+  reminderState: zod.enum(["inactive", "scheduled", "snoozed"]),
+  completionState: zod.string().nullish(),
+  snoozedUntil: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update reminder policy for a Life Ledger event
+ */
+export const UpdateLifeLedgerEventReminderPolicyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateLifeLedgerEventReminderPolicyBodyLeadDaysItemMin = 0;
+export const updateLifeLedgerEventReminderPolicyBodyLeadDaysItemMax = 30;
+
+export const UpdateLifeLedgerEventReminderPolicyBody = zod.object({
+  enabled: zod.boolean(),
+  leadDays: zod
+    .array(
+      zod
+        .number()
+        .min(updateLifeLedgerEventReminderPolicyBodyLeadDaysItemMin)
+        .max(updateLifeLedgerEventReminderPolicyBodyLeadDaysItemMax),
+    )
+    .optional(),
+});
+
+export const UpdateLifeLedgerEventReminderPolicyResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  tab: zod.enum(["people", "events", "financial", "subscriptions", "travel"]),
+  name: zod.string(),
+  tags: zod.array(zod.string()),
+  impactLevel: zod
+    .union([
+      zod.literal("low"),
+      zod.literal("medium"),
+      zod.literal("high"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  reviewWindow: zod
+    .union([
+      zod.literal("annual"),
+      zod.literal("quarterly"),
+      zod.literal("monthly"),
+      zod.literal("situational"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  dueDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  sourceEntryId: zod.number().nullish(),
+  sourceAssignmentId: zod.number().nullish(),
+  nextDueDate: zod.string().nullish(),
+  reminderPolicy: zod.record(zod.string(), zod.unknown()),
+  reminderEnabled: zod.boolean(),
+  reminderLeadDays: zod.array(zod.number()),
+  nextReminderAt: zod.coerce.date().nullable(),
+  reminderState: zod.enum(["inactive", "scheduled", "snoozed"]),
+  completionState: zod.string().nullish(),
+  snoozedUntil: zod.string().nullish(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  isEssential: zod.boolean().nullish(),
+  billingCycle: zod
+    .union([zod.literal("monthly"), zod.literal("annual"), zod.literal(null)])
+    .nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary List queued and recent mobile reminder deliveries
+ */
+export const GetMobileNotificationsOutboxResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      sourceLane: zod.string(),
+      sourceEventId: zod.number(),
+      notificationCategory: zod.enum(["life_ledger_due"]),
+      route: zod.string(),
+      deepLink: zod.string(),
+      eventName: zod.string(),
+      executionDate: zod.string().nullish(),
+      sourceType: zod.string().nullish(),
+      reminderState: zod.enum(["scheduled", "snoozed"]),
+      reminderLeadDays: zod.array(zod.number()),
+      scheduledFor: zod.coerce.date(),
+      deliveryStatus: zod.enum(["queued", "sent", "cancelled", "acknowledged"]),
+      deliveredDeviceId: zod.number().nullish(),
+      deliveredDeviceLabel: zod.string().nullish(),
+      deliveryProvider: zod
+        .union([
+          zod.enum(["ios_local_notification", "android_notification"]),
+          zod.null(),
+        ])
+        .optional(),
+      sentAt: zod.coerce.date().nullish(),
+      acknowledgedAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List simulated mobile devices for the current user
+ */
+export const GetMobileDevicesResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      installationId: zod.string(),
+      deviceLabel: zod.string(),
+      platform: zod.enum(["ios", "android"]),
+      deliveryProvider: zod.enum([
+        "ios_local_notification",
+        "android_notification",
+      ]),
+      isActive: zod.boolean(),
+      lastSeenAt: zod.coerce.date(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Capture a mobile shortcut item into the correct live lane
+ */
+export const CreateMobileQuickCaptureBody = zod.object({
+  intent: zod.enum(["current_work"]),
+  text: zod.string(),
+  captureChannel: zod.enum(["ios_shortcut", "android_shortcut"]),
+});
+
+export const CreateMobileQuickCaptureResponse = zod.object({
+  lane: zod.enum(["daily"]),
+  route: zod.string(),
+  deepLink: zod.string(),
+  dailyFrame: zod.object({
+    id: zod.number(),
+    userId: zod.string(),
+    date: zod.string().describe("YYYY-MM-DD"),
+    colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+    tierA: zod.array(
+      zod.object({
+        id: zod.string(),
+        text: zod.string(),
+        completed: zod.boolean(),
+        emoji: zod.string().nullish(),
+      }),
+    ),
+    tierB: zod.array(
+      zod.object({
+        id: zod.string(),
+        text: zod.string(),
+        completed: zod.boolean(),
+        emoji: zod.string().nullish(),
+      }),
+    ),
+    timeBlocks: zod.array(
+      zod.object({
+        id: zod.string(),
+        startTime: zod.string().describe("HH:MM format"),
+        action: zod.string(),
+      }),
+    ),
+    microWin: zod.string().nullish(),
+    skipProtocolUsed: zod.boolean(),
+    skipProtocolChoice: zod
+      .union([
+        zod.literal("micro-win"),
+        zod.literal("intentional-recovery"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    createdAt: zod.string().optional(),
+    updatedAt: zod.string().optional(),
+  }),
+  capturedTaskId: zod.string(),
+});
+
+/**
+ * @summary Register or refresh a simulated mobile device
+ */
+export const RegisterMobileDeviceBody = zod.object({
+  installationId: zod.string(),
+  deviceLabel: zod.string(),
+  platform: zod.enum(["ios", "android"]),
+});
+
+export const RegisterMobileDeviceResponse = zod.object({
+  id: zod.number(),
+  installationId: zod.string(),
+  deviceLabel: zod.string(),
+  platform: zod.enum(["ios", "android"]),
+  deliveryProvider: zod.enum([
+    "ios_local_notification",
+    "android_notification",
+  ]),
+  isActive: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Deactivate a simulated mobile device
+ */
+export const DeactivateMobileDeviceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeactivateMobileDeviceResponse = zod.object({
+  id: zod.number(),
+  installationId: zod.string(),
+  deviceLabel: zod.string(),
+  platform: zod.enum(["ios", "android"]),
+  deliveryProvider: zod.enum([
+    "ios_local_notification",
+    "android_notification",
+  ]),
+  isActive: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Mark a mobile notification outbox item as sent
+ */
+export const MarkMobileNotificationOutboxItemSentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkMobileNotificationOutboxItemSentResponse = zod.object({
+  id: zod.number(),
+  sourceLane: zod.string(),
+  sourceEventId: zod.number(),
+  notificationCategory: zod.enum(["life_ledger_due"]),
+  route: zod.string(),
+  deepLink: zod.string(),
+  eventName: zod.string(),
+  executionDate: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  reminderState: zod.enum(["scheduled", "snoozed"]),
+  reminderLeadDays: zod.array(zod.number()),
+  scheduledFor: zod.coerce.date(),
+  deliveryStatus: zod.enum(["queued", "sent", "cancelled", "acknowledged"]),
+  deliveredDeviceId: zod.number().nullish(),
+  deliveredDeviceLabel: zod.string().nullish(),
+  deliveryProvider: zod
+    .union([
+      zod.enum(["ios_local_notification", "android_notification"]),
+      zod.null(),
+    ])
+    .optional(),
+  sentAt: zod.coerce.date().nullish(),
+  acknowledgedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Simulate dispatching a queued mobile notification to an active device
+ */
+export const SimulateDispatchMobileNotificationOutboxItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SimulateDispatchMobileNotificationOutboxItemBody = zod.object({
+  deviceId: zod.number().optional(),
+});
+
+export const SimulateDispatchMobileNotificationOutboxItemResponse = zod.object({
+  id: zod.number(),
+  sourceLane: zod.string(),
+  sourceEventId: zod.number(),
+  notificationCategory: zod.enum(["life_ledger_due"]),
+  route: zod.string(),
+  deepLink: zod.string(),
+  eventName: zod.string(),
+  executionDate: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  reminderState: zod.enum(["scheduled", "snoozed"]),
+  reminderLeadDays: zod.array(zod.number()),
+  scheduledFor: zod.coerce.date(),
+  deliveryStatus: zod.enum(["queued", "sent", "cancelled", "acknowledged"]),
+  deliveredDeviceId: zod.number().nullish(),
+  deliveredDeviceLabel: zod.string().nullish(),
+  deliveryProvider: zod
+    .union([
+      zod.enum(["ios_local_notification", "android_notification"]),
+      zod.null(),
+    ])
+    .optional(),
+  sentAt: zod.coerce.date().nullish(),
+  acknowledgedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Acknowledge a mobile notification outbox item
+ */
+export const AcknowledgeMobileNotificationOutboxItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AcknowledgeMobileNotificationOutboxItemResponse = zod.object({
+  id: zod.number(),
+  sourceLane: zod.string(),
+  sourceEventId: zod.number(),
+  notificationCategory: zod.enum(["life_ledger_due"]),
+  route: zod.string(),
+  deepLink: zod.string(),
+  eventName: zod.string(),
+  executionDate: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  reminderState: zod.enum(["scheduled", "snoozed"]),
+  reminderLeadDays: zod.array(zod.number()),
+  scheduledFor: zod.coerce.date(),
+  deliveryStatus: zod.enum(["queued", "sent", "cancelled", "acknowledged"]),
+  deliveredDeviceId: zod.number().nullish(),
+  deliveredDeviceLabel: zod.string().nullish(),
+  deliveryProvider: zod
+    .union([
+      zod.enum(["ios_local_notification", "android_notification"]),
+      zod.null(),
+    ])
+    .optional(),
+  sentAt: zod.coerce.date().nullish(),
+  acknowledgedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get a single Life Ledger entry
  */
 export const GetLifeLedgerEntryParams = zod.object({
@@ -859,6 +1296,17 @@ export const GetLifeLedgerEntryResponse = zod.object({
     .nullish(),
   dueDate: zod.string().nullish(),
   notes: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  sourceEntryId: zod.number().nullish(),
+  sourceAssignmentId: zod.number().nullish(),
+  nextDueDate: zod.string().nullish(),
+  reminderPolicy: zod.record(zod.string(), zod.unknown()),
+  reminderEnabled: zod.boolean(),
+  reminderLeadDays: zod.array(zod.number()),
+  nextReminderAt: zod.coerce.date().nullable(),
+  reminderState: zod.enum(["inactive", "scheduled", "snoozed"]),
+  completionState: zod.string().nullish(),
+  snoozedUntil: zod.string().nullish(),
   amount: zod.number().nullish(),
   currency: zod.string().nullish(),
   isEssential: zod.boolean().nullish(),
@@ -939,6 +1387,17 @@ export const UpdateLifeLedgerEntryResponse = zod.object({
     .nullish(),
   dueDate: zod.string().nullish(),
   notes: zod.string().nullish(),
+  sourceType: zod.string().nullish(),
+  sourceEntryId: zod.number().nullish(),
+  sourceAssignmentId: zod.number().nullish(),
+  nextDueDate: zod.string().nullish(),
+  reminderPolicy: zod.record(zod.string(), zod.unknown()),
+  reminderEnabled: zod.boolean(),
+  reminderLeadDays: zod.array(zod.number()),
+  nextReminderAt: zod.coerce.date().nullable(),
+  reminderState: zod.enum(["inactive", "scheduled", "snoozed"]),
+  completionState: zod.string().nullish(),
+  snoozedUntil: zod.string().nullish(),
   amount: zod.number().nullish(),
   currency: zod.string().nullish(),
   isEssential: zod.boolean().nullish(),
@@ -1089,6 +1548,936 @@ export const GetMyPermissionsResponse = zod.object({
 });
 
 /**
+ * @summary List AI drafts for the current user
+ */
+export const listAiDraftsQueryLimitMax = 25;
+
+export const ListAiDraftsQueryParams = zod.object({
+  lane: zod
+    .enum([
+      "daily",
+      "weekly",
+      "vision",
+      "bizdev",
+      "life-ledger",
+      "baby-kb",
+      "reach",
+      "admin",
+    ])
+    .optional(),
+  draftKind: zod
+    .enum([
+      "daily_frame_draft",
+      "weekly_frame_draft",
+      "vision_alignment_draft",
+      "life_ledger_classification_draft",
+      "reach_file_summary",
+      "bizdev_followup_draft",
+      "baby_kb_promotion_draft",
+      "baby_kb_assignment_draft",
+    ])
+    .optional(),
+  reviewState: zod
+    .enum([
+      "draft",
+      "needs_review",
+      "approval_gated",
+      "approved",
+      "applied",
+      "rejected",
+    ])
+    .optional(),
+  targetSurfaceKey: zod.coerce.string().optional(),
+  limit: zod.coerce.number().min(1).max(listAiDraftsQueryLimitMax).optional(),
+});
+
+export const ListAiDraftsResponseItem = zod.object({
+  id: zod.number(),
+  thetaObjectId: zod.string(),
+  userId: zod.string(),
+  metadata: zod.object({
+    lane: zod.enum([
+      "daily",
+      "weekly",
+      "vision",
+      "bizdev",
+      "life-ledger",
+      "baby-kb",
+      "reach",
+      "admin",
+    ]),
+    objectType: zod.enum(["ai-draft"]),
+    provenanceSource: zod.string(),
+    captureChannel: zod.string(),
+    reviewStatus: zod.string(),
+    confidence: zod
+      .union([
+        zod.literal("low"),
+        zod.literal("medium"),
+        zod.literal("high"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    externalRef: zod.string().nullish(),
+    sourceTimestamp: zod.string().nullish(),
+    reviewedAt: zod.string().nullish(),
+    reviewedBy: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    workspaceMoodContext: zod
+      .object({
+        colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+        label: zod.enum([
+          "calm/ready",
+          "anxious/scattered",
+          "overwhelmed",
+          "low/flat",
+          "creative/energized",
+        ]),
+        supportMode: zod.enum([
+          "steady",
+          "reduce_choices",
+          "recovery_first",
+          "low_energy",
+          "capture_then_choose",
+        ]),
+        source: zod.enum(["user_mode", "daily_frame", "fallback"]),
+      })
+      .optional(),
+  }),
+  draftKind: zod.enum([
+    "daily_frame_draft",
+    "weekly_frame_draft",
+    "vision_alignment_draft",
+    "life_ledger_classification_draft",
+    "reach_file_summary",
+    "bizdev_followup_draft",
+    "baby_kb_promotion_draft",
+    "baby_kb_assignment_draft",
+  ]),
+  targetLane: zod.enum([
+    "daily",
+    "weekly",
+    "vision",
+    "bizdev",
+    "life-ledger",
+    "baby-kb",
+    "reach",
+    "admin",
+  ]),
+  targetSurfaceKey: zod.string().nullish(),
+  targetObjectType: zod.string(),
+  mutationRisk: zod.enum(["low", "medium", "high", "critical"]),
+  approvalRequired: zod.enum([
+    "none",
+    "one_tap",
+    "explicit_review",
+    "two_step_review",
+  ]),
+  reviewState: zod.enum([
+    "draft",
+    "needs_review",
+    "approval_gated",
+    "approved",
+    "applied",
+    "rejected",
+  ]),
+  confidenceMode: zod.enum(["suggest_only", "one_tap_approve", "auto_draft"]),
+  commitTool: zod.string(),
+  inputChannels: zod.array(
+    zod.enum([
+      "typed_text",
+      "voice_transcript",
+      "screenshot_or_photo",
+      "pasted_message_or_email",
+      "share_sheet_capture",
+      "calendar_import",
+      "reach_upload",
+    ]),
+  ),
+  proposedPayload: zod.record(zod.string(), zod.unknown()),
+  sourceRefs: zod.array(
+    zod.object({
+      sourceType: zod.enum([
+        "raw_input",
+        "reach_file",
+        "calendar_event",
+        "mobile_capture",
+        "message_excerpt",
+        "image_capture",
+        "existing_theta_object",
+      ]),
+      ref: zod.string(),
+      label: zod.string().nullish(),
+    }),
+  ),
+  reviewNotes: zod.string().nullish(),
+  reviewedAt: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  appliedAt: zod.string().nullish(),
+  appliedBy: zod.string().nullish(),
+  appliedTargetRef: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListAiDraftsResponse = zod.array(ListAiDraftsResponseItem);
+
+/**
+ * @summary Create a new AI draft record
+ */
+export const CreateAiDraftBody = zod.object({
+  metadata: zod.object({
+    lane: zod.enum([
+      "daily",
+      "weekly",
+      "vision",
+      "bizdev",
+      "life-ledger",
+      "baby-kb",
+      "reach",
+      "admin",
+    ]),
+    objectType: zod.enum(["ai-draft"]),
+    provenanceSource: zod.string(),
+    captureChannel: zod.string(),
+    reviewStatus: zod.string(),
+    confidence: zod
+      .union([
+        zod.literal("low"),
+        zod.literal("medium"),
+        zod.literal("high"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    externalRef: zod.string().nullish(),
+    sourceTimestamp: zod.string().nullish(),
+    reviewedAt: zod.string().nullish(),
+    reviewedBy: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    workspaceMoodContext: zod
+      .object({
+        colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+        label: zod.enum([
+          "calm/ready",
+          "anxious/scattered",
+          "overwhelmed",
+          "low/flat",
+          "creative/energized",
+        ]),
+        supportMode: zod.enum([
+          "steady",
+          "reduce_choices",
+          "recovery_first",
+          "low_energy",
+          "capture_then_choose",
+        ]),
+        source: zod.enum(["user_mode", "daily_frame", "fallback"]),
+      })
+      .optional(),
+  }),
+  draftKind: zod.enum([
+    "daily_frame_draft",
+    "weekly_frame_draft",
+    "vision_alignment_draft",
+    "life_ledger_classification_draft",
+    "reach_file_summary",
+    "bizdev_followup_draft",
+    "baby_kb_promotion_draft",
+    "baby_kb_assignment_draft",
+  ]),
+  targetLane: zod.enum([
+    "daily",
+    "weekly",
+    "vision",
+    "bizdev",
+    "life-ledger",
+    "baby-kb",
+    "reach",
+    "admin",
+  ]),
+  targetSurfaceKey: zod.string().nullish(),
+  targetObjectType: zod.string(),
+  mutationRisk: zod.enum(["low", "medium", "high", "critical"]),
+  confidenceMode: zod.enum(["suggest_only", "one_tap_approve", "auto_draft"]),
+  commitTool: zod.string(),
+  inputChannels: zod.array(
+    zod.enum([
+      "typed_text",
+      "voice_transcript",
+      "screenshot_or_photo",
+      "pasted_message_or_email",
+      "share_sheet_capture",
+      "calendar_import",
+      "reach_upload",
+    ]),
+  ),
+  proposedPayload: zod.record(zod.string(), zod.unknown()),
+  sourceRefs: zod.array(
+    zod.object({
+      sourceType: zod.enum([
+        "raw_input",
+        "reach_file",
+        "calendar_event",
+        "mobile_capture",
+        "message_excerpt",
+        "image_capture",
+        "existing_theta_object",
+      ]),
+      ref: zod.string(),
+      label: zod.string().nullish(),
+    }),
+  ),
+  reviewNotes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get an AI draft by id
+ */
+export const GetAiDraftParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAiDraftResponse = zod.object({
+  id: zod.number(),
+  thetaObjectId: zod.string(),
+  userId: zod.string(),
+  metadata: zod.object({
+    lane: zod.enum([
+      "daily",
+      "weekly",
+      "vision",
+      "bizdev",
+      "life-ledger",
+      "baby-kb",
+      "reach",
+      "admin",
+    ]),
+    objectType: zod.enum(["ai-draft"]),
+    provenanceSource: zod.string(),
+    captureChannel: zod.string(),
+    reviewStatus: zod.string(),
+    confidence: zod
+      .union([
+        zod.literal("low"),
+        zod.literal("medium"),
+        zod.literal("high"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    externalRef: zod.string().nullish(),
+    sourceTimestamp: zod.string().nullish(),
+    reviewedAt: zod.string().nullish(),
+    reviewedBy: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    workspaceMoodContext: zod
+      .object({
+        colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+        label: zod.enum([
+          "calm/ready",
+          "anxious/scattered",
+          "overwhelmed",
+          "low/flat",
+          "creative/energized",
+        ]),
+        supportMode: zod.enum([
+          "steady",
+          "reduce_choices",
+          "recovery_first",
+          "low_energy",
+          "capture_then_choose",
+        ]),
+        source: zod.enum(["user_mode", "daily_frame", "fallback"]),
+      })
+      .optional(),
+  }),
+  draftKind: zod.enum([
+    "daily_frame_draft",
+    "weekly_frame_draft",
+    "vision_alignment_draft",
+    "life_ledger_classification_draft",
+    "reach_file_summary",
+    "bizdev_followup_draft",
+    "baby_kb_promotion_draft",
+    "baby_kb_assignment_draft",
+  ]),
+  targetLane: zod.enum([
+    "daily",
+    "weekly",
+    "vision",
+    "bizdev",
+    "life-ledger",
+    "baby-kb",
+    "reach",
+    "admin",
+  ]),
+  targetSurfaceKey: zod.string().nullish(),
+  targetObjectType: zod.string(),
+  mutationRisk: zod.enum(["low", "medium", "high", "critical"]),
+  approvalRequired: zod.enum([
+    "none",
+    "one_tap",
+    "explicit_review",
+    "two_step_review",
+  ]),
+  reviewState: zod.enum([
+    "draft",
+    "needs_review",
+    "approval_gated",
+    "approved",
+    "applied",
+    "rejected",
+  ]),
+  confidenceMode: zod.enum(["suggest_only", "one_tap_approve", "auto_draft"]),
+  commitTool: zod.string(),
+  inputChannels: zod.array(
+    zod.enum([
+      "typed_text",
+      "voice_transcript",
+      "screenshot_or_photo",
+      "pasted_message_or_email",
+      "share_sheet_capture",
+      "calendar_import",
+      "reach_upload",
+    ]),
+  ),
+  proposedPayload: zod.record(zod.string(), zod.unknown()),
+  sourceRefs: zod.array(
+    zod.object({
+      sourceType: zod.enum([
+        "raw_input",
+        "reach_file",
+        "calendar_event",
+        "mobile_capture",
+        "message_excerpt",
+        "image_capture",
+        "existing_theta_object",
+      ]),
+      ref: zod.string(),
+      label: zod.string().nullish(),
+    }),
+  ),
+  reviewNotes: zod.string().nullish(),
+  reviewedAt: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  appliedAt: zod.string().nullish(),
+  appliedBy: zod.string().nullish(),
+  appliedTargetRef: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update AI draft review state
+ */
+export const UpdateAiDraftReviewStateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAiDraftReviewStateBody = zod.object({
+  reviewState: zod.enum([
+    "draft",
+    "needs_review",
+    "approval_gated",
+    "approved",
+    "applied",
+    "rejected",
+  ]),
+  reviewNotes: zod.string().nullish(),
+});
+
+export const UpdateAiDraftReviewStateResponse = zod.object({
+  id: zod.number(),
+  thetaObjectId: zod.string(),
+  userId: zod.string(),
+  metadata: zod.object({
+    lane: zod.enum([
+      "daily",
+      "weekly",
+      "vision",
+      "bizdev",
+      "life-ledger",
+      "baby-kb",
+      "reach",
+      "admin",
+    ]),
+    objectType: zod.enum(["ai-draft"]),
+    provenanceSource: zod.string(),
+    captureChannel: zod.string(),
+    reviewStatus: zod.string(),
+    confidence: zod
+      .union([
+        zod.literal("low"),
+        zod.literal("medium"),
+        zod.literal("high"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    externalRef: zod.string().nullish(),
+    sourceTimestamp: zod.string().nullish(),
+    reviewedAt: zod.string().nullish(),
+    reviewedBy: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    workspaceMoodContext: zod
+      .object({
+        colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+        label: zod.enum([
+          "calm/ready",
+          "anxious/scattered",
+          "overwhelmed",
+          "low/flat",
+          "creative/energized",
+        ]),
+        supportMode: zod.enum([
+          "steady",
+          "reduce_choices",
+          "recovery_first",
+          "low_energy",
+          "capture_then_choose",
+        ]),
+        source: zod.enum(["user_mode", "daily_frame", "fallback"]),
+      })
+      .optional(),
+  }),
+  draftKind: zod.enum([
+    "daily_frame_draft",
+    "weekly_frame_draft",
+    "vision_alignment_draft",
+    "life_ledger_classification_draft",
+    "reach_file_summary",
+    "bizdev_followup_draft",
+    "baby_kb_promotion_draft",
+    "baby_kb_assignment_draft",
+  ]),
+  targetLane: zod.enum([
+    "daily",
+    "weekly",
+    "vision",
+    "bizdev",
+    "life-ledger",
+    "baby-kb",
+    "reach",
+    "admin",
+  ]),
+  targetSurfaceKey: zod.string().nullish(),
+  targetObjectType: zod.string(),
+  mutationRisk: zod.enum(["low", "medium", "high", "critical"]),
+  approvalRequired: zod.enum([
+    "none",
+    "one_tap",
+    "explicit_review",
+    "two_step_review",
+  ]),
+  reviewState: zod.enum([
+    "draft",
+    "needs_review",
+    "approval_gated",
+    "approved",
+    "applied",
+    "rejected",
+  ]),
+  confidenceMode: zod.enum(["suggest_only", "one_tap_approve", "auto_draft"]),
+  commitTool: zod.string(),
+  inputChannels: zod.array(
+    zod.enum([
+      "typed_text",
+      "voice_transcript",
+      "screenshot_or_photo",
+      "pasted_message_or_email",
+      "share_sheet_capture",
+      "calendar_import",
+      "reach_upload",
+    ]),
+  ),
+  proposedPayload: zod.record(zod.string(), zod.unknown()),
+  sourceRefs: zod.array(
+    zod.object({
+      sourceType: zod.enum([
+        "raw_input",
+        "reach_file",
+        "calendar_event",
+        "mobile_capture",
+        "message_excerpt",
+        "image_capture",
+        "existing_theta_object",
+      ]),
+      ref: zod.string(),
+      label: zod.string().nullish(),
+    }),
+  ),
+  reviewNotes: zod.string().nullish(),
+  reviewedAt: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  appliedAt: zod.string().nullish(),
+  appliedBy: zod.string().nullish(),
+  appliedTargetRef: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Apply a supported AI draft into live lane data
+ */
+export const ApplyAiDraftParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ApplyAiDraftBody = zod.object({
+  date: zod.string().optional().describe("Date in YYYY-MM-DD format"),
+  weekStart: zod
+    .string()
+    .optional()
+    .describe("Week start in YYYY-MM-DD format"),
+  reachFileId: zod
+    .number()
+    .optional()
+    .describe("REACH file id for metadata-only draft apply"),
+});
+
+export const ApplyAiDraftResponse = zod.object({
+  draft: zod.object({
+    id: zod.number(),
+    thetaObjectId: zod.string(),
+    userId: zod.string(),
+    metadata: zod.object({
+      lane: zod.enum([
+        "daily",
+        "weekly",
+        "vision",
+        "bizdev",
+        "life-ledger",
+        "baby-kb",
+        "reach",
+        "admin",
+      ]),
+      objectType: zod.enum(["ai-draft"]),
+      provenanceSource: zod.string(),
+      captureChannel: zod.string(),
+      reviewStatus: zod.string(),
+      confidence: zod
+        .union([
+          zod.literal("low"),
+          zod.literal("medium"),
+          zod.literal("high"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      externalRef: zod.string().nullish(),
+      sourceTimestamp: zod.string().nullish(),
+      reviewedAt: zod.string().nullish(),
+      reviewedBy: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      workspaceMoodContext: zod
+        .object({
+          colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+          label: zod.enum([
+            "calm/ready",
+            "anxious/scattered",
+            "overwhelmed",
+            "low/flat",
+            "creative/energized",
+          ]),
+          supportMode: zod.enum([
+            "steady",
+            "reduce_choices",
+            "recovery_first",
+            "low_energy",
+            "capture_then_choose",
+          ]),
+          source: zod.enum(["user_mode", "daily_frame", "fallback"]),
+        })
+        .optional(),
+    }),
+    draftKind: zod.enum([
+      "daily_frame_draft",
+      "weekly_frame_draft",
+      "vision_alignment_draft",
+      "life_ledger_classification_draft",
+      "reach_file_summary",
+      "bizdev_followup_draft",
+      "baby_kb_promotion_draft",
+      "baby_kb_assignment_draft",
+    ]),
+    targetLane: zod.enum([
+      "daily",
+      "weekly",
+      "vision",
+      "bizdev",
+      "life-ledger",
+      "baby-kb",
+      "reach",
+      "admin",
+    ]),
+    targetSurfaceKey: zod.string().nullish(),
+    targetObjectType: zod.string(),
+    mutationRisk: zod.enum(["low", "medium", "high", "critical"]),
+    approvalRequired: zod.enum([
+      "none",
+      "one_tap",
+      "explicit_review",
+      "two_step_review",
+    ]),
+    reviewState: zod.enum([
+      "draft",
+      "needs_review",
+      "approval_gated",
+      "approved",
+      "applied",
+      "rejected",
+    ]),
+    confidenceMode: zod.enum(["suggest_only", "one_tap_approve", "auto_draft"]),
+    commitTool: zod.string(),
+    inputChannels: zod.array(
+      zod.enum([
+        "typed_text",
+        "voice_transcript",
+        "screenshot_or_photo",
+        "pasted_message_or_email",
+        "share_sheet_capture",
+        "calendar_import",
+        "reach_upload",
+      ]),
+    ),
+    proposedPayload: zod.record(zod.string(), zod.unknown()),
+    sourceRefs: zod.array(
+      zod.object({
+        sourceType: zod.enum([
+          "raw_input",
+          "reach_file",
+          "calendar_event",
+          "mobile_capture",
+          "message_excerpt",
+          "image_capture",
+          "existing_theta_object",
+        ]),
+        ref: zod.string(),
+        label: zod.string().nullish(),
+      }),
+    ),
+    reviewNotes: zod.string().nullish(),
+    reviewedAt: zod.string().nullish(),
+    reviewedBy: zod.string().nullish(),
+    appliedAt: zod.string().nullish(),
+    appliedBy: zod.string().nullish(),
+    appliedTargetRef: zod.string().nullish(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  }),
+  dailyFrame: zod
+    .object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      colourState: zod.enum(["green", "yellow", "red", "blue", "purple"]),
+      tierA: zod.array(
+        zod.object({
+          id: zod.string(),
+          text: zod.string(),
+          completed: zod.boolean(),
+          emoji: zod.string().nullish(),
+        }),
+      ),
+      tierB: zod.array(
+        zod.object({
+          id: zod.string(),
+          text: zod.string(),
+          completed: zod.boolean(),
+          emoji: zod.string().nullish(),
+        }),
+      ),
+      timeBlocks: zod.array(
+        zod.object({
+          id: zod.string(),
+          startTime: zod.string().describe("HH:MM format"),
+          action: zod.string(),
+        }),
+      ),
+      microWin: zod.string().nullish(),
+      skipProtocolUsed: zod.boolean(),
+      skipProtocolChoice: zod
+        .union([
+          zod.literal("micro-win"),
+          zod.literal("intentional-recovery"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    })
+    .optional(),
+  weeklyFrame: zod
+    .object({
+      id: zod.number(),
+      userId: zod.string(),
+      weekStart: zod.string().describe("Week start date YYYY-MM-DD (Monday)"),
+      theme: zod.string().nullish(),
+      steps: zod.array(
+        zod.object({
+          id: zod.string(),
+          text: zod.string(),
+          emoji: zod.string().nullish(),
+        }),
+      ),
+      nonNegotiables: zod.array(
+        zod.object({
+          id: zod.string(),
+          text: zod.string(),
+          emoji: zod.string().nullish(),
+        }),
+      ),
+      recoveryPlan: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    })
+    .optional(),
+  visionFrame: zod
+    .object({
+      id: zod.number(),
+      userId: zod.string(),
+      goals: zod.array(
+        zod.object({
+          id: zod.string(),
+          text: zod.string(),
+          emoji: zod.string().nullish(),
+        }),
+      ),
+      nextSteps: zod.array(
+        zod.object({
+          id: zod.string(),
+          text: zod.string(),
+          emoji: zod.string().nullish(),
+        }),
+      ),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    })
+    .optional(),
+  reachFile: zod
+    .object({
+      id: zod.number(),
+      userId: zod.string(),
+      name: zod.string(),
+      fileType: zod.string().nullish(),
+      sizeBytes: zod.number().nullish(),
+      objectPath: zod.string(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    })
+    .optional(),
+  lifeLedgerEntry: zod
+    .object({
+      id: zod.number(),
+      userId: zod.string(),
+      tab: zod.enum([
+        "people",
+        "events",
+        "financial",
+        "subscriptions",
+        "travel",
+      ]),
+      name: zod.string(),
+      tags: zod.array(zod.string()),
+      impactLevel: zod
+        .union([
+          zod.literal("low"),
+          zod.literal("medium"),
+          zod.literal("high"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      reviewWindow: zod
+        .union([
+          zod.literal("annual"),
+          zod.literal("quarterly"),
+          zod.literal("monthly"),
+          zod.literal("situational"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      dueDate: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      sourceType: zod.string().nullish(),
+      sourceEntryId: zod.number().nullish(),
+      sourceAssignmentId: zod.number().nullish(),
+      nextDueDate: zod.string().nullish(),
+      reminderPolicy: zod.record(zod.string(), zod.unknown()),
+      reminderEnabled: zod.boolean(),
+      reminderLeadDays: zod.array(zod.number()),
+      nextReminderAt: zod.coerce.date().nullable(),
+      reminderState: zod.enum(["inactive", "scheduled", "snoozed"]),
+      completionState: zod.string().nullish(),
+      snoozedUntil: zod.string().nullish(),
+      amount: zod.number().nullish(),
+      currency: zod.string().nullish(),
+      isEssential: zod.boolean().nullish(),
+      billingCycle: zod
+        .union([
+          zod.literal("monthly"),
+          zod.literal("annual"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    })
+    .optional(),
+  babyAssignment: zod
+    .object({
+      id: zod.number(),
+      sourceEntryId: zod.number(),
+      sourceMaterializationId: zod.number().nullish(),
+      assigneeUserId: zod.string(),
+      lifecycleState: zod.enum([
+        "captured",
+        "verified",
+        "assigned",
+        "scheduled",
+        "due_soon",
+        "in_motion",
+        "completed",
+        "superseded",
+      ]),
+      effectiveLifecycleState: zod.enum([
+        "captured",
+        "verified",
+        "assigned",
+        "scheduled",
+        "due_soon",
+        "in_motion",
+        "completed",
+        "superseded",
+      ]),
+      effectiveDate: zod.string(),
+      dueDate: zod.string().nullish(),
+      cadence: zod
+        .union([
+          zod.literal("daily"),
+          zod.literal("weekly"),
+          zod.literal("monthly"),
+          zod.literal("quarterly"),
+          zod.literal("yearly"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      projectionPolicy: zod.enum(["hold", "event_only", "event_and_heroes"]),
+      assignmentNotes: zod.string().nullish(),
+      reminderPolicy: zod.record(zod.string(), zod.unknown()),
+      projectedEventId: zod.number().nullish(),
+      createdBy: zod.string(),
+      updatedBy: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+      supersededAt: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+      sourceEntryName: zod.string().nullish(),
+      sourceEntryNotes: zod.string().nullish(),
+      sourceTags: zod.unknown().nullish(),
+      sourcePath: zod.string().nullish(),
+      sourceRecordKey: zod.string().nullish(),
+    })
+    .optional(),
+});
+
+/**
  * @summary List all Clerk users with their permissions (admin only)
  */
 export const ListAdminUsersResponseItem = zod.object({
@@ -1222,6 +2611,13 @@ export const ListAdminParentPacketImportsResponse = zod.array(
  */
 export const CreateAdminParentPacketImportBody = zod.object({
   reachFileId: zod.number(),
+});
+
+/**
+ * @summary Generate one approval-gated Baby KB assignment suggestion draft (admin only)
+ */
+export const CreateAdminBabyKbAssignmentSuggestionBody = zod.object({
+  sourceEntryId: zod.number(),
 });
 
 /**

@@ -10,22 +10,22 @@ export const SURFACE_ONBOARDING_COPY: Record<
   }
 > = {
   daily: {
-    label: "Daily Frame",
-    intro: "You are looking at your working view for today.",
-    purpose: "It helps you match the day to your energy, pick your must-do tasks, and shape a realistic rhythm.",
-    firstStep: "Pick the color that matches your current state, then add at least one Tier A task.",
+    label: "Today",
+    intro: "This is your work view for today.",
+    purpose: "It helps you set a workspace color, choose must-do tasks, and keep extra tasks out of your head.",
+    firstStep: "Add one must-do. Extra tasks can wait.",
   },
   weekly: {
-    label: "Weekly Rhythm",
-    intro: "You are looking at the week-level planning space.",
-    purpose: "It gives your week a theme, keeps your top steps visible, and holds your recovery plan before things get noisy.",
-    firstStep: "Name the week, then add one step you want to protect this week.",
+    label: "This Week",
+    intro: "This is your plan for the week.",
+    purpose: "It helps you name the week, pick main steps, and make a backup plan.",
+    firstStep: "Name the week, then add one week step.",
   },
   vision: {
-    label: "Vision Tracker",
-    intro: "You are looking at the long-view planning surface.",
-    purpose: "It keeps your bigger goals and the next visible steps in the same place so the work stays grounded.",
-    firstStep: "Write one goal you are building toward and one next visible step.",
+    label: "Goals",
+    intro: "This is your long-view planning space.",
+    purpose: "It keeps big goals and next steps in one place.",
+    firstStep: "Write one goal and one next step.",
   },
   bizdev: {
     label: "BizDev",

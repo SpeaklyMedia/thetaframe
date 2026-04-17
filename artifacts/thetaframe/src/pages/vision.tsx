@@ -1,27 +1,80 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Layout } from "@/components/layout";
+import { AIDraftReviewPanel } from "@/components/shell/AIDraftReviewPanel";
+import { LaneHero } from "@/components/shell/LaneHero";
+import { PrimaryActionIsland } from "@/components/shell/PrimaryActionIsland";
+import { SupportRail } from "@/components/shell/SupportRail";
+import { BabyHeroConsequencesCard } from "@/components/shell/BabyHeroConsequencesCard";
+import { WorkspaceMoodPicker } from "@/components/shell/WorkspaceMoodPicker";
 import { SkipProtocol } from "@/components/skip-protocol";
 import { 
+  type AIDraft,
+  type UserMode,
+  type UserModeColourState,
+  type UserModeMode,
+  useApplyAiDraft,
+  useListAiDrafts,
+  getListAiDraftsQueryKey,
+  useUpdateAiDraftReviewState,
   useGetVisionFrame, 
   useUpsertVisionFrame, 
   getGetVisionFrameQueryKey,
+  useGetUserMode,
+  useUpsertUserMode,
+  getGetUserModeQueryKey,
   ApiError,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VisionGoal } from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuthSession } from "@/hooks/use-auth-session";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
+import {
+  BasicAITimeSaver,
+  BasicLaneNextStep,
+  BasicLaneStepOrder,
+  BasicMoreSection,
+} from "@/components/basic-guidance";
+import {
+  getVisionAIDraftReviewPanelCopy,
+  visionAIDraftListParams,
+} from "@/lib/ai-draft-review";
+import { useBabyKbHeroRollups } from "@/hooks/use-parent-packet-imports";
 
 export default function VisionPage() {
   const queryClient = useQueryClient();
+  const { status: authSessionStatus } = useAuthSession();
+  const { data: babyHeroRollups } = useBabyKbHeroRollups(true);
   const { data: frame, isLoading, error } = useGetVisionFrame({ 
     query: { queryKey: getGetVisionFrameQueryKey(), retry: 0 } 
   });
+  const {
+    data: aiDrafts,
+    isLoading: isAIDraftsLoading,
+    error: aiDraftsError,
+  } = useListAiDrafts(visionAIDraftListParams, {
+    query: {
+      queryKey: getListAiDraftsQueryKey(visionAIDraftListParams),
+      refetchOnWindowFocus: false,
+    },
+  });
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const upsert = useUpsertVisionFrame();
+  const { data: userMode } = useGetUserMode({
+    query: {
+      enabled: authSessionStatus === "ready",
+      queryKey: getGetUserModeQueryKey(),
+      retry: 0,
+    },
+  });
+  const upsertUserMode = useUpsertUserMode();
+  const applyAiDraft = useApplyAiDraft();
+  const updateAiDraftReviewState = useUpdateAiDraftReviewState();
   const { isSurfaceComplete } = useOnboardingProgress();
+  const visionAIDraftReview = getVisionAIDraftReviewPanelCopy();
 
   const [goals, setGoals] = useState<VisionGoal[]>([
     { id: crypto.randomUUID(), text: "" },
@@ -33,16 +86,43 @@ export default function VisionPage() {
     { id: crypto.randomUUID(), text: "" },
     { id: crypto.randomUUID(), text: "" }
   ]);
+  const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
+  const [reviewingDraftId, setReviewingDraftId] = useState<number | null>(null);
+  const [draftActionError, setDraftActionError] = useState<string | null>(null);
 
   const initRef = useRef<number | null>(null);
 
+  const hydrateVisionFrameState = useCallback((nextFrame: {
+    id: number;
+    goals?: VisionGoal[] | null;
+    nextSteps?: VisionGoal[] | null;
+  }) => {
+    initRef.current = nextFrame.id;
+    if (nextFrame.goals && nextFrame.goals.length > 0) {
+      setGoals(nextFrame.goals);
+    } else {
+      setGoals([
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+      ]);
+    }
+    if (nextFrame.nextSteps && nextFrame.nextSteps.length > 0) {
+      setNextSteps(nextFrame.nextSteps);
+    } else {
+      setNextSteps([
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+        { id: crypto.randomUUID(), text: "" },
+      ]);
+    }
+  }, []);
+
   useEffect(() => {
     if (frame && initRef.current !== frame.id) {
-      initRef.current = frame.id;
-      if (frame.goals && frame.goals.length > 0) setGoals(frame.goals);
-      if (frame.nextSteps && frame.nextSteps.length > 0) setNextSteps(frame.nextSteps);
+      hydrateVisionFrameState(frame);
     }
-  }, [frame]);
+  }, [frame, hydrateVisionFrameState]);
 
   const save = useCallback((updates: Partial<{
     goals: VisionGoal[];
@@ -60,6 +140,78 @@ export default function VisionPage() {
       }
     });
   }, [goals, nextSteps, upsert, queryClient]);
+
+  const handleApplyDraft = useCallback(async (draftId: number) => {
+    setApplyingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const response = await applyAiDraft.mutateAsync({
+        id: draftId,
+        data: {},
+      });
+
+      if (!response.visionFrame) {
+        throw new Error("Vision apply response did not include a vision frame.");
+      }
+
+      hydrateVisionFrameState(response.visionFrame);
+      queryClient.setQueryData(getGetVisionFrameQueryKey(), response.visionFrame);
+      queryClient.setQueryData(getListAiDraftsQueryKey(visionAIDraftListParams), (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === response.draft.id ? response.draft : draft)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getGetVisionFrameQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListAiDraftsQueryKey(visionAIDraftListParams) });
+      queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be applied. Refresh the review panel and try another draft.");
+        } else if (error.status === 422) {
+          setDraftActionError("This stored draft payload no longer matches the Vision frame contract and could not be applied.");
+        } else {
+          setDraftActionError(`Failed to apply the draft (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to apply the draft.");
+      }
+    } finally {
+      setApplyingDraftId(null);
+    }
+  }, [applyAiDraft, hydrateVisionFrameState, queryClient]);
+
+  const handleReviewStateChange = useCallback(async (draftId: number, reviewState: "approved" | "rejected") => {
+    setReviewingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const updatedDraft = await updateAiDraftReviewState.mutateAsync({
+        id: draftId,
+        data: { reviewState },
+      });
+
+      queryClient.setQueryData(getListAiDraftsQueryKey(visionAIDraftListParams), (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === updatedDraft.id ? updatedDraft : draft)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getListAiDraftsQueryKey(visionAIDraftListParams) });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be reviewed from the current state.");
+        } else {
+          setDraftActionError(`Failed to update the draft review state (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to update the draft review state.");
+      }
+    } finally {
+      setReviewingDraftId(null);
+    }
+  }, [queryClient, updateAiDraftReviewState]);
 
   const isNewFrame = !isLoading && !frame;
 
@@ -101,63 +253,241 @@ export default function VisionPage() {
     save({ nextSteps: updated });
   };
 
+  const addGoal = () => {
+    const updated = [...goals, { id: crypto.randomUUID(), text: "" }];
+    setGoals(updated);
+    save({ goals: updated });
+  };
+
+  const addNextStep = () => {
+    const updated = [...nextSteps, { id: crypto.randomUUID(), text: "" }];
+    setNextSteps(updated);
+    save({ nextSteps: updated });
+  };
+
+  const handleColourChange = (color: UserModeColourState) => {
+    const userModeQueryKey = getGetUserModeQueryKey();
+    const previousMode = queryClient.getQueryData<UserMode | undefined>(userModeQueryKey);
+    const nextMode = (previousMode?.mode ?? userMode?.mode ?? "explore") as UserModeMode;
+
+    queryClient.setQueryData<UserMode>(userModeQueryKey, {
+      id: previousMode?.id ?? userMode?.id ?? 0,
+      userId: previousMode?.userId ?? userMode?.userId ?? "optimistic",
+      mode: nextMode,
+      colourState: color,
+      createdAt: previousMode?.createdAt ?? userMode?.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
+    upsertUserMode.mutate(
+      {
+        data: {
+          mode: nextMode,
+          colourState: color,
+        },
+      },
+      {
+        onSuccess: (updatedMode) => {
+          queryClient.setQueryData(userModeQueryKey, updatedMode);
+        },
+        onError: () => {
+          queryClient.setQueryData(userModeQueryKey, previousMode);
+        },
+      },
+    );
+  };
+
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
-        <header className="space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight">Vision Tracker</h1>
-          <p className="text-muted-foreground">The big picture, broken down.</p>
-        </header>
+        <LaneHero
+          label="Goals"
+          title="Goals"
+          subtitle="Big ideas, broken into next steps."
+        />
 
-        <SkipProtocol />
+        <WorkspaceMoodPicker
+          colourState={(userMode?.colourState ?? "green") as UserModeColourState}
+          onColourChange={handleColourChange}
+          isSaving={upsertUserMode.isPending}
+        />
 
-        {!isSurfaceComplete("vision") && <SurfaceOnboardingCard surface="vision" />}
+        <div className="grid gap-3 md:grid-cols-2">
+          <BasicLaneNextStep lane="vision" isComplete={isSurfaceComplete("vision")} />
+          <BasicAITimeSaver lane="vision" />
+        </div>
 
-        {isNewFrame && (
-          <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-vision">
-            No vision frame yet. Start by naming what you're building towards — it autosaves as you go.
-          </div>
-        )}
+        <BasicLaneStepOrder lane="vision" />
 
-        <div className="grid gap-8 md:grid-cols-2">
-          <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-            <h2 className="text-xl font-semibold">Vision Goals</h2>
-            <p className="text-sm text-muted-foreground">What are we building towards?</p>
+        <PrimaryActionIsland data-testid="vision-goals-island">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
+            <h2 className="text-lg font-semibold">Goals</h2>
+            <p className="text-sm text-muted-foreground">Write one thing you want to build or change.</p>
             <div className="space-y-3">
               {goals.map((goal, i) => (
                 <div key={goal.id} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-medium text-sm shrink-0">
                     {i + 1}
                   </div>
-                  <Input 
+                  <Input
                     value={goal.text}
                     onChange={(e) => updateGoal(goal.id, e.target.value)}
-                    placeholder="Big goal..."
+                    placeholder="One goal..."
                     className="flex-1 bg-transparent border-transparent focus-visible:border-input"
                   />
                 </div>
               ))}
+              <Button variant="outline" size="sm" onClick={addGoal} data-testid="button-add-vision-goal">
+                Add goal
+              </Button>
             </div>
-          </section>
+          </div>
+        </PrimaryActionIsland>
 
-          <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-            <h2 className="text-xl font-semibold">Next Visible Steps</h2>
-            <p className="text-sm text-muted-foreground">What's the very next action?</p>
-            <div className="space-y-3">
-              {nextSteps.map((step, i) => (
-                <div key={step.id} className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
-                  <Input 
-                    value={step.text}
-                    onChange={(e) => updateNextStep(step.id, e.target.value)}
-                    placeholder="Next action..."
-                    className="flex-1 bg-transparent border-transparent focus-visible:border-input"
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        {isNewFrame && (
+          <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-vision">
+            Start with one goal. It saves as you work.
+          </div>
+        )}
+
+        <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
+            <h2 className="text-xl font-semibold">Next Steps</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">Write the next step you can actually see.</p>
+          <div className="space-y-3">
+            {nextSteps.map((step) => (
+              <div key={step.id} className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
+                <Input
+                  value={step.text}
+                  onChange={(e) => updateNextStep(step.id, e.target.value)}
+                  placeholder="One next step..."
+                  className="flex-1 bg-transparent border-transparent focus-visible:border-input"
+                />
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={addNextStep} data-testid="button-add-vision-next-step">
+              Add next step
+            </Button>
+          </div>
+        </section>
+
+        <BasicMoreSection
+          title="Review AI drafts"
+          description="AI can make a draft. You choose what to save."
+          testId="more-ai-drafts-vision"
+        >
+          <AIDraftReviewPanel
+            title={visionAIDraftReview.title}
+            emptyTitle={visionAIDraftReview.emptyTitle}
+            emptyDescription={visionAIDraftReview.emptyDescription}
+            drafts={aiDrafts}
+            isLoading={isAIDraftsLoading}
+            errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
+            actionErrorMessage={draftActionError}
+            modeBadgeLabel="Review first"
+            footerNote="Vision drafts can be approved, rejected, or applied to your goals. AI does not save changes by itself."
+            renderDraftActions={(draft) => {
+              if (draft.reviewState === "applied") {
+                return (
+                  <Button variant="outline" size="sm" disabled>
+                    Applied
+                  </Button>
+                );
+              }
+
+              const isBusy = applyingDraftId !== null || reviewingDraftId !== null;
+
+              if (draft.reviewState === "rejected") {
+                return (
+                  <Button variant="outline" size="sm" disabled>
+                    Rejected
+                  </Button>
+                );
+              }
+
+              if (draft.reviewState === "approval_gated" || draft.reviewState === "needs_review") {
+                return (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleReviewStateChange(draft.id, "approved")}
+                      disabled={isBusy}
+                      data-testid={`button-approve-draft-${draft.id}`}
+                    >
+                      {reviewingDraftId === draft.id ? "Saving..." : "Approve draft"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                      disabled={isBusy}
+                      data-testid={`button-reject-draft-${draft.id}`}
+                    >
+                      {reviewingDraftId === draft.id ? "Saving..." : "Reject draft"}
+                    </Button>
+                  </div>
+                );
+              }
+
+              if (draft.reviewState === "approved") {
+                return (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                      disabled={isBusy}
+                      data-testid={`button-reject-draft-${draft.id}`}
+                    >
+                      {reviewingDraftId === draft.id ? "Saving..." : "Reject draft"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleApplyDraft(draft.id)}
+                      disabled={isBusy}
+                      data-testid={`button-apply-draft-${draft.id}`}
+                    >
+                      {applyingDraftId === draft.id ? "Saving..." : "Save to goals"}
+                    </Button>
+                  </div>
+                );
+              }
+
+              return null;
+            }}
+            data-testid="ai-draft-placeholder-vision"
+          />
+        </BasicMoreSection>
+
+        <BasicMoreSection
+          title="More help"
+          description="Use these when goals need extra support."
+          testId="more-help-vision"
+        >
+          <SkipProtocol />
+          {!isSurfaceComplete("vision") && <SurfaceOnboardingCard surface="vision" />}
+          <SupportRail direction="row">
+            <span className="text-xs text-muted-foreground">Goals · Next Steps</span>
+          </SupportRail>
+        </BasicMoreSection>
+
+        <BasicMoreSection
+          title="Connected tools"
+          description="Linked longer-term items live here."
+          testId="more-connected-tools-vision"
+        >
+          <BabyHeroConsequencesCard
+            title="Linked milestones"
+            description="Linked assignments show here only when they affect your bigger picture."
+            items={babyHeroRollups?.vision ?? []}
+            emptyMessage="No linked milestones are in this window."
+            data-testid="baby-hero-consequences-vision"
+          />
+        </BasicMoreSection>
 
       </div>
     </Layout>

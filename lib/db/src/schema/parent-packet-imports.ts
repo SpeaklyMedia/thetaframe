@@ -19,6 +19,7 @@ export const parentPacketMaterializationsTable = pgTable(
   "parent_packet_materializations",
   {
     id: serial("id").primaryKey(),
+    uploaderUserId: text("uploader_user_id").notNull(),
     latestImportRunId: integer("latest_import_run_id").notNull(),
     sourceReachFileId: integer("source_reach_file_id").notNull(),
     packetKey: text("packet_key").notNull(),
@@ -35,6 +36,7 @@ export const parentPacketMaterializationsTable = pgTable(
   },
   (table) => ({
     sourceUnique: uniqueIndex("parent_packet_materializations_source_idx").on(
+      table.uploaderUserId,
       table.packetKey,
       table.sourcePath,
       table.sourceRecordKey,

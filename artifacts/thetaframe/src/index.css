@@ -59,6 +59,9 @@
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
+  --workspace-colour-rgb: 50 45 40;
+  --workspace-action-rgb: 50 45 40;
+  --workspace-action-foreground-rgb: 252 251 248;
 
   --opaque-button-border-intensity: -8;
 
@@ -173,9 +176,99 @@
   }
 }
 
-.auth-shell [class*="cl-socialButtons"],
-.auth-shell [class*="cl-socialButtons"] * {
-  display: none !important;
+@layer components {
+  .workspace-shell[data-workspace-colour]:not([data-workspace-colour="neutral"]) [data-testid="app-header"] {
+    background:
+      linear-gradient(0deg, rgb(var(--workspace-colour-rgb) / 0.08), rgb(var(--workspace-colour-rgb) / 0.08)),
+      hsl(var(--background) / 0.88);
+    border-color: rgb(var(--workspace-colour-rgb) / 0.18);
+  }
+
+  .workspace-shell[data-workspace-colour]:not([data-workspace-colour="neutral"]) {
+    --accent: 40 20% 94%;
+    --button-outline: rgb(var(--workspace-colour-rgb) / 0.34);
+  }
+
+  .tf-button {
+    border-width: 1px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.10);
+  }
+
+  .tf-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgb(0 0 0 / 0.13);
+  }
+
+  .tf-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.10);
+  }
+
+  .tf-button-default {
+    background: rgb(var(--workspace-action-rgb));
+    border-color: rgb(var(--workspace-action-rgb));
+    color: rgb(var(--workspace-action-foreground-rgb));
+  }
+
+  .tf-button-default:hover {
+    background:
+      linear-gradient(0deg, rgb(0 0 0 / 0.10), rgb(0 0 0 / 0.10)),
+      rgb(var(--workspace-action-rgb));
+  }
+
+  .tf-button-outline {
+    background:
+      linear-gradient(0deg, rgb(var(--workspace-colour-rgb) / 0.05), rgb(var(--workspace-colour-rgb) / 0.05)),
+      hsl(var(--background));
+    border-color: rgb(var(--workspace-colour-rgb) / 0.38);
+    color: hsl(var(--foreground));
+  }
+
+  .tf-button-outline:hover {
+    background:
+      linear-gradient(0deg, rgb(var(--workspace-colour-rgb) / 0.12), rgb(var(--workspace-colour-rgb) / 0.12)),
+      hsl(var(--background));
+    border-color: rgb(var(--workspace-colour-rgb) / 0.62);
+  }
+
+  .tf-button-secondary {
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--border));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .tf-button-destructive {
+    background: hsl(var(--destructive));
+    border-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+
+  .tf-button-ghost {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .tf-button-ghost:hover {
+    background: hsl(var(--accent));
+    box-shadow: none;
+  }
+
+  .tf-button-link {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: hsl(var(--primary));
+    padding-inline: 0;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  .tf-button-link:hover {
+    box-shadow: none;
+    text-decoration-line: underline;
+    transform: none;
+  }
 }
 
 .auth-shell [class*="cl-dividerRow"] {

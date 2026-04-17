@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ThetaFrame New-User Explainer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #302c28;
+        --muted: #6f6760;
+        --line: #dfd8ce;
+        --paper: #fffdf8;
+        --wash: #f5efe4;
+        --green: #dff3e3;
+        --blue: #e7eef8;
+        --purple: #efe8f7;
+        --yellow: #fbf1c8;
+        --charcoal: #292521;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 28px;
+        padding: 28px;
+      }
+
+      .deck-header,
+      .slide {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+      }
+
+      .deck-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        border-bottom: 1px solid var(--line);
+        padding: 8px 0 18px;
+      }
+
+      .deck-kicker,
+      .eyebrow,
+      .timing {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .deck-header h1,
+      .slide h2 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.1;
+      }
+
+      .deck-header p,
+      .slide p {
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.55;
+        margin: 8px 0 0;
+      }
+
+      .slide {
+        min-height: 680px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        box-shadow: 0 18px 40px rgba(48, 44, 40, 0.08);
+        overflow: hidden;
+      }
+
+      .slide-inner {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.86fr) minmax(0, 1.2fr);
+        gap: 26px;
+        min-height: 680px;
+        padding: 34px;
+      }
+
+      .slide:nth-of-type(2) {
+        background: var(--green);
+      }
+
+      .slide:nth-of-type(3) {
+        background: var(--blue);
+      }
+
+      .slide:nth-of-type(4) {
+        background: var(--yellow);
+      }
+
+      .slide:nth-of-type(5) {
+        background: var(--purple);
+      }
+
+      .copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 28px;
+        min-width: 0;
+      }
+
+      .bullets {
+        display: grid;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .bullet {
+        border: 1px solid rgba(48, 44, 40, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 253, 248, 0.78);
+        padding: 12px 14px;
+      }
+
+      .bullet strong {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 3px;
+      }
+
+      .bullet span {
+        color: var(--muted);
+        display: block;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .shot-grid {
+        align-self: center;
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .shot-grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .shot {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(48, 44, 40, 0.08);
+      }
+
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .shot.hero img {
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .caption {
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 9px 11px;
+      }
+
+      .notes {
+        border-top: 1px solid rgba(48, 44, 40, 0.14);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+        padding-top: 14px;
+      }
+
+      .notes strong {
+        color: var(--ink);
+      }
+
+      .lane-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .lane {
+        border: 1px solid rgba(48, 44, 40, 0.12);
+        border-radius: 8px;
+        padding: 14px;
+        background: rgba(255, 253, 248, 0.8);
+      }
+
+      .lane b {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+
+      .lane small {
+        color: var(--muted);
+        display: block;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .privacy-note {
+        border-radius: 8px;
+        background: rgba(41, 37, 33, 0.9);
+        color: #fff7e8;
+        font-size: 12px;
+        line-height: 1.45;
+        padding: 12px;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          padding: 18px;
+        }
+
+        .deck-header {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .slide,
+        .slide-inner {
+          min-height: unset;
+        }
+
+        .slide-inner {
+          grid-template-columns: 1fr;
+          padding: 22px;
+        }
+
+        .deck-header h1,
+        .slide h2 {
+          font-size: 28px;
+        }
+
+        .shot-grid.two,
+        .lane-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="deck-header">
+        <div>
+          <div class="deck-kicker">4E Explainer Media · C32 · 2026-04-16</div>
+          <h1>ThetaFrame New-User Explainer</h1>
+          <p>Five real product slides for a 60-90 second walkthrough.</p>
+        </div>
+        <div class="timing">Target run time: 75 seconds</div>
+      </header>
+
+      <section class="slide" aria-labelledby="slide-1-title">
+        <div class="slide-inner">
+          <div class="copy">
+            <div>
+              <div class="eyebrow">Slide 1 · 12 seconds</div>
+              <h2 id="slide-1-title">ThetaFrame gives the week a calm operating system.</h2>
+              <p>
+                The app is organized around lanes. Each lane has one job, so users can move from
+                orientation to action without turning the product into a noisy dashboard.
+              </p>
+              <div class="bullets">
+                <div class="bullet">
+                  <strong>One shell</strong>
+                  <span>Navigation, identity, and mode stay consistent across every lane.</span>
+                </div>
+                <div class="bullet">
+                  <strong>Clear starting point</strong>
+                  <span>New users begin with the core Daily, Weekly, and Vision surfaces.</span>
+                </div>
+              </div>
+            </div>
+            <div class="notes">
+              <strong>Speaker note:</strong> Start by naming ThetaFrame as a quiet structure for
+              deciding what matters today, this week, and over the longer arc.
+            </div>
+          </div>
+          <div class="shot-grid">
+            <figure class="shot hero">
+              <img src="./c32-assets/01-public-shell.png" alt="ThetaFrame public shell screenshot" />
+              <figcaption class="caption">Production public shell, captured from thetaframe.mrksylvstr.com.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-2-title">
+        <div class="slide-inner">
+          <div class="copy">
+            <div>
+              <div class="eyebrow">Slide 2 · 18 seconds</div>
+              <h2 id="slide-2-title">Basic starts with Daily, Weekly, and Vision.</h2>
+              <p>
+                Basic users get the planning spine by default: today, the week, and the longer view.
+                The AI assistant remains scoped to the lanes the user can access.
+              </p>
+              <div class="lane-strip">
+                <div class="lane">
+                  <b>Daily</b>
+                  <small>Choose a realistic starting point for today.</small>
+                </div>
+                <div class="lane">
+                  <b>Weekly</b>
+                  <small>Protect the week around theme and next steps.</small>
+                </div>
+                <div class="lane">
+                  <b>Vision</b>
+                  <small>Keep long-range direction visible.</small>
+                </div>
+              </div>
+            </div>
+            <div class="notes">
+              <strong>Speaker note:</strong> Explain that Basic is not a stripped-down admin view.
+              It is the intended default for someone starting to use ThetaFrame.
+            </div>
+          </div>
+          <div class="shot-grid two">
+            <figure class="shot">
+              <img src="./c32-assets/02-basic-daily.png" alt="Basic user Daily lane screenshot" />
+              <figcaption class="caption">Daily Frame</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="./c32-assets/03-basic-weekly.png" alt="Basic user Weekly lane screenshot" />
+              <figcaption class="caption">Weekly Rhythm</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="./c32-assets/04-basic-vision.png" alt="Basic user Vision lane screenshot" />
+              <figcaption class="caption">Vision Tracker</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-3-title">
+        <div class="slide-inner">
+          <div class="copy">
+            <div>
+              <div class="eyebrow">Slide 3 · 14 seconds</div>
+              <h2 id="slide-3-title">Advanced lanes are assigned intentionally.</h2>
+              <p>
+                Life Ledger is an example of a Select Authorized lane. It can hold dated obligations
+                and reminders, but it only appears when Admin assigns that access.
+              </p>
+              <div class="bullets">
+                <div class="bullet">
+                  <strong>Not hidden-only security</strong>
+                  <span>Route and API checks enforce the same lane permissions.</span>
+                </div>
+                <div class="bullet">
+                  <strong>Expandable without billing logic</strong>
+                  <span>The access framework can support future paid packaging later.</span>
+                </div>
+              </div>
+            </div>
+            <div class="notes">
+              <strong>Speaker note:</strong> Keep this simple: Admin can grant advanced surfaces,
+              and Basic still keeps the core planning loop.
+            </div>
+          </div>
+          <div class="shot-grid">
+            <figure class="shot hero">
+              <img src="./c32-assets/05-select-life-ledger-events.png" alt="Select Authorized Life Ledger events screenshot" />
+              <figcaption class="caption">Select Authorized account with Life Ledger assigned.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-4-title">
+        <div class="slide-inner">
+          <div class="copy">
+            <div>
+              <div class="eyebrow">Slide 4 · 16 seconds</div>
+              <h2 id="slide-4-title">AI creates drafts. People approve changes.</h2>
+              <p>
+                High-risk data does not silently change. AI-generated suggestions land in review
+                surfaces first, then an allowed user approves, rejects, or applies them.
+              </p>
+              <div class="bullets">
+                <div class="bullet">
+                  <strong>Review-first by default</strong>
+                  <span>Drafts carry provenance and approval state before they affect user data.</span>
+                </div>
+                <div class="bullet">
+                  <strong>Lane-scoped assistant</strong>
+                  <span>AI operates inside the lanes the current user is allowed to use.</span>
+                </div>
+              </div>
+            </div>
+            <div class="notes">
+              <strong>Speaker note:</strong> Use this slide to establish trust: the system can help
+              populate work, but it does not bypass review for sensitive changes.
+            </div>
+          </div>
+          <div class="shot-grid">
+            <figure class="shot hero">
+              <img src="./c32-assets/06-admin-baby-review-privacy-safe.png" alt="Admin Baby KB AI review screenshot with private content blurred" />
+              <figcaption class="caption">Real Admin/Baby KB review surface with private content blurred for the explainer artifact.</figcaption>
+            </figure>
+            <div class="privacy-note">
+              This screenshot is from production. Private card content is intentionally blurred; the visible product behavior is the review-and-apply workflow.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-labelledby="slide-5-title">
+        <div class="slide-inner">
+          <div class="copy">
+            <div>
+              <div class="eyebrow">Slide 5 · 15 seconds</div>
+              <h2 id="slide-5-title">Access levels keep the app private and controlled.</h2>
+              <p>
+                The product can grow without making every feature visible to every account. Admin
+                sees everything, Select Authorized gets assigned lanes, and Basic stays focused.
+              </p>
+              <div class="bullets">
+                <div class="bullet">
+                  <strong>Basic User</strong>
+                  <span>Daily, Weekly, Vision, and lane-scoped AI support.</span>
+                </div>
+                <div class="bullet">
+                  <strong>Select Authorized</strong>
+                  <span>Basic plus Admin-assigned modules such as Life Ledger.</span>
+                </div>
+                <div class="bullet">
+                  <strong>Admin</strong>
+                  <span>Everything built now, plus assignment and review tooling.</span>
+                </div>
+              </div>
+            </div>
+            <div class="notes">
+              <strong>Speaker note:</strong> Close by saying the app is ready to explain to new users
+              now, while paid packaging can be defined later on top of the same access model.
+            </div>
+          </div>
+          <div class="shot-grid two">
+            <figure class="shot">
+              <img src="./c32-assets/02-basic-daily.png" alt="Basic access Daily screenshot" />
+              <figcaption class="caption">Basic default</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="./c32-assets/05-select-life-ledger-events.png" alt="Select Authorized Life Ledger screenshot" />
+              <figcaption class="caption">Assigned advanced lane</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="./c32-assets/06-admin-baby-review-privacy-safe.png" alt="Admin review tooling screenshot with private content blurred" />
+              <figcaption class="caption">Admin review tooling</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

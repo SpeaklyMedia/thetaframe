@@ -1,12 +1,22 @@
 import { useRef, useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
+import { AIDraftReviewPanel } from "@/components/shell/AIDraftReviewPanel";
+import { LaneHero } from "@/components/shell/LaneHero";
+import { MobileIntegrationStatusCard } from "@/components/shell/MobileIntegrationStatusCard";
+import { SupportRail } from "@/components/shell/SupportRail";
 import {
+  type AIDraft,
+  ApiError,
+  useApplyAiDraft,
+  useListAiDrafts,
+  getListAiDraftsQueryKey,
   useListReachFiles,
   useCreateReachFile,
   useDeleteReachFile,
   useRequestUploadUrl,
   getListReachFilesQueryKey,
   ReachFile,
+  useUpdateAiDraftReviewState,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +34,11 @@ import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboard
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
+import {
+  getReachAIDraftReviewPanelCopy,
+  reachAIDraftListParams,
+} from "@/lib/ai-draft-review";
+import { reachMobilePlaceholder } from "@/lib/mobile-placeholders";
 import {
   PARENT_PACKET_IMPORTS_QUERY_KEY,
   useCreateParentPacketImport,
@@ -61,6 +76,35 @@ function coarseType(fileType: string | null | undefined): string {
 
 function getFileAccessUrl(objectPath: string): string {
   return `/api/storage${encodeURI(objectPath)}`;
+}
+
+function resolveReachDraftTargetFile(draft: AIDraft, files: ReachFile[] | undefined): ReachFile | null {
+  const fileList = files ?? [];
+  const payload = draft.proposedPayload as Record<string, unknown>;
+
+  if (typeof payload.reachFileId === "number") {
+    return fileList.find((file) => file.id === payload.reachFileId) ?? null;
+  }
+
+  const reachSource = draft.sourceRefs.find((sourceRef) => sourceRef.sourceType === "reach_file");
+  if (!reachSource) return null;
+
+  if (/^\d+$/.test(reachSource.ref)) {
+    const fileId = Number.parseInt(reachSource.ref, 10);
+    return fileList.find((file) => file.id === fileId) ?? null;
+  }
+
+  const prefixedIdMatch = /^reach[-_:]?file[-_:]?(\d+)$/i.exec(reachSource.ref);
+  if (prefixedIdMatch) {
+    const fileId = Number.parseInt(prefixedIdMatch[1], 10);
+    return fileList.find((file) => file.id === fileId) ?? null;
+  }
+
+  if (reachSource.ref.startsWith("/objects/")) {
+    return fileList.find((file) => file.objectPath === reachSource.ref) ?? null;
+  }
+
+  return null;
 }
 
 function isArchiveFile(file: ReachFile): boolean {
@@ -148,22 +192,39 @@ export default function ReachPage() {
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; file: File }>>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [importingId, setImportingId] = useState<number | null>(null);
+  const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
+  const [reviewingDraftId, setReviewingDraftId] = useState<number | null>(null);
+  const [draftActionError, setDraftActionError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("All");
 
   const { data: files, isLoading } = useListReachFiles({
     query: { queryKey: getListReachFilesQueryKey() },
   });
+  const {
+    data: aiDrafts,
+    isLoading: isAIDraftsLoading,
+    error: aiDraftsError,
+  } = useListAiDrafts(reachAIDraftListParams, {
+    query: {
+      queryKey: getListAiDraftsQueryKey(reachAIDraftListParams),
+      refetchOnWindowFocus: false,
+    },
+  });
 
   const requestUploadUrl = useRequestUploadUrl();
   const createFileMutation = useCreateReachFile();
   const deleteFileMutation = useDeleteReachFile();
+  const applyAiDraft = useApplyAiDraft();
+  const updateAiDraftReviewState = useUpdateAiDraftReviewState();
   const importParentPacketMutation = useCreateParentPacketImport();
   const { isSurfaceComplete } = useOnboardingProgress();
+  const reachAIDraftReview = getReachAIDraftReviewPanelCopy();
 
   const invalidate = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: getListReachFilesQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getListAiDraftsQueryKey(reachAIDraftListParams) }),
       queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: PARENT_PACKET_IMPORTS_QUERY_KEY }),
     ]);
@@ -273,13 +334,178 @@ export default function ReachPage() {
     }
   };
 
+  const handleApplyDraft = async (draft: AIDraft) => {
+    const targetFile = resolveReachDraftTargetFile(draft, files);
+    if (!targetFile) {
+      setDraftActionError("This REACH draft does not resolve to an existing file. Recreate the draft from a current file and try again.");
+      return;
+    }
+
+    setApplyingDraftId(draft.id);
+    setDraftActionError(null);
+
+    try {
+      const response = await applyAiDraft.mutateAsync({
+        id: draft.id,
+        data: { reachFileId: targetFile.id },
+      });
+
+      if (!response.reachFile) {
+        throw new Error("REACH apply response did not include a reach file.");
+      }
+
+      queryClient.setQueryData(getListReachFilesQueryKey(), (current: ReachFile[] | undefined) =>
+        current?.map((file) => (file.id === response.reachFile!.id ? response.reachFile! : file)) ?? current,
+      );
+      queryClient.setQueryData(getListAiDraftsQueryKey(reachAIDraftListParams), (current: AIDraft[] | undefined) =>
+        current?.map((item) => (item.id === response.draft.id ? response.draft : item)) ?? current,
+      );
+      await invalidate();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be applied. Refresh the review panel and try another draft.");
+        } else if (error.status === 422) {
+          setDraftActionError("This stored draft payload no longer matches the REACH metadata apply contract and could not be applied.");
+        } else if (error.status === 404) {
+          setDraftActionError("The source REACH file no longer exists, so this draft cannot be applied.");
+        } else {
+          setDraftActionError(`Failed to apply the draft (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to apply the draft.");
+      }
+    } finally {
+      setApplyingDraftId(null);
+    }
+  };
+
+  const handleReviewStateChange = async (draftId: number, reviewState: "approved" | "rejected") => {
+    setReviewingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const updatedDraft = await updateAiDraftReviewState.mutateAsync({
+        id: draftId,
+        data: { reviewState },
+      });
+
+      queryClient.setQueryData(getListAiDraftsQueryKey(reachAIDraftListParams), (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === updatedDraft.id ? updatedDraft : draft)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getListAiDraftsQueryKey(reachAIDraftListParams) });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be reviewed from the current state.");
+        } else {
+          setDraftActionError(`Failed to update the draft review state (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to update the draft review state.");
+      }
+    } finally {
+      setReviewingDraftId(null);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-reach-title">REACH</h1>
-          <p className="text-muted-foreground mt-1">Keep the files you need close at hand so they can be uploaded, opened, and reused without hunting for them.</p>
-        </header>
+        <LaneHero
+          label="REACH"
+          title="Files close at hand"
+          subtitle="Keep the files you need close at hand so they can be uploaded, opened, and reused without hunting for them."
+          headingTestId="text-reach-title"
+        />
+
+        <SupportRail direction="row">
+          <span className="text-xs text-muted-foreground">Upload · Search · Reuse · Packet import</span>
+        </SupportRail>
+
+        <AIDraftReviewPanel
+          title={reachAIDraftReview.title}
+          emptyTitle={reachAIDraftReview.emptyTitle}
+          emptyDescription={reachAIDraftReview.emptyDescription}
+          drafts={aiDrafts}
+          isLoading={isAIDraftsLoading}
+          errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
+          actionErrorMessage={draftActionError}
+          modeBadgeLabel="Review + metadata apply enabled"
+          footerNote="Stored REACH drafts can be reviewed here, and metadata-only drafts may be approved, rejected, or applied back to their source file notes. No storage-object mutation or file replacement exists in this slice."
+          renderDraftActions={(draft) => {
+            if (draft.reviewState === "applied") {
+              return (
+                <Button variant="outline" size="sm" disabled>
+                  Applied
+                </Button>
+              );
+            }
+
+            const targetFile = resolveReachDraftTargetFile(draft, files);
+            const isBusy = applyingDraftId !== null || reviewingDraftId !== null;
+
+            if (draft.reviewState === "rejected") {
+              return (
+                <Button variant="outline" size="sm" disabled>
+                  Rejected
+                </Button>
+              );
+            }
+
+            if (draft.reviewState === "needs_review" || draft.reviewState === "approved") {
+              return (
+                <div className="flex flex-wrap justify-end gap-2">
+                  {draft.reviewState === "needs_review" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleReviewStateChange(draft.id, "approved")}
+                      disabled={isBusy}
+                      data-testid={`button-approve-draft-${draft.id}`}
+                    >
+                      {reviewingDraftId === draft.id ? "Saving..." : "Approve"}
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                    disabled={isBusy}
+                    data-testid={`button-reject-draft-${draft.id}`}
+                  >
+                    {reviewingDraftId === draft.id ? "Saving..." : "Reject"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => void handleApplyDraft(draft)}
+                    disabled={isBusy || !targetFile}
+                    data-testid={`button-apply-draft-${draft.id}`}
+                    title={targetFile ? `Apply metadata to ${targetFile.name}` : "Resolve the source REACH file before applying"}
+                  >
+                    {applyingDraftId === draft.id ? "Applying..." : targetFile ? "Apply to source file" : "Source file unavailable"}
+                  </Button>
+                </div>
+              );
+            }
+
+            return null;
+          }}
+          data-testid="ai-draft-placeholder-reach"
+        />
+
+        <MobileIntegrationStatusCard
+          mode={reachMobilePlaceholder.mode}
+          title={reachMobilePlaceholder.title}
+          description={reachMobilePlaceholder.description}
+          chips={reachMobilePlaceholder.chips}
+          note={reachMobilePlaceholder.note}
+          data-testid="mobile-placeholder-reach"
+        />
 
         {!isSurfaceComplete("reach") && <SurfaceOnboardingCard surface="reach" />}
 

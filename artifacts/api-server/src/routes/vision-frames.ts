@@ -13,21 +13,14 @@ import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAu
 import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
+import {
+  upsertVisionFrameForUser,
+  validateVisionFrameUpsertData,
+  VisionFrameValidationError,
+} from "../lib/visionFrames.js";
 
 const router: IRouter = Router();
 router.use("/vision-frames", requireAuth, requireModuleAccess("vision"));
-
-const upsertVision = async (userId: string, goals: unknown, nextSteps: unknown) => {
-  const [frame] = await db
-    .insert(visionFramesTable)
-    .values({ userId, goals, nextSteps })
-    .onConflictDoUpdate({
-      target: [visionFramesTable.userId],
-      set: { goals, nextSteps, updatedAt: new Date() },
-    })
-    .returning();
-  return frame;
-};
 
 router.get("/vision-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
@@ -53,16 +46,18 @@ router.post("/vision-frames", async (req: Request, res: Response): Promise<void>
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (body.data.goals.length > 3) {
-    res.status(400).json({ error: "Goals may not contain more than 3 items." });
-    return;
-  }
-  if (body.data.nextSteps.length > 3) {
-    res.status(400).json({ error: "Next steps may not contain more than 3 items." });
-    return;
+  let visionData;
+  try {
+    visionData = validateVisionFrameUpsertData(body.data);
+  } catch (error) {
+    if (error instanceof VisionFrameValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
   }
 
-  const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
+  const frame = await upsertVisionFrameForUser({ userId, data: visionData });
   await markOnboardingSurfaceComplete(userId, "vision");
   res.json(CreateVisionFrameResponse.parse(serializeDates(frame)));
 });
@@ -91,16 +86,19 @@ router.put("/vision-frames/me", async (req: Request, res: Response): Promise<voi
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (body.data.goals.length > 3) {
-    res.status(400).json({ error: "Goals may not contain more than 3 items." });
-    return;
-  }
-  if (body.data.nextSteps.length > 3) {
-    res.status(400).json({ error: "Next steps may not contain more than 3 items." });
-    return;
+
+  let visionData;
+  try {
+    visionData = validateVisionFrameUpsertData(body.data);
+  } catch (error) {
+    if (error instanceof VisionFrameValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
   }
 
-  const frame = await upsertVision(userId, body.data.goals, body.data.nextSteps);
+  const frame = await upsertVisionFrameForUser({ userId, data: visionData });
   await markOnboardingSurfaceComplete(userId, "vision");
   res.json(UpsertVisionFrameResponse.parse(serializeDates(frame)));
 });

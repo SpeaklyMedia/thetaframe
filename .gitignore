@@ -31,6 +31,9 @@ node_modules
 /.sass-cache
 /connect.lock
 /coverage
+/test-results
+/scripts/test-results
+/scripts/scripts/
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
@@ -56,3 +59,13 @@ replit.nix
 # Vercel
 .vercel/
 .vercel
+
+# Local transfer/archive drops
+/artifacts/arch1-pm-master-transport/
+/artifacts/arch1-pm-return-ingest/
+/artifacts/replit-complete-send-set/
+/artifacts/replit-outbound-handoff/
+/artifacts/replit-r2-activation/
+/artifacts/replit-r3-return/
+/artifacts/receipts/screenshots/
+*.zip

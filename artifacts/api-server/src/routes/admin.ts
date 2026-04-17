@@ -4,7 +4,19 @@ import { getAuth, clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import { accessPermissionsTable, accessPresetsTable, reachFilesTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { ensureOwnerBootstrap, getUserAndMaybeBootstrap, isAdminUser, isOwnerUser } from "../lib/access.js";
+import {
+  ALL_ENVIRONMENTS,
+  ALL_MODULES,
+  STANDARD_ACCESS_PRESET_NAMES,
+  STANDARD_ACCESS_PRESETS,
+  SYSTEM_GRANT_SOURCE,
+  buildPermissionEntriesForModules,
+  ensureOwnerBootstrap,
+  getAccessLevelForUser,
+  getEffectivePermissionEntriesForUser,
+  getUserAndMaybeBootstrap,
+  isAdminUser,
+} from "../lib/access.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 import {
   importParentPacketFromReachFile,
@@ -16,6 +28,20 @@ import {
   listBabyKbPromotionsForUser,
   promoteBabyKbEntry,
 } from "../lib/babyKbAdmin.js";
+import {
+  babyAssignmentManualCreateDataSchema,
+  babyAssignmentUpdateDataSchema,
+  createBabyKbAssignment,
+  listBabyKbAssignmentsForUser,
+  updateBabyKbAssignment,
+} from "../lib/babyKbAssignments.js";
+import {
+  BabyAssignmentSuggestionEligibilityError,
+  BabyAssignmentSuggestionGenerationError,
+  BabyAssignmentSuggestionProviderUnavailableError,
+  generateBabyAssignmentSuggestionDraftInput,
+} from "../lib/babyKbAssignmentSuggestions.js";
+import { createStoredAIDraft } from "../lib/aiDrafts.js";
 
 const router = Router();
 
@@ -43,12 +69,9 @@ const requireAdmin = async (req: Request, res: Response, next: Function): Promis
   }
 };
 
-const VALID_MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
-const VALID_ENVIRONMENTS = ["development", "staging", "production"] as const;
-
 const PermissionEntrySchema = z.object({
-  module: z.enum(VALID_MODULES),
-  environment: z.enum(VALID_ENVIRONMENTS),
+  module: z.enum(ALL_MODULES),
+  environment: z.enum(ALL_ENVIRONMENTS),
 });
 
 const PutUserPermissionsBody = z.object({
@@ -58,6 +81,16 @@ const PutUserPermissionsBody = z.object({
 const CreatePresetBody = z.object({
   name: z.string().min(1),
   permissions: z.array(PermissionEntrySchema),
+});
+
+const CreateBabyKbAssignmentBody = babyAssignmentManualCreateDataSchema;
+const UpdateBabyKbAssignmentBody = babyAssignmentUpdateDataSchema;
+const CreateBabyKbAssignmentSuggestionBody = z.object({
+  sourceEntryId: z.number().int().positive(),
+});
+
+const BabyKbAssignmentIdParams = z.object({
+  id: z.coerce.number().int().positive(),
 });
 
 const AdminUserIdParams = z.object({ userId: z.string() });
@@ -111,6 +144,16 @@ function serializePreset(preset: typeof accessPresetsTable.$inferSelect) {
   };
 }
 
+async function ensureStandardAccessPresets(): Promise<void> {
+  await db.insert(accessPresetsTable).values(
+    STANDARD_ACCESS_PRESETS.map((preset) => ({
+      name: preset.name,
+      permissions: buildPermissionEntriesForModules(preset.modules),
+      createdBy: SYSTEM_GRANT_SOURCE,
+    })),
+  ).onConflictDoNothing();
+}
+
 router.get("/admin/users", requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const allClerkUsers = [];
@@ -138,6 +181,7 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response): Pr
     }
 
     const users = clerkUsers.map((u) => ({
+      accessLevel: getAccessLevelForUser(u, getEffectivePermissionEntriesForUser(u, permsByUser[u.id] ?? [])),
       id: u.id,
       firstName: u.firstName ?? null,
       lastName: u.lastName ?? null,
@@ -148,7 +192,7 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response): Pr
       role: isAdminUser(u)
         ? "admin"
         : (((u.publicMetadata as Record<string, unknown>)?.role as string) ?? null),
-      permissions: permsByUser[u.id] ?? [],
+      permissions: getEffectivePermissionEntriesForUser(u, permsByUser[u.id] ?? []),
     }));
 
     res.json(users);
@@ -169,7 +213,10 @@ router.get("/admin/users/:userId/permissions", requireAdmin, async (req: Request
   const perms = await db.select().from(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
   res.json({
     userId,
-    permissions: perms.map((p) => ({ module: p.module, environment: p.environment })),
+    permissions: getEffectivePermissionEntriesForUser(
+      targetUser,
+      perms.map((p) => ({ module: p.module, environment: p.environment })),
+    ),
   });
 });
 
@@ -188,14 +235,16 @@ router.put("/admin/users/:userId/permissions", requireAdmin, async (req: Request
   const grantedBy = (req as AdminRequest).adminUserId;
   const targetUser = await clerkClient.users.getUser(userId);
 
-  if (isOwnerUser(targetUser)) {
+  if (isAdminUser(targetUser)) {
     await ensureOwnerBootstrap(targetUser, req.log);
   } else {
+    const normalizedPermissions = getEffectivePermissionEntriesForUser(targetUser, body.data.permissions);
+
     await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
 
-    if (body.data.permissions.length > 0) {
+    if (normalizedPermissions.length > 0) {
       await db.insert(accessPermissionsTable).values(
-        body.data.permissions.map((p) => ({
+        normalizedPermissions.map((p) => ({
           userId,
           module: p.module,
           environment: p.environment,
@@ -209,11 +258,15 @@ router.put("/admin/users/:userId/permissions", requireAdmin, async (req: Request
   await markOnboardingSurfaceComplete(grantedBy, "admin");
   res.json({
     userId,
-    permissions: updated.map((p) => ({ module: p.module, environment: p.environment })),
+    permissions: getEffectivePermissionEntriesForUser(
+      targetUser,
+      updated.map((p) => ({ module: p.module, environment: p.environment })),
+    ),
   });
 });
 
 router.get("/admin/presets", requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  await ensureStandardAccessPresets();
   const presets = await db.select().from(accessPresetsTable);
   res.json(presets.map(serializePreset));
 });
@@ -234,6 +287,12 @@ router.get("/admin/baby-kb/promotions", requireAdmin, async (req: Request, res: 
   const adminUserId = (req as AdminRequest).adminUserId;
   const promotions = await listBabyKbPromotionsForUser(adminUserId);
   res.json(promotions);
+});
+
+router.get("/admin/baby-kb/assignments", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const adminUserId = (req as AdminRequest).adminUserId;
+  const assignments = await listBabyKbAssignmentsForUser(adminUserId);
+  res.json(assignments);
 });
 
 router.post("/admin/parent-packet-imports", requireAdmin, async (req: Request, res: Response): Promise<void> => {
@@ -282,6 +341,89 @@ router.post("/admin/baby-kb/promotions", requireAdmin, async (req: Request, res:
   }
 });
 
+router.post("/admin/baby-kb/assignments", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const body = CreateBabyKbAssignmentBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const adminUserId = (req as AdminRequest).adminUserId;
+
+  try {
+    const assignment = await createBabyKbAssignment(adminUserId, body.data);
+    res.status(201).json(assignment);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create Baby KB assignment";
+    res.status(409).json({ error: message });
+  }
+});
+
+router.post("/admin/baby-kb/assignment-suggestions", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const body = CreateBabyKbAssignmentSuggestionBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const adminUserId = (req as AdminRequest).adminUserId;
+
+  try {
+    const suggestion = await generateBabyAssignmentSuggestionDraftInput(adminUserId, body.data.sourceEntryId);
+    const draft = await createStoredAIDraft({
+      userId: adminUserId,
+      draftKind: "baby_kb_assignment_draft",
+      confidenceMode: "suggest_only",
+      inputChannels: ["typed_text"],
+      proposedPayload: suggestion.proposedPayload,
+      sourceRefs: suggestion.sourceRefs,
+      reviewNotes: suggestion.reviewNotes,
+      metadata: suggestion.metadata,
+    });
+    res.status(201).json(draft);
+  } catch (error) {
+    if (error instanceof BabyAssignmentSuggestionEligibilityError) {
+      res.status(409).json({ error: error.message });
+      return;
+    }
+    if (error instanceof BabyAssignmentSuggestionProviderUnavailableError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    if (error instanceof BabyAssignmentSuggestionGenerationError) {
+      res.status(502).json({ error: error.message });
+      return;
+    }
+
+    const message = error instanceof Error ? error.message : "Failed to generate Baby KB assignment suggestion";
+    res.status(500).json({ error: message });
+  }
+});
+
+router.patch("/admin/baby-kb/assignments/:id", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const params = BabyKbAssignmentIdParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid Baby KB assignment id" });
+    return;
+  }
+
+  const body = UpdateBabyKbAssignmentBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const adminUserId = (req as AdminRequest).adminUserId;
+
+  try {
+    const assignment = await updateBabyKbAssignment(adminUserId, params.data.id, body.data);
+    res.json(assignment);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to update Baby KB assignment";
+    res.status(409).json({ error: message });
+  }
+});
+
 router.post("/admin/baby-kb/bulk-update", requireAdmin, async (req: Request, res: Response): Promise<void> => {
   const body = BulkUpdateBabyKbBody.safeParse(req.body);
   if (!body.success) {
@@ -309,7 +451,11 @@ router.post("/admin/presets", requireAdmin, async (req: Request, res: Response):
   const createdBy = (req as AdminRequest).adminUserId;
   const [preset] = await db
     .insert(accessPresetsTable)
-    .values({ name: body.data.name, permissions: body.data.permissions, createdBy })
+    .values({
+      name: body.data.name,
+      permissions: getEffectivePermissionEntriesForUser({ id: createdBy }, body.data.permissions),
+      createdBy,
+    })
     .returning();
   await markOnboardingSurfaceComplete(createdBy, "admin");
   res.status(201).json(serializePreset(preset));
@@ -322,6 +468,11 @@ router.delete("/admin/presets/:id", requireAdmin, async (req: Request, res: Resp
     return;
   }
   const adminUserId = (req as AdminRequest).adminUserId;
+  const [preset] = await db.select().from(accessPresetsTable).where(eq(accessPresetsTable.id, params.data.id));
+  if (preset && (STANDARD_ACCESS_PRESET_NAMES as readonly string[]).includes(preset.name)) {
+    res.status(409).json({ error: "Standard access presets cannot be deleted." });
+    return;
+  }
   await db.delete(accessPresetsTable).where(eq(accessPresetsTable.id, params.data.id));
   await markOnboardingSurfaceComplete(adminUserId, "admin");
   res.status(204).end();
@@ -345,14 +496,16 @@ router.post("/admin/presets/:id/apply/:userId", requireAdmin, async (req: Reques
 
   const perms = (preset.permissions as Array<{ module: string; environment: string }>);
 
-  if (isOwnerUser(targetUser)) {
+  if (isAdminUser(targetUser)) {
     await ensureOwnerBootstrap(targetUser, req.log);
   } else {
+    const normalizedPermissions = getEffectivePermissionEntriesForUser(targetUser, perms);
+
     await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
 
-    if (perms.length > 0) {
+    if (normalizedPermissions.length > 0) {
       await db.insert(accessPermissionsTable).values(
-        perms.map((p) => ({ userId, module: p.module, environment: p.environment, grantedBy })),
+        normalizedPermissions.map((p) => ({ userId, module: p.module, environment: p.environment, grantedBy })),
       );
     }
   }
@@ -361,7 +514,10 @@ router.post("/admin/presets/:id/apply/:userId", requireAdmin, async (req: Reques
   await markOnboardingSurfaceComplete(grantedBy, "admin");
   res.json({
     userId,
-    permissions: updated.map((p) => ({ module: p.module, environment: p.environment })),
+    permissions: getEffectivePermissionEntriesForUser(
+      targetUser,
+      updated.map((p) => ({ module: p.module, environment: p.environment })),
+    ),
   });
 });
 

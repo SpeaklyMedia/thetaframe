@@ -9,15 +9,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { BasicStartGuide } from "@/components/basic-guidance";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { usePermissions } from "@/hooks/usePermissions";
+import { BASIC_LANE_ORDER, type BasicLane } from "@/lib/basic-onboarding";
+import { THETAFRAME_OPEN_GUIDE_EVENT } from "@/lib/guide-events";
 import { getPreferredRoute } from "@/lib/navigation";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 function getDismissKey(userId: string) {
   return `thetaframe:onboarding-modal-dismissed:${userId}`;
+}
+
+function getGuideLaneForPath(path: string): BasicLane | null {
+  const pathname = path.split("?")[0] ?? "/";
+  if (pathname.startsWith("/daily")) return "daily";
+  if (pathname.startsWith("/weekly")) return "weekly";
+  if (pathname.startsWith("/vision")) return "vision";
+  return null;
 }
 
 export function SignedInOnboardingModal() {
@@ -25,18 +36,24 @@ export function SignedInOnboardingModal() {
   const queryClient = useQueryClient();
   const { surfaces, incompleteSurfaces, completedCount, isLoading, isError } = useOnboardingProgress();
   const { modules, isAdmin } = usePermissions();
+  const [location] = useLocation();
   const [dismissed, setDismissed] = useState(true);
   const [openedOnce, setOpenedOnce] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualGuideLane, setManualGuideLane] = useState<BasicLane | null>(null);
 
   const dismissKey = useMemo(
     () => (userId ? getDismissKey(userId) : null),
     [userId],
   );
+  const currentGuideLane = useMemo(() => getGuideLaneForPath(location), [location]);
 
   useEffect(() => {
     if (!dismissKey) {
       setDismissed(true);
       setOpenedOnce(false);
+      setManualOpen(false);
+      setManualGuideLane(null);
       return;
     }
 
@@ -47,26 +64,52 @@ export function SignedInOnboardingModal() {
 
     setDismissed(window.sessionStorage.getItem(dismissKey) === "1");
     setOpenedOnce(false);
+    setManualOpen(false);
+    setManualGuideLane(null);
   }, [dismissKey]);
+
+  useEffect(() => {
+    const openGuide = () => {
+      setManualGuideLane(getGuideLaneForPath(location));
+      setManualOpen(true);
+      setDismissed(false);
+      setOpenedOnce(true);
+    };
+
+    window.addEventListener(THETAFRAME_OPEN_GUIDE_EVENT, openGuide);
+    return () => window.removeEventListener(THETAFRAME_OPEN_GUIDE_EVENT, openGuide);
+  }, [location]);
 
   const handleDismiss = () => {
     if (dismissKey && typeof window !== "undefined") {
       window.sessionStorage.setItem(dismissKey, "1");
     }
     setDismissed(true);
+    setManualOpen(false);
+    setManualGuideLane(null);
   };
 
   const shouldOpen =
-    !dismissed &&
+    (manualOpen || !dismissed) &&
     Boolean(userId) &&
     status !== "signed_out" &&
-    (openedOnce || (
+    (manualOpen || openedOnce || (
       status === "ready" &&
       !isLoading &&
       (isError || incompleteSurfaces.length > 0)
     ));
 
   const fallbackHref = getPreferredRoute(modules, isAdmin);
+  const hasBasicLanes =
+    modules.length > 0 &&
+    BASIC_LANE_ORDER.some((module) => modules.includes(module));
+  const useBasicStartGuide =
+    !isAdmin &&
+    hasBasicLanes;
+  const basicSurfaces = surfaces.filter((surface) =>
+    BASIC_LANE_ORDER.includes(surface.surface as (typeof BASIC_LANE_ORDER)[number]),
+  );
+  const focusedLane = manualOpen ? manualGuideLane : currentGuideLane;
 
   useEffect(() => {
     if (
@@ -85,9 +128,11 @@ export function SignedInOnboardingModal() {
     <Dialog open={shouldOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="signed-in-onboarding-modal">
         <DialogHeader>
-          <DialogTitle>Welcome to ThetaFrame</DialogTitle>
+          <DialogTitle>{useBasicStartGuide ? "Start Here" : "Welcome to ThetaFrame"}</DialogTitle>
           <DialogDescription>
-            This app is your working system. Start with the spaces that still need real data, and the guidance will disappear as each workflow is actually used.
+            {useBasicStartGuide
+              ? "Pick one small step. You can come back here any time."
+              : "This app is your working system. Start with the spaces that still need real data, and the guidance will disappear as each workflow is actually used."}
           </DialogDescription>
         </DialogHeader>
 
@@ -122,6 +167,12 @@ export function SignedInOnboardingModal() {
               ThetaFrame is preparing your onboarding state for this session.
             </p>
           </div>
+        ) : useBasicStartGuide ? (
+          <BasicStartGuide
+            surfaces={basicSurfaces}
+            onNavigate={handleDismiss}
+            focusedLane={focusedLane}
+          />
         ) : (
           <OnboardingChecklist
             surfaces={incompleteSurfaces}

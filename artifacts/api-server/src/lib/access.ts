@@ -6,9 +6,26 @@ import { eq } from "drizzle-orm";
 export const OWNER_EMAIL = "mark@speaklymedia.com";
 export const SYSTEM_GRANT_SOURCE = "system:auto-bootstrap";
 export const OWNER_GRANT_SOURCE = "system:owner-bootstrap";
+export const BASIC_MODULES = ["daily", "weekly", "vision"] as const;
 export const ALL_MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
 export const ALL_ENVIRONMENTS = ["development", "staging", "production"] as const;
+export const SELECT_AUTHORIZED_MODULES = ["bizdev", "life-ledger", "reach"] as const;
 export type AppModule = typeof ALL_MODULES[number];
+
+export type PermissionEntry = {
+  module: AppModule;
+  environment: typeof ALL_ENVIRONMENTS[number];
+};
+
+export const STANDARD_ACCESS_PRESETS = [
+  { name: "Basic User", modules: BASIC_MODULES },
+  { name: "Select Authorized: Core + BizDev", modules: [...BASIC_MODULES, "bizdev"] as const },
+  { name: "Select Authorized: Core + Life Ledger", modules: [...BASIC_MODULES, "life-ledger"] as const },
+  { name: "Select Authorized: Core + REACH", modules: [...BASIC_MODULES, "reach"] as const },
+  { name: "Select Authorized: Full Non-Admin", modules: ALL_MODULES },
+] as const;
+
+export const STANDARD_ACCESS_PRESET_NAMES = STANDARD_ACCESS_PRESETS.map((preset) => preset.name);
 
 type ClerkEmailAddressLike = {
   id?: string | null;
@@ -70,31 +87,82 @@ export async function ensureOwnerPermissions(userId: string): Promise<void> {
   ).onConflictDoNothing();
 }
 
+function uniqueModules(modules: readonly string[]): AppModule[] {
+  return Array.from(
+    new Set(modules.filter((module): module is AppModule => ALL_MODULES.includes(module as AppModule))),
+  );
+}
+
+export function buildPermissionEntriesForModules(
+  modules: readonly AppModule[],
+  environments: readonly typeof ALL_ENVIRONMENTS[number][] = ALL_ENVIRONMENTS,
+): PermissionEntry[] {
+  return environments.flatMap((environment) =>
+    uniqueModules(modules).map((module) => ({
+      module,
+      environment,
+    })),
+  );
+}
+
+export function normalizePermissionEntries(
+  permissions: readonly { module: string; environment: string }[],
+): PermissionEntry[] {
+  const byKey = new Map<string, PermissionEntry>();
+
+  for (const permission of permissions) {
+    if (!ALL_MODULES.includes(permission.module as AppModule)) continue;
+    if (!ALL_ENVIRONMENTS.includes(permission.environment as typeof ALL_ENVIRONMENTS[number])) continue;
+    const normalized = {
+      module: permission.module as AppModule,
+      environment: permission.environment as typeof ALL_ENVIRONMENTS[number],
+    };
+    byKey.set(`${normalized.module}:${normalized.environment}`, normalized);
+  }
+
+  for (const permission of buildPermissionEntriesForModules(BASIC_MODULES)) {
+    byKey.set(`${permission.module}:${permission.environment}`, permission);
+  }
+
+  return Array.from(byKey.values());
+}
+
+export function getEffectivePermissionEntriesForUser(
+  user: ClerkUserLike,
+  storedPermissions: readonly { module: string; environment: string }[],
+): PermissionEntry[] {
+  if (isAdminUser(user)) {
+    return buildPermissionEntriesForModules(ALL_MODULES);
+  }
+
+  return normalizePermissionEntries(storedPermissions);
+}
+
+export function getAccessLevelForUser(
+  user: ClerkUserLike,
+  effectivePermissions: readonly { module: string; environment: string }[],
+): "admin" | "select_authorized" | "basic" {
+  if (isAdminUser(user)) return "admin";
+  const modules = new Set(effectivePermissions.map((permission) => permission.module));
+  return SELECT_AUTHORIZED_MODULES.some((module) => modules.has(module)) ? "select_authorized" : "basic";
+}
+
 export async function ensureEnvironmentModules(
   userId: string,
   environment: string,
 ): Promise<AppModule[]> {
+  const user = await getUserAndMaybeBootstrap(userId);
+  if (isAdminUser(user)) {
+    return [...ALL_MODULES];
+  }
+
   const perms = await db
     .select()
     .from(accessPermissionsTable)
     .where(eq(accessPermissionsTable.userId, userId));
 
   const envPerms = perms.filter((perm) => perm.environment === environment);
-
-  if (envPerms.length === 0) {
-    await db.insert(accessPermissionsTable).values(
-      ALL_MODULES.map((module) => ({
-        userId,
-        module,
-        environment,
-        grantedBy: SYSTEM_GRANT_SOURCE,
-      })),
-    ).onConflictDoNothing();
-
-    return [...ALL_MODULES];
-  }
-
-  return envPerms.map((perm) => perm.module as AppModule);
+  return uniqueModules([...BASIC_MODULES, ...envPerms.map((perm) => perm.module)]);
 }
 
 async function ensureOwnerAdminRole(user: ClerkUserLike, logger?: LoggerLike): Promise<void> {

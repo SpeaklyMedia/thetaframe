@@ -5,10 +5,18 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "qa:browser": "tsx ./src/runThetaFrameBrowserQa.ts",
+    "qa:browser:headed": "tsx ./src/runThetaFrameBrowserQa.ts --headed",
+    "qa:isolation": "tsx ./src/runThetaFrameIsolationQa.ts",
+    "qa:browser:auth:capture": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=user",
+    "qa:browser:auth:capture:admin": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=admin",
+    "qa:browser:auth:capture:basic": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=basic",
+    "qa:browser:auth:capture:select-authorized": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=select-authorized"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "playwright": "^1.55.0",
     "tsx": "catalog:"
   }
 }

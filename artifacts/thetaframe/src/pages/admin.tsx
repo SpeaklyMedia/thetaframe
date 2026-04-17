@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Layout } from "@/components/layout";
+import { LaneHero } from "@/components/shell/LaneHero";
 import {
   useListAdminUsers,
   usePutAdminUserPermissions,
@@ -23,6 +24,7 @@ import { ChevronLeft, Plus, Trash2, Check } from "lucide-react";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 
+const BASIC_MODULES = ["daily", "weekly", "vision"] as const;
 const MODULES = ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"] as const;
 const MODULE_LABELS: Record<string, string> = {
   daily: "Daily Frame",
@@ -32,8 +34,20 @@ const MODULE_LABELS: Record<string, string> = {
   "life-ledger": "Life Ledger",
   reach: "REACH",
 };
+const STANDARD_PRESET_NAMES = new Set([
+  "Basic User",
+  "Select Authorized: Core + BizDev",
+  "Select Authorized: Core + Life Ledger",
+  "Select Authorized: Core + REACH",
+  "Select Authorized: Full Non-Admin",
+]);
 const ENVIRONMENTS = ["development", "staging", "production"] as const;
 type Environment = typeof ENVIRONMENTS[number];
+type AdminUserWithAccessLevel = AdminUser & { accessLevel?: "admin" | "select_authorized" | "basic" };
+
+function isBasicModule(module: string) {
+  return BASIC_MODULES.includes(module as typeof BASIC_MODULES[number]);
+}
 
 function PermissionBadges({ permissions }: { permissions: PermissionEntry[] }) {
   const byModule: Record<string, string[]> = {};
@@ -70,7 +84,19 @@ function formatRelativeTime(ts: number | null | undefined): string {
   return `${months}mo ago`;
 }
 
-function UserListItem({ user, onClick, isSelected }: { user: AdminUser; onClick: () => void; isSelected: boolean }) {
+function getAccessLevelLabel(user: AdminUserWithAccessLevel) {
+  if (user.role === "admin" || user.accessLevel === "admin") return "Admin";
+  if (user.accessLevel === "select_authorized") return "Select Authorized";
+  return "Basic";
+}
+
+function getAccessLevelClass(user: AdminUserWithAccessLevel) {
+  if (user.role === "admin" || user.accessLevel === "admin") return "bg-primary/10 text-primary";
+  if (user.accessLevel === "select_authorized") return "bg-emerald-500/10 text-emerald-700";
+  return "bg-muted text-muted-foreground";
+}
+
+function UserListItem({ user, onClick, isSelected }: { user: AdminUserWithAccessLevel; onClick: () => void; isSelected: boolean }) {
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
   return (
     <button
@@ -92,6 +118,9 @@ function UserListItem({ user, onClick, isSelected }: { user: AdminUser; onClick:
             {user.role === "admin" && (
               <span className="px-1.5 py-0 rounded text-xs bg-primary/10 text-primary font-medium shrink-0">admin</span>
             )}
+            <span className={`px-1.5 py-0 rounded text-xs font-medium shrink-0 ${getAccessLevelClass(user)}`}>
+              {getAccessLevelLabel(user)}
+            </span>
             <span className="text-xs text-muted-foreground ml-auto shrink-0" data-testid={`last-active-${user.id}`}>
               {formatRelativeTime(user.lastActiveAt)}
             </span>
@@ -121,6 +150,11 @@ function buildGrid(permissions: PermissionEntry[]): PermGrid {
       grid[p.module][p.environment] = true;
     }
   }
+  for (const mod of BASIC_MODULES) {
+    for (const env of ENVIRONMENTS) {
+      grid[mod][env] = true;
+    }
+  }
   return grid;
 }
 
@@ -141,7 +175,7 @@ function PermissionEditor({
   presets,
   onBack,
 }: {
-  user: AdminUser;
+  user: AdminUserWithAccessLevel;
   presets: AccessPreset[];
   onBack: () => void;
 }) {
@@ -177,6 +211,7 @@ function PermissionEditor({
   };
 
   const toggle = (mod: string, env: string) => {
+    if (isBasicModule(mod)) return;
     setGrid((g) => ({
       ...g,
       [mod]: { ...g[mod], [env]: !g[mod][env] },
@@ -185,6 +220,7 @@ function PermissionEditor({
   };
 
   const toggleRow = (mod: string) => {
+    if (isBasicModule(mod)) return;
     const allOn = ENVIRONMENTS.every((e) => grid[mod][e]);
     setGrid((g) => ({
       ...g,
@@ -194,10 +230,11 @@ function PermissionEditor({
   };
 
   const toggleCol = (env: string) => {
-    const allOn = MODULES.every((m) => grid[m][env]);
+    const assignableModules = MODULES.filter((module) => !isBasicModule(module));
+    const allOn = assignableModules.every((m) => grid[m][env]);
     setGrid((g) => {
       const next = { ...g };
-      for (const m of MODULES) {
+      for (const m of assignableModules) {
         next[m] = { ...next[m], [env]: !allOn };
       }
       return next;
@@ -274,7 +311,9 @@ function PermissionEditor({
           <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
             <div className="px-4 py-3 border-b">
               <h3 className="text-sm font-semibold">Module Access</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Toggle modules per environment</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Daily, Weekly, and Vision are the Basic default. Toggle extra modules to make this account Select Authorized.
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="permission-grid">
@@ -294,15 +333,26 @@ function PermissionEditor({
                   {MODULES.map((mod) => (
                     <tr key={mod} className="border-b last:border-0 hover:bg-muted/20">
                       <td className="px-4 py-3">
-                        <button onClick={() => toggleRow(mod)} className="text-sm font-medium hover:text-muted-foreground transition-colors text-left" data-testid={`toggle-row-${mod}`}>
+                        <button
+                          onClick={() => toggleRow(mod)}
+                          disabled={isBasicModule(mod)}
+                          className={`text-sm font-medium transition-colors text-left ${isBasicModule(mod) ? "cursor-default text-foreground" : "hover:text-muted-foreground"}`}
+                          data-testid={`toggle-row-${mod}`}
+                        >
                           {MODULE_LABELS[mod]}
+                          {isBasicModule(mod) && (
+                            <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">Basic</span>
+                          )}
                         </button>
                       </td>
                       {ENVIRONMENTS.map((env) => (
                         <td key={env} className="px-4 py-3 text-center">
                           <button
                             onClick={() => toggle(mod, env)}
-                            className={`w-9 h-5 rounded-full transition-colors relative ${grid[mod]?.[env] ? "bg-primary" : "bg-muted"}`}
+                            disabled={isBasicModule(mod)}
+                            className={`w-9 h-5 rounded-full transition-colors relative ${
+                              grid[mod]?.[env] ? "bg-primary" : "bg-muted"
+                            } ${isBasicModule(mod) ? "cursor-default opacity-70" : ""}`}
                             aria-label={`${grid[mod]?.[env] ? "Revoke" : "Grant"} ${MODULE_LABELS[mod]} in ${env}`}
                             data-testid={`toggle-${mod}-${env}`}
                           >
@@ -318,7 +368,7 @@ function PermissionEditor({
               </table>
             </div>
             <div className="px-4 py-3 border-t flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Click a module or environment header to toggle all</p>
+              <p className="text-xs text-muted-foreground">Click an optional module or environment header to toggle Select Authorized access</p>
               <Button
                 size="sm"
                 onClick={handleSave}
@@ -350,14 +400,16 @@ function PermissionEditor({
                       {preset.name}
                       <span className="text-xs text-muted-foreground ml-1.5">({preset.permissions.length} grants)</span>
                     </button>
-                    <button
-                      onClick={() => handleDeletePreset(preset.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                      aria-label={`Delete preset ${preset.name}`}
-                      data-testid={`button-delete-preset-${preset.id}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {!STANDARD_PRESET_NAMES.has(preset.name) && (
+                      <button
+                        onClick={() => handleDeletePreset(preset.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label={`Delete preset ${preset.name}`}
+                        data-testid={`button-delete-preset-${preset.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -408,30 +460,34 @@ export default function AdminPage() {
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const usersWithAccess = users as AdminUserWithAccessLevel[] | undefined;
 
   const selectedUser = useMemo(
-    () => users?.find((u) => u.id === selectedUserId) ?? null,
-    [users, selectedUserId],
+    () => usersWithAccess?.find((u) => u.id === selectedUserId) ?? null,
+    [usersWithAccess, selectedUserId],
   );
 
   const filteredUsers = useMemo(() => {
-    if (!users) return [];
+    if (!usersWithAccess) return [];
     const q = search.toLowerCase();
-    if (!q) return users;
-    return users.filter(
+    if (!q) return usersWithAccess;
+    return usersWithAccess.filter(
       (u) =>
         u.email.toLowerCase().includes(q) ||
         [u.firstName, u.lastName].filter(Boolean).join(" ").toLowerCase().includes(q),
     );
-  }, [users, search]);
+  }, [usersWithAccess, search]);
 
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-admin-title">Admin</h1>
-          <p className="text-muted-foreground mt-1">Control who can access each surface and save reusable permission presets for the workspace.</p>
-        </header>
+        <LaneHero
+          label="Admin"
+          title="Governance and access"
+          subtitle="Control who can access each surface and save reusable permission presets for the workspace."
+          compact
+          headingTestId="text-admin-title"
+        />
 
         {!isSurfaceComplete("admin") && <SurfaceOnboardingCard surface="admin" />}
 

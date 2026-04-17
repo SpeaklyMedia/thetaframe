@@ -16,6 +16,7 @@ import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAu
 import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates, isValidDateString } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
+import { DailyFrameValidationError, upsertDailyFrameForUser, validateDailyFrameUpsertData } from "../lib/dailyFrames.js";
 
 const router: IRouter = Router();
 router.use("/daily-frames", requireAuth, requireModuleAccess("daily"));
@@ -41,38 +42,29 @@ router.post("/daily-frames", async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  if (body.data.tierA.length > 3) {
-    res.status(400).json({ error: "Tier A may not contain more than 3 tasks." });
-    return;
-  }
-
-  const [frame] = await db
-    .insert(dailyFramesTable)
-    .values({
-      userId,
-      date: body.data.date,
+  let frame;
+  try {
+    const data = validateDailyFrameUpsertData({
       colourState: body.data.colourState,
       tierA: body.data.tierA,
       tierB: body.data.tierB,
       timeBlocks: body.data.timeBlocks,
-      microWin: body.data.microWin ?? null,
+      microWin: body.data.microWin,
       skipProtocolUsed: body.data.skipProtocolUsed,
-      skipProtocolChoice: body.data.skipProtocolChoice ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [dailyFramesTable.userId, dailyFramesTable.date],
-      set: {
-        colourState: body.data.colourState,
-        tierA: body.data.tierA,
-        tierB: body.data.tierB,
-        timeBlocks: body.data.timeBlocks,
-        microWin: body.data.microWin ?? null,
-        skipProtocolUsed: body.data.skipProtocolUsed,
-        skipProtocolChoice: body.data.skipProtocolChoice ?? null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
+      skipProtocolChoice: body.data.skipProtocolChoice,
+    });
+    frame = await upsertDailyFrameForUser({
+      userId,
+      date: body.data.date,
+      data,
+    });
+  } catch (error) {
+    if (error instanceof DailyFrameValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   await markOnboardingSurfaceComplete(userId, "daily");
   res.json(CreateDailyFrameResponse.parse(serializeDates(frame)));
@@ -201,38 +193,21 @@ router.put("/daily-frames/:date", async (req: Request, res: Response): Promise<v
     return;
   }
 
-  if (body.data.tierA.length > 3) {
-    res.status(400).json({ error: "Tier A may not contain more than 3 tasks." });
-    return;
-  }
-
-  const [frame] = await db
-    .insert(dailyFramesTable)
-    .values({
+  let frame;
+  try {
+    const data = validateDailyFrameUpsertData(body.data);
+    frame = await upsertDailyFrameForUser({
       userId,
       date: params.data.date,
-      colourState: body.data.colourState,
-      tierA: body.data.tierA,
-      tierB: body.data.tierB,
-      timeBlocks: body.data.timeBlocks,
-      microWin: body.data.microWin ?? null,
-      skipProtocolUsed: body.data.skipProtocolUsed,
-      skipProtocolChoice: body.data.skipProtocolChoice ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [dailyFramesTable.userId, dailyFramesTable.date],
-      set: {
-        colourState: body.data.colourState,
-        tierA: body.data.tierA,
-        tierB: body.data.tierB,
-        timeBlocks: body.data.timeBlocks,
-        microWin: body.data.microWin ?? null,
-        skipProtocolUsed: body.data.skipProtocolUsed,
-        skipProtocolChoice: body.data.skipProtocolChoice ?? null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
+      data,
+    });
+  } catch (error) {
+    if (error instanceof DailyFrameValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   await markOnboardingSurfaceComplete(userId, "daily");
   res.json(UpsertDailyFrameResponse.parse(serializeDates(frame)));

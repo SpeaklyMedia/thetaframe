@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, gte, lte, isNotNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@workspace/db";
 import {
   lifeLedgerBabyTable,
@@ -21,8 +22,46 @@ import {
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { getUserAndMaybeBootstrap, isAdminUser } from "../lib/access.js";
-import { serializeDates } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
+import { getBabyKbHeroConsequencesForUser } from "../lib/babyKbAssignments.js";
+import {
+  createLifeLedgerEventForUser,
+  LifeLedgerEventValidationError,
+  validateLifeLedgerEventCreateData,
+} from "../lib/lifeLedgerEvents.js";
+import {
+  createLifeLedgerPersonForUser,
+  LifeLedgerPeopleValidationError,
+  validateLifeLedgerPeopleCreateData,
+} from "../lib/lifeLedgerPeople.js";
+import {
+  createLifeLedgerFinancialEntryForUser,
+  LifeLedgerFinancialValidationError,
+  validateLifeLedgerFinancialCreateData,
+} from "../lib/lifeLedgerFinancial.js";
+import {
+  createLifeLedgerSubscriptionForUser,
+  LifeLedgerSubscriptionsValidationError,
+  validateLifeLedgerSubscriptionsCreateData,
+} from "../lib/lifeLedgerSubscriptions.js";
+import {
+  createLifeLedgerTravelEntryForUser,
+  LifeLedgerTravelValidationError,
+  validateLifeLedgerTravelCreateData,
+} from "../lib/lifeLedgerTravel.js";
+import {
+  LIFE_LEDGER_EVENT_EXECUTION_ACTIONS,
+  LifeLedgerEventExecutionError,
+  updateLifeLedgerEventExecutionStateForUser,
+} from "../lib/lifeLedgerEventExecution.js";
+import {
+  LifeLedgerEventReminderError,
+  listLifeLedgerEventReminderQueueForUser,
+  reconcileLifeLedgerEventReminderOutboxForEntry,
+  reconcileLifeLedgerEventReminderOutboxForUserEvent,
+  serializeLifeLedgerEntry,
+  updateLifeLedgerEventReminderPolicyForUser,
+} from "../lib/lifeLedgerEventReminders.js";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 
@@ -42,6 +81,23 @@ type AnyLedgerTable = (typeof TABLE_MAP)[keyof typeof TABLE_MAP];
 
 const router: IRouter = Router();
 router.use("/life-ledger", requireAuth, requireModuleAccess("life-ledger"));
+
+const updateLifeLedgerEventExecutionStateParams = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const updateLifeLedgerEventExecutionStateBody = z.object({
+  action: z.enum(LIFE_LEDGER_EVENT_EXECUTION_ACTIONS),
+});
+
+const updateLifeLedgerEventReminderPolicyParams = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const updateLifeLedgerEventReminderPolicyBody = z.object({
+  enabled: z.boolean(),
+  leadDays: z.array(z.number().int().min(0).max(30)).optional(),
+});
 
 let babyLedgerSchemaReady: Promise<void> | null = null;
 
@@ -114,6 +170,28 @@ router.get("/life-ledger/next-90-days", async (req: Request, res: Response): Pro
   const tabEntries = await Promise.all(
     NEXT_90_DAY_TABS.map(async (tab) => {
       const table = TABLE_MAP[tab];
+      if (tab === "events") {
+        const rows = await db
+          .select()
+          .from(table)
+          .where(eq(table.userId, userId));
+
+        return rows
+          .filter((row) => row.completionState !== "completed" && row.completionState !== "superseded")
+          .map((row) => {
+            const executionDate = row.nextDueDate ?? row.dueDate;
+            return {
+              id: row.id,
+              tab,
+              name: row.name,
+              dueDate: executionDate,
+              impactLevel: row.impactLevel,
+              notes: row.notes,
+            };
+          })
+          .filter((row) => row.dueDate && row.dueDate >= nowStr && row.dueDate <= windowEndStr);
+      }
+
       const rows = await db
         .select()
         .from(table)
@@ -171,6 +249,18 @@ router.get("/life-ledger/subscription-audit", async (req: Request, res: Response
   });
 });
 
+router.get("/life-ledger/baby-kb-hero-rollups", async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const rollups = await getBabyKbHeroConsequencesForUser(userId);
+  res.json(rollups);
+});
+
+router.get("/life-ledger/events/reminder-queue", async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const items = await listLifeLedgerEventReminderQueueForUser(userId);
+  res.json({ items });
+});
+
 router.get("/life-ledger/:tab", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
@@ -196,7 +286,7 @@ router.get("/life-ledger/:tab", async (req: Request, res: Response): Promise<voi
     .where(eq(table.userId, userId))
     .orderBy(table.name);
 
-  res.json(entries.map(serializeDates));
+  res.json(entries.map((entry) => serializeLifeLedgerEntry(entry)));
 });
 
 router.post("/life-ledger/:tab", async (req: Request, res: Response): Promise<void> => {
@@ -224,13 +314,137 @@ router.post("/life-ledger/:tab", async (req: Request, res: Response): Promise<vo
     return;
   }
 
-  const [entry] = await db
-    .insert(table)
-    .values({ userId, tab: params.data.tab, ...body.data })
-    .returning();
+  let entry;
+  if (params.data.tab === "events") {
+    try {
+      const data = validateLifeLedgerEventCreateData(body.data);
+      entry = await createLifeLedgerEventForUser({ userId, data });
+    } catch (error) {
+      if (error instanceof LifeLedgerEventValidationError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
+  } else if (params.data.tab === "people") {
+    try {
+      const data = validateLifeLedgerPeopleCreateData(body.data);
+      entry = await createLifeLedgerPersonForUser({ userId, data });
+    } catch (error) {
+      if (error instanceof LifeLedgerPeopleValidationError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
+  } else if (params.data.tab === "financial") {
+    try {
+      const data = validateLifeLedgerFinancialCreateData(body.data);
+      entry = await createLifeLedgerFinancialEntryForUser({ userId, data });
+    } catch (error) {
+      if (error instanceof LifeLedgerFinancialValidationError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
+  } else if (params.data.tab === "subscriptions") {
+    try {
+      const data = validateLifeLedgerSubscriptionsCreateData(body.data);
+      entry = await createLifeLedgerSubscriptionForUser({ userId, data });
+    } catch (error) {
+      if (error instanceof LifeLedgerSubscriptionsValidationError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
+  } else if (params.data.tab === "travel") {
+    try {
+      const data = validateLifeLedgerTravelCreateData(body.data);
+      entry = await createLifeLedgerTravelEntryForUser({ userId, data });
+    } catch (error) {
+      if (error instanceof LifeLedgerTravelValidationError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
+  } else {
+    [entry] = await db
+      .insert(table)
+      .values({ userId, tab: params.data.tab, ...body.data })
+      .returning();
+  }
 
   await markOnboardingSurfaceComplete(userId, "life-ledger");
-  res.status(201).json(serializeDates(entry));
+  if (params.data.tab === "events") {
+    await reconcileLifeLedgerEventReminderOutboxForEntry(entry);
+  }
+  res.status(201).json(serializeLifeLedgerEntry(entry));
+});
+
+router.post("/life-ledger/events/:id/execution-state", async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  const params = updateLifeLedgerEventExecutionStateParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const body = updateLifeLedgerEventExecutionStateBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  try {
+    const entry = await updateLifeLedgerEventExecutionStateForUser({
+      userId,
+      eventId: params.data.id,
+      action: body.data.action,
+    });
+    res.json(serializeLifeLedgerEntry(entry));
+  } catch (error) {
+    if (error instanceof LifeLedgerEventExecutionError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.post("/life-ledger/events/:id/reminder-policy", async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+
+  const params = updateLifeLedgerEventReminderPolicyParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const body = updateLifeLedgerEventReminderPolicyBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  try {
+    const entry = await updateLifeLedgerEventReminderPolicyForUser({
+      userId,
+      eventId: params.data.id,
+      enabled: body.data.enabled,
+      leadDays: body.data.enabled ? body.data.leadDays ?? [] : [],
+    });
+    res.json(serializeLifeLedgerEntry(entry));
+  } catch (error) {
+    if (error instanceof LifeLedgerEventReminderError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.get("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise<void> => {
@@ -262,7 +476,11 @@ router.get("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise
     return;
   }
 
-  res.json(serializeDates(entry));
+  if (params.data.tab === "events") {
+    await reconcileLifeLedgerEventReminderOutboxForEntry(entry);
+  }
+
+  res.json(serializeLifeLedgerEntry(entry));
 });
 
 router.put("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise<void> => {
@@ -301,7 +519,7 @@ router.put("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise
     return;
   }
 
-  res.json(serializeDates(entry));
+  res.json(serializeLifeLedgerEntry(entry));
 });
 
 router.delete("/life-ledger/:tab/:id", async (req: Request, res: Response): Promise<void> => {
@@ -323,9 +541,22 @@ router.delete("/life-ledger/:tab/:id", async (req: Request, res: Response): Prom
     return;
   }
 
-  await db
+  const [deleted] = await db
     .delete(table)
-    .where(and(eq(table.userId, userId), eq(table.id, params.data.id)));
+    .where(and(eq(table.userId, userId), eq(table.id, params.data.id)))
+    .returning({ id: table.id });
+
+  if (!deleted) {
+    res.status(404).json({ error: "Entry not found" });
+    return;
+  }
+
+  if (params.data.tab === "events") {
+    await reconcileLifeLedgerEventReminderOutboxForUserEvent({
+      userId,
+      eventId: params.data.id,
+    });
+  }
 
   res.status(204).send();
 });

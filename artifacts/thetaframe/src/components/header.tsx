@@ -1,8 +1,5 @@
 import { Link } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useGetUserMode, getGetUserModeQueryKey, useUpsertUserMode } from "@workspace/api-client-react";
-import { ApiError } from "@workspace/api-client-react";
-import { getEmotionColorClass } from "@/lib/colors";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,26 +7,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Menu } from "lucide-react";
-import { useAuthSession } from "@/hooks/use-auth-session";
-import { useToast } from "@/hooks/use-toast";
-
-const MODES = ["explore", "build", "release"] as const;
-type Mode = typeof MODES[number];
-
-const MODE_LABELS: Record<Mode, string> = {
-  explore: "Explore",
-  build: "Build",
-  release: "Release",
-};
+import { Compass, LayoutDashboard, Menu } from "lucide-react";
+import { openThetaFrameGuide } from "@/lib/guide-events";
 
 const MODULE_NAV = [
-  { module: "daily", href: "/daily", label: "Daily Frame", testId: "link-daily" },
-  { module: "weekly", href: "/weekly", label: "Weekly Rhythm", testId: "link-weekly" },
-  { module: "vision", href: "/vision", label: "Vision Tracker", testId: "link-vision" },
+  { module: "daily", href: "/daily", label: "Today", testId: "link-daily" },
+  { module: "weekly", href: "/weekly", label: "This Week", testId: "link-weekly" },
+  { module: "vision", href: "/vision", label: "Goals", testId: "link-vision" },
   { module: "bizdev", href: "/bizdev", label: "BizDev", testId: "link-bizdev" },
   { module: "life-ledger", href: "/life-ledger", label: "Life Ledger", testId: "link-life-ledger" },
   { module: "reach", href: "/reach", label: "REACH", testId: "link-reach" },
@@ -38,60 +23,31 @@ const MODULE_NAV = [
 export function Header() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const { status } = useAuthSession();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
   const { hasModule, isAdmin } = usePermissions();
-  const { data: userMode, error } = useGetUserMode({
-    query: { enabled: !!user && status === "ready", queryKey: getGetUserModeQueryKey(), retry: 0 }
-  });
-  const upsertMode = useUpsertUserMode();
-  const [optimisticMode, setOptimisticMode] = useState<Mode | null>(null);
-
-  const currentMode = optimisticMode ?? userMode?.mode as Mode | undefined;
-  const currentColour = userMode?.colourState;
-
-  const isMissing = error instanceof ApiError && error.status === 404;
-  const modeLabel = useMemo(() => {
-    if (upsertMode.isPending) {
-      return "Saving...";
-    }
-    return currentMode ? MODE_LABELS[currentMode] : "Set Mode";
-  }, [currentMode, upsertMode.isPending]);
-
-  const handleModeChange = (mode: Mode) => {
-    setOptimisticMode(mode);
-    upsertMode.mutate(
-      { data: { mode, colourState: currentColour ?? "green" } },
-      {
-        onSuccess: (result) => {
-          setOptimisticMode(null);
-          queryClient.setQueryData(getGetUserModeQueryKey(), result);
-        },
-        onError: () => {
-          setOptimisticMode(null);
-          toast({
-            title: "Mode could not be saved",
-            description: isMissing
-              ? "Your first mode selection did not persist. Try again."
-              : "The app could not update your working mode. Try again.",
-            variant: "destructive",
-          });
-        },
-      }
-    );
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm" data-testid="app-header">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-semibold text-lg tracking-tight" data-testid="link-home">
-            ThetaFrame
+          <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-home" aria-label="ThetaFrame home">
+            <img
+              src="/brand/THETAFRAME_LOGO_MARK__PHI_CROP__2026-04-13__R1.png"
+              alt="ThetaFrame"
+              className="h-8 w-8 object-contain"
+            />
+            <span className="hidden text-sm font-semibold tracking-tight sm:inline-block">ThetaFrame</span>
           </Link>
 
           {user && (
             <nav className="hidden md:flex items-center gap-1" data-testid="main-nav">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                data-testid="link-dashboard"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
               {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
                 <Link
                   key={item.module}
@@ -113,6 +69,20 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           {user && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={openThetaFrameGuide}
+              data-testid="button-open-guide"
+            >
+              <Compass className="h-4 w-4" />
+              <span className="hidden sm:inline">Start Here</span>
+            </Button>
+          )}
+
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -126,6 +96,11 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 md:hidden" data-testid="dropdown-mobile-nav">
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard" className="w-full">
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
                 {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
                   <DropdownMenuItem asChild key={item.module}>
                     <Link href={item.href} className="w-full">
@@ -140,36 +115,6 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full cursor-pointer transition-all hover:opacity-90 ${
-                    currentMode
-                      ? getEmotionColorClass(currentColour)
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                  disabled={upsertMode.isPending}
-                  data-testid="button-mode-badge"
-                >
-                  {modeLabel}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" data-testid="dropdown-mode">
-                {MODES.map(mode => (
-                  <DropdownMenuItem
-                    key={mode}
-                    onSelect={() => handleModeChange(mode)}
-                    className={currentMode === mode ? "font-semibold" : ""}
-                    data-testid={`dropdown-item-mode-${mode}`}
-                  >
-                    {MODE_LABELS[mode]}
-                  </DropdownMenuItem>
-                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

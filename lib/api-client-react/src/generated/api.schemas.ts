@@ -370,6 +370,17 @@ export const LifeLedgerEntryReviewWindow = {
   situational: "situational",
 } as const;
 
+export type LifeLedgerEntryReminderPolicy = { [key: string]: unknown };
+
+export type LifeLedgerEntryReminderState =
+  (typeof LifeLedgerEntryReminderState)[keyof typeof LifeLedgerEntryReminderState];
+
+export const LifeLedgerEntryReminderState = {
+  inactive: "inactive",
+  scheduled: "scheduled",
+  snoozed: "snoozed",
+} as const;
+
 /**
  * @nullable
  */
@@ -397,6 +408,24 @@ export interface LifeLedgerEntry {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  sourceType?: string | null;
+  /** @nullable */
+  sourceEntryId?: number | null;
+  /** @nullable */
+  sourceAssignmentId?: number | null;
+  /** @nullable */
+  nextDueDate?: string | null;
+  reminderPolicy: LifeLedgerEntryReminderPolicy;
+  reminderEnabled: boolean;
+  reminderLeadDays: number[];
+  /** @nullable */
+  nextReminderAt: string | null;
+  reminderState: LifeLedgerEntryReminderState;
+  /** @nullable */
+  completionState?: string | null;
+  /** @nullable */
+  snoozedUntil?: string | null;
+  /** @nullable */
   amount?: number | null;
   /** @nullable */
   currency?: string | null;
@@ -406,6 +435,195 @@ export interface LifeLedgerEntry {
   billingCycle?: LifeLedgerEntryBillingCycle;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface LifeLedgerEventReminderPolicyBody {
+  enabled: boolean;
+  leadDays?: number[];
+}
+
+export type LifeLedgerEventReminderQueueItemReminderState =
+  (typeof LifeLedgerEventReminderQueueItemReminderState)[keyof typeof LifeLedgerEventReminderQueueItemReminderState];
+
+export const LifeLedgerEventReminderQueueItemReminderState = {
+  scheduled: "scheduled",
+  snoozed: "snoozed",
+} as const;
+
+/**
+ * @nullable
+ */
+export type LifeLedgerEventReminderQueueItemImpactLevel =
+  | (typeof LifeLedgerEventReminderQueueItemImpactLevel)[keyof typeof LifeLedgerEventReminderQueueItemImpactLevel]
+  | null;
+
+export const LifeLedgerEventReminderQueueItemImpactLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export type LifeLedgerEventReminderQueueItemNotificationCategory =
+  (typeof LifeLedgerEventReminderQueueItemNotificationCategory)[keyof typeof LifeLedgerEventReminderQueueItemNotificationCategory];
+
+export const LifeLedgerEventReminderQueueItemNotificationCategory = {
+  life_ledger_due: "life_ledger_due",
+} as const;
+
+export interface LifeLedgerEventReminderQueueItem {
+  id: number;
+  name: string;
+  executionDate: string;
+  nextReminderAt: string;
+  reminderState: LifeLedgerEventReminderQueueItemReminderState;
+  reminderLeadDays: number[];
+  /** @nullable */
+  impactLevel?: LifeLedgerEventReminderQueueItemImpactLevel;
+  /** @nullable */
+  sourceType?: string | null;
+  route: string;
+  deepLink: string;
+  notificationCategory: LifeLedgerEventReminderQueueItemNotificationCategory;
+}
+
+export interface LifeLedgerEventReminderQueueResponse {
+  items: LifeLedgerEventReminderQueueItem[];
+}
+
+export type MobileNotificationOutboxDeliveryStatus =
+  (typeof MobileNotificationOutboxDeliveryStatus)[keyof typeof MobileNotificationOutboxDeliveryStatus];
+
+export const MobileNotificationOutboxDeliveryStatus = {
+  queued: "queued",
+  sent: "sent",
+  cancelled: "cancelled",
+  acknowledged: "acknowledged",
+} as const;
+
+export type MobileDevicePlatform =
+  (typeof MobileDevicePlatform)[keyof typeof MobileDevicePlatform];
+
+export const MobileDevicePlatform = {
+  ios: "ios",
+  android: "android",
+} as const;
+
+export type MobileDeviceDeliveryProvider =
+  (typeof MobileDeviceDeliveryProvider)[keyof typeof MobileDeviceDeliveryProvider];
+
+export const MobileDeviceDeliveryProvider = {
+  ios_local_notification: "ios_local_notification",
+  android_notification: "android_notification",
+} as const;
+
+export type MobileQuickCaptureIntent =
+  (typeof MobileQuickCaptureIntent)[keyof typeof MobileQuickCaptureIntent];
+
+export const MobileQuickCaptureIntent = {
+  current_work: "current_work",
+} as const;
+
+export type MobileQuickCaptureChannel =
+  (typeof MobileQuickCaptureChannel)[keyof typeof MobileQuickCaptureChannel];
+
+export const MobileQuickCaptureChannel = {
+  ios_shortcut: "ios_shortcut",
+  android_shortcut: "android_shortcut",
+} as const;
+
+export interface MobileQuickCaptureBody {
+  intent: MobileQuickCaptureIntent;
+  text: string;
+  captureChannel: MobileQuickCaptureChannel;
+}
+
+export type MobileQuickCaptureResponseLane =
+  (typeof MobileQuickCaptureResponseLane)[keyof typeof MobileQuickCaptureResponseLane];
+
+export const MobileQuickCaptureResponseLane = {
+  daily: "daily",
+} as const;
+
+export interface MobileQuickCaptureResponse {
+  lane: MobileQuickCaptureResponseLane;
+  route: string;
+  deepLink: string;
+  dailyFrame: DailyFrame;
+  capturedTaskId: string;
+}
+
+export interface MobileDevice {
+  id: number;
+  installationId: string;
+  deviceLabel: string;
+  platform: MobileDevicePlatform;
+  deliveryProvider: MobileDeviceDeliveryProvider;
+  isActive: boolean;
+  lastSeenAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MobileDeviceResponse {
+  items: MobileDevice[];
+}
+
+export interface RegisterMobileDeviceBody {
+  installationId: string;
+  deviceLabel: string;
+  platform: MobileDevicePlatform;
+}
+
+export interface SimulateDispatchMobileNotificationBody {
+  deviceId?: number;
+}
+
+export type MobileNotificationOutboxItemNotificationCategory =
+  (typeof MobileNotificationOutboxItemNotificationCategory)[keyof typeof MobileNotificationOutboxItemNotificationCategory];
+
+export const MobileNotificationOutboxItemNotificationCategory = {
+  life_ledger_due: "life_ledger_due",
+} as const;
+
+export type MobileNotificationOutboxItemReminderState =
+  (typeof MobileNotificationOutboxItemReminderState)[keyof typeof MobileNotificationOutboxItemReminderState];
+
+export const MobileNotificationOutboxItemReminderState = {
+  scheduled: "scheduled",
+  snoozed: "snoozed",
+} as const;
+
+export interface MobileNotificationOutboxItem {
+  id: number;
+  sourceLane: string;
+  sourceEventId: number;
+  notificationCategory: MobileNotificationOutboxItemNotificationCategory;
+  route: string;
+  deepLink: string;
+  eventName: string;
+  /** @nullable */
+  executionDate?: string | null;
+  /** @nullable */
+  sourceType?: string | null;
+  reminderState: MobileNotificationOutboxItemReminderState;
+  reminderLeadDays: number[];
+  scheduledFor: string;
+  deliveryStatus: MobileNotificationOutboxDeliveryStatus;
+  /** @nullable */
+  deliveredDeviceId?: number | null;
+  /** @nullable */
+  deliveredDeviceLabel?: string | null;
+  deliveryProvider?: MobileDeviceDeliveryProvider | null;
+  /** @nullable */
+  sentAt?: string | null;
+  /** @nullable */
+  acknowledgedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MobileNotificationOutboxResponse {
+  items: MobileNotificationOutboxItem[];
 }
 
 /**
@@ -466,6 +684,20 @@ export interface LifeLedgerEntryBody {
   isEssential?: boolean | null;
   /** @nullable */
   billingCycle?: LifeLedgerEntryBodyBillingCycle;
+}
+
+export type LifeLedgerEventExecutionStateAction =
+  (typeof LifeLedgerEventExecutionStateAction)[keyof typeof LifeLedgerEventExecutionStateAction];
+
+export const LifeLedgerEventExecutionStateAction = {
+  mark_scheduled: "mark_scheduled",
+  mark_in_motion: "mark_in_motion",
+  mark_completed: "mark_completed",
+  mark_superseded: "mark_superseded",
+} as const;
+
+export interface LifeLedgerEventExecutionStateBody {
+  action: LifeLedgerEventExecutionStateAction;
 }
 
 export interface Next90DaysEntry {
@@ -543,6 +775,461 @@ export interface RequestUploadUrlBody {
 export interface RequestUploadUrlResponse {
   uploadURL: string;
   objectPath: string;
+}
+
+export type AIDraftMetadataLane =
+  (typeof AIDraftMetadataLane)[keyof typeof AIDraftMetadataLane];
+
+export const AIDraftMetadataLane = {
+  daily: "daily",
+  weekly: "weekly",
+  vision: "vision",
+  bizdev: "bizdev",
+  "life-ledger": "life-ledger",
+  "baby-kb": "baby-kb",
+  reach: "reach",
+  admin: "admin",
+} as const;
+
+export type AIDraftMetadataObjectType =
+  (typeof AIDraftMetadataObjectType)[keyof typeof AIDraftMetadataObjectType];
+
+export const AIDraftMetadataObjectType = {
+  "ai-draft": "ai-draft",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AIDraftMetadataConfidence =
+  | (typeof AIDraftMetadataConfidence)[keyof typeof AIDraftMetadataConfidence]
+  | null;
+
+export const AIDraftMetadataConfidence = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export type WorkspaceMoodContextColourState =
+  (typeof WorkspaceMoodContextColourState)[keyof typeof WorkspaceMoodContextColourState];
+
+export const WorkspaceMoodContextColourState = {
+  green: "green",
+  yellow: "yellow",
+  red: "red",
+  blue: "blue",
+  purple: "purple",
+} as const;
+
+export type WorkspaceMoodContextLabel =
+  (typeof WorkspaceMoodContextLabel)[keyof typeof WorkspaceMoodContextLabel];
+
+export const WorkspaceMoodContextLabel = {
+  "calm/ready": "calm/ready",
+  "anxious/scattered": "anxious/scattered",
+  overwhelmed: "overwhelmed",
+  "low/flat": "low/flat",
+  "creative/energized": "creative/energized",
+} as const;
+
+export type WorkspaceMoodContextSupportMode =
+  (typeof WorkspaceMoodContextSupportMode)[keyof typeof WorkspaceMoodContextSupportMode];
+
+export const WorkspaceMoodContextSupportMode = {
+  steady: "steady",
+  reduce_choices: "reduce_choices",
+  recovery_first: "recovery_first",
+  low_energy: "low_energy",
+  capture_then_choose: "capture_then_choose",
+} as const;
+
+export type WorkspaceMoodContextSource =
+  (typeof WorkspaceMoodContextSource)[keyof typeof WorkspaceMoodContextSource];
+
+export const WorkspaceMoodContextSource = {
+  user_mode: "user_mode",
+  daily_frame: "daily_frame",
+  fallback: "fallback",
+} as const;
+
+export interface WorkspaceMoodContext {
+  colourState: WorkspaceMoodContextColourState;
+  label: WorkspaceMoodContextLabel;
+  supportMode: WorkspaceMoodContextSupportMode;
+  source: WorkspaceMoodContextSource;
+}
+
+export interface AIDraftMetadata {
+  lane: AIDraftMetadataLane;
+  objectType: AIDraftMetadataObjectType;
+  provenanceSource: string;
+  captureChannel: string;
+  reviewStatus: string;
+  /** @nullable */
+  confidence?: AIDraftMetadataConfidence;
+  /** @nullable */
+  externalRef?: string | null;
+  /** @nullable */
+  sourceTimestamp?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+  /** @nullable */
+  reviewedBy?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  workspaceMoodContext?: WorkspaceMoodContext;
+}
+
+export type AIDraftSourceRefSourceType =
+  (typeof AIDraftSourceRefSourceType)[keyof typeof AIDraftSourceRefSourceType];
+
+export const AIDraftSourceRefSourceType = {
+  raw_input: "raw_input",
+  reach_file: "reach_file",
+  calendar_event: "calendar_event",
+  mobile_capture: "mobile_capture",
+  message_excerpt: "message_excerpt",
+  image_capture: "image_capture",
+  existing_theta_object: "existing_theta_object",
+} as const;
+
+export interface AIDraftSourceRef {
+  sourceType: AIDraftSourceRefSourceType;
+  ref: string;
+  /** @nullable */
+  label?: string | null;
+}
+
+export type AIDraftDraftKind =
+  (typeof AIDraftDraftKind)[keyof typeof AIDraftDraftKind];
+
+export const AIDraftDraftKind = {
+  daily_frame_draft: "daily_frame_draft",
+  weekly_frame_draft: "weekly_frame_draft",
+  vision_alignment_draft: "vision_alignment_draft",
+  life_ledger_classification_draft: "life_ledger_classification_draft",
+  reach_file_summary: "reach_file_summary",
+  bizdev_followup_draft: "bizdev_followup_draft",
+  baby_kb_promotion_draft: "baby_kb_promotion_draft",
+  baby_kb_assignment_draft: "baby_kb_assignment_draft",
+} as const;
+
+export type AIDraftTargetLane =
+  (typeof AIDraftTargetLane)[keyof typeof AIDraftTargetLane];
+
+export const AIDraftTargetLane = {
+  daily: "daily",
+  weekly: "weekly",
+  vision: "vision",
+  bizdev: "bizdev",
+  "life-ledger": "life-ledger",
+  "baby-kb": "baby-kb",
+  reach: "reach",
+  admin: "admin",
+} as const;
+
+export type AIDraftMutationRisk =
+  (typeof AIDraftMutationRisk)[keyof typeof AIDraftMutationRisk];
+
+export const AIDraftMutationRisk = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type AIDraftApprovalRequired =
+  (typeof AIDraftApprovalRequired)[keyof typeof AIDraftApprovalRequired];
+
+export const AIDraftApprovalRequired = {
+  none: "none",
+  one_tap: "one_tap",
+  explicit_review: "explicit_review",
+  two_step_review: "two_step_review",
+} as const;
+
+export type AIDraftReviewState =
+  (typeof AIDraftReviewState)[keyof typeof AIDraftReviewState];
+
+export const AIDraftReviewState = {
+  draft: "draft",
+  needs_review: "needs_review",
+  approval_gated: "approval_gated",
+  approved: "approved",
+  applied: "applied",
+  rejected: "rejected",
+} as const;
+
+export type AIDraftConfidenceMode =
+  (typeof AIDraftConfidenceMode)[keyof typeof AIDraftConfidenceMode];
+
+export const AIDraftConfidenceMode = {
+  suggest_only: "suggest_only",
+  one_tap_approve: "one_tap_approve",
+  auto_draft: "auto_draft",
+} as const;
+
+export type AIDraftInputChannelsItem =
+  (typeof AIDraftInputChannelsItem)[keyof typeof AIDraftInputChannelsItem];
+
+export const AIDraftInputChannelsItem = {
+  typed_text: "typed_text",
+  voice_transcript: "voice_transcript",
+  screenshot_or_photo: "screenshot_or_photo",
+  pasted_message_or_email: "pasted_message_or_email",
+  share_sheet_capture: "share_sheet_capture",
+  calendar_import: "calendar_import",
+  reach_upload: "reach_upload",
+} as const;
+
+export type AIDraftProposedPayload = { [key: string]: unknown };
+
+export interface AIDraft {
+  id: number;
+  thetaObjectId: string;
+  userId: string;
+  metadata: AIDraftMetadata;
+  draftKind: AIDraftDraftKind;
+  targetLane: AIDraftTargetLane;
+  /** @nullable */
+  targetSurfaceKey?: string | null;
+  targetObjectType: string;
+  mutationRisk: AIDraftMutationRisk;
+  approvalRequired: AIDraftApprovalRequired;
+  reviewState: AIDraftReviewState;
+  confidenceMode: AIDraftConfidenceMode;
+  commitTool: string;
+  inputChannels: AIDraftInputChannelsItem[];
+  proposedPayload: AIDraftProposedPayload;
+  sourceRefs: AIDraftSourceRef[];
+  /** @nullable */
+  reviewNotes?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+  /** @nullable */
+  reviewedBy?: string | null;
+  /** @nullable */
+  appliedAt?: string | null;
+  /** @nullable */
+  appliedBy?: string | null;
+  /** @nullable */
+  appliedTargetRef?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateAIDraftBodyDraftKind =
+  (typeof CreateAIDraftBodyDraftKind)[keyof typeof CreateAIDraftBodyDraftKind];
+
+export const CreateAIDraftBodyDraftKind = {
+  daily_frame_draft: "daily_frame_draft",
+  weekly_frame_draft: "weekly_frame_draft",
+  vision_alignment_draft: "vision_alignment_draft",
+  life_ledger_classification_draft: "life_ledger_classification_draft",
+  reach_file_summary: "reach_file_summary",
+  bizdev_followup_draft: "bizdev_followup_draft",
+  baby_kb_promotion_draft: "baby_kb_promotion_draft",
+  baby_kb_assignment_draft: "baby_kb_assignment_draft",
+} as const;
+
+export type CreateAIDraftBodyTargetLane =
+  (typeof CreateAIDraftBodyTargetLane)[keyof typeof CreateAIDraftBodyTargetLane];
+
+export const CreateAIDraftBodyTargetLane = {
+  daily: "daily",
+  weekly: "weekly",
+  vision: "vision",
+  bizdev: "bizdev",
+  "life-ledger": "life-ledger",
+  "baby-kb": "baby-kb",
+  reach: "reach",
+  admin: "admin",
+} as const;
+
+export type CreateAIDraftBodyMutationRisk =
+  (typeof CreateAIDraftBodyMutationRisk)[keyof typeof CreateAIDraftBodyMutationRisk];
+
+export const CreateAIDraftBodyMutationRisk = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type CreateAIDraftBodyConfidenceMode =
+  (typeof CreateAIDraftBodyConfidenceMode)[keyof typeof CreateAIDraftBodyConfidenceMode];
+
+export const CreateAIDraftBodyConfidenceMode = {
+  suggest_only: "suggest_only",
+  one_tap_approve: "one_tap_approve",
+  auto_draft: "auto_draft",
+} as const;
+
+export type CreateAIDraftBodyInputChannelsItem =
+  (typeof CreateAIDraftBodyInputChannelsItem)[keyof typeof CreateAIDraftBodyInputChannelsItem];
+
+export const CreateAIDraftBodyInputChannelsItem = {
+  typed_text: "typed_text",
+  voice_transcript: "voice_transcript",
+  screenshot_or_photo: "screenshot_or_photo",
+  pasted_message_or_email: "pasted_message_or_email",
+  share_sheet_capture: "share_sheet_capture",
+  calendar_import: "calendar_import",
+  reach_upload: "reach_upload",
+} as const;
+
+export type CreateAIDraftBodyProposedPayload = { [key: string]: unknown };
+
+export interface CreateAIDraftBody {
+  metadata: AIDraftMetadata;
+  draftKind: CreateAIDraftBodyDraftKind;
+  targetLane: CreateAIDraftBodyTargetLane;
+  /** @nullable */
+  targetSurfaceKey?: string | null;
+  targetObjectType: string;
+  mutationRisk: CreateAIDraftBodyMutationRisk;
+  confidenceMode: CreateAIDraftBodyConfidenceMode;
+  commitTool: string;
+  inputChannels: CreateAIDraftBodyInputChannelsItem[];
+  proposedPayload: CreateAIDraftBodyProposedPayload;
+  sourceRefs: AIDraftSourceRef[];
+  /** @nullable */
+  reviewNotes?: string | null;
+}
+
+export type UpdateAIDraftReviewStateBodyReviewState =
+  (typeof UpdateAIDraftReviewStateBodyReviewState)[keyof typeof UpdateAIDraftReviewStateBodyReviewState];
+
+export const UpdateAIDraftReviewStateBodyReviewState = {
+  draft: "draft",
+  needs_review: "needs_review",
+  approval_gated: "approval_gated",
+  approved: "approved",
+  applied: "applied",
+  rejected: "rejected",
+} as const;
+
+export interface UpdateAIDraftReviewStateBody {
+  reviewState: UpdateAIDraftReviewStateBodyReviewState;
+  /** @nullable */
+  reviewNotes?: string | null;
+}
+
+export interface CreateBabyKbAssignmentSuggestionBody {
+  sourceEntryId: number;
+}
+
+export interface ApplyAIDraftBody {
+  /** Date in YYYY-MM-DD format */
+  date?: string;
+  /** Week start in YYYY-MM-DD format */
+  weekStart?: string;
+  /** REACH file id for metadata-only draft apply */
+  reachFileId?: number;
+}
+
+export type BabyKbAssignmentLifecycleState =
+  (typeof BabyKbAssignmentLifecycleState)[keyof typeof BabyKbAssignmentLifecycleState];
+
+export const BabyKbAssignmentLifecycleState = {
+  captured: "captured",
+  verified: "verified",
+  assigned: "assigned",
+  scheduled: "scheduled",
+  due_soon: "due_soon",
+  in_motion: "in_motion",
+  completed: "completed",
+  superseded: "superseded",
+} as const;
+
+export type BabyKbAssignmentEffectiveLifecycleState =
+  (typeof BabyKbAssignmentEffectiveLifecycleState)[keyof typeof BabyKbAssignmentEffectiveLifecycleState];
+
+export const BabyKbAssignmentEffectiveLifecycleState = {
+  captured: "captured",
+  verified: "verified",
+  assigned: "assigned",
+  scheduled: "scheduled",
+  due_soon: "due_soon",
+  in_motion: "in_motion",
+  completed: "completed",
+  superseded: "superseded",
+} as const;
+
+/**
+ * @nullable
+ */
+export type BabyKbAssignmentCadence =
+  | (typeof BabyKbAssignmentCadence)[keyof typeof BabyKbAssignmentCadence]
+  | null;
+
+export const BabyKbAssignmentCadence = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+  quarterly: "quarterly",
+  yearly: "yearly",
+} as const;
+
+export type BabyKbAssignmentProjectionPolicy =
+  (typeof BabyKbAssignmentProjectionPolicy)[keyof typeof BabyKbAssignmentProjectionPolicy];
+
+export const BabyKbAssignmentProjectionPolicy = {
+  hold: "hold",
+  event_only: "event_only",
+  event_and_heroes: "event_and_heroes",
+} as const;
+
+export type BabyKbAssignmentReminderPolicy = { [key: string]: unknown };
+
+export interface BabyKbAssignment {
+  id: number;
+  sourceEntryId: number;
+  /** @nullable */
+  sourceMaterializationId?: number | null;
+  assigneeUserId: string;
+  lifecycleState: BabyKbAssignmentLifecycleState;
+  effectiveLifecycleState: BabyKbAssignmentEffectiveLifecycleState;
+  effectiveDate: string;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  cadence?: BabyKbAssignmentCadence;
+  projectionPolicy: BabyKbAssignmentProjectionPolicy;
+  /** @nullable */
+  assignmentNotes?: string | null;
+  reminderPolicy: BabyKbAssignmentReminderPolicy;
+  /** @nullable */
+  projectedEventId?: number | null;
+  createdBy: string;
+  /** @nullable */
+  updatedBy?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  supersededAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  sourceEntryName?: string | null;
+  /** @nullable */
+  sourceEntryNotes?: string | null;
+  sourceTags?: unknown | null;
+  /** @nullable */
+  sourcePath?: string | null;
+  /** @nullable */
+  sourceRecordKey?: string | null;
+}
+
+export interface ApplyAIDraftResponse {
+  draft: AIDraft;
+  dailyFrame?: DailyFrame;
+  weeklyFrame?: WeeklyFrame;
+  visionFrame?: VisionFrame;
+  reachFile?: ReachFile;
+  lifeLedgerEntry?: LifeLedgerEntry;
+  babyAssignment?: BabyKbAssignment;
 }
 
 export interface PermissionEntry {
@@ -628,3 +1315,55 @@ export interface ParentPacketImportRun {
   createdAt: string;
   updatedAt: string;
 }
+
+export type ListAiDraftsParams = {
+  lane?: ListAiDraftsLane;
+  draftKind?: ListAiDraftsDraftKind;
+  reviewState?: ListAiDraftsReviewState;
+  targetSurfaceKey?: string;
+  /**
+   * @minimum 1
+   * @maximum 25
+   */
+  limit?: number;
+};
+
+export type ListAiDraftsLane =
+  (typeof ListAiDraftsLane)[keyof typeof ListAiDraftsLane];
+
+export const ListAiDraftsLane = {
+  daily: "daily",
+  weekly: "weekly",
+  vision: "vision",
+  bizdev: "bizdev",
+  "life-ledger": "life-ledger",
+  "baby-kb": "baby-kb",
+  reach: "reach",
+  admin: "admin",
+} as const;
+
+export type ListAiDraftsDraftKind =
+  (typeof ListAiDraftsDraftKind)[keyof typeof ListAiDraftsDraftKind];
+
+export const ListAiDraftsDraftKind = {
+  daily_frame_draft: "daily_frame_draft",
+  weekly_frame_draft: "weekly_frame_draft",
+  vision_alignment_draft: "vision_alignment_draft",
+  life_ledger_classification_draft: "life_ledger_classification_draft",
+  reach_file_summary: "reach_file_summary",
+  bizdev_followup_draft: "bizdev_followup_draft",
+  baby_kb_promotion_draft: "baby_kb_promotion_draft",
+  baby_kb_assignment_draft: "baby_kb_assignment_draft",
+} as const;
+
+export type ListAiDraftsReviewState =
+  (typeof ListAiDraftsReviewState)[keyof typeof ListAiDraftsReviewState];
+
+export const ListAiDraftsReviewState = {
+  draft: "draft",
+  needs_review: "needs_review",
+  approval_gated: "approval_gated",
+  approved: "approved",
+  applied: "applied",
+  rejected: "rejected",
+} as const;

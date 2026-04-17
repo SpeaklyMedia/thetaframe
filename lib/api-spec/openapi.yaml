@@ -24,6 +24,8 @@ tags:
     description: Life Ledger personal obligations tracker
   - name: reach
     description: REACH file bundle manager
+  - name: ai-drafts
+    description: AI draft review operations
   - name: storage
     description: Object storage uploads
   - name: admin
@@ -453,6 +455,269 @@ paths:
               schema:
                 $ref: "#/components/schemas/LifeLedgerEntry"
 
+  /life-ledger/events/reminder-queue:
+    get:
+      operationId: getLifeLedgerEventReminderQueue
+      tags: [life-ledger]
+      summary: List reminder-active Life Ledger events for mobile return flows
+      responses:
+        "200":
+          description: Reminder queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LifeLedgerEventReminderQueueResponse"
+
+  /life-ledger/events/{id}/execution-state:
+    post:
+      operationId: updateLifeLedgerEventExecutionState
+      tags: [life-ledger]
+      summary: Update execution state for a Life Ledger event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifeLedgerEventExecutionStateBody"
+      responses:
+        "200":
+          description: Updated Life Ledger event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LifeLedgerEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /life-ledger/events/{id}/reminder-policy:
+    post:
+      operationId: updateLifeLedgerEventReminderPolicy
+      tags: [life-ledger]
+      summary: Update reminder policy for a Life Ledger event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifeLedgerEventReminderPolicyBody"
+      responses:
+        "200":
+          description: Updated Life Ledger event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LifeLedgerEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mobile/notifications/outbox:
+    get:
+      operationId: getMobileNotificationsOutbox
+      tags: [mobile]
+      summary: List queued and recent mobile reminder deliveries
+      responses:
+        "200":
+          description: Mobile notification outbox
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileNotificationOutboxResponse"
+
+  /mobile/devices:
+    get:
+      operationId: getMobileDevices
+      tags: [mobile]
+      summary: List simulated mobile devices for the current user
+      responses:
+        "200":
+          description: Mobile devices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDeviceResponse"
+
+  /mobile/quick-capture:
+    post:
+      operationId: createMobileQuickCapture
+      tags: [mobile]
+      summary: Capture a mobile shortcut item into the correct live lane
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileQuickCaptureBody"
+      responses:
+        "200":
+          description: Captured item written to the target lane
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileQuickCaptureResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mobile/devices/register:
+    post:
+      operationId: registerMobileDevice
+      tags: [mobile]
+      summary: Register or refresh a simulated mobile device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterMobileDeviceBody"
+      responses:
+        "200":
+          description: Registered mobile device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDevice"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mobile/devices/{id}/deactivate:
+    post:
+      operationId: deactivateMobileDevice
+      tags: [mobile]
+      summary: Deactivate a simulated mobile device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated mobile device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileDevice"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mobile/notifications/{id}/mark-sent:
+    post:
+      operationId: markMobileNotificationOutboxItemSent
+      tags: [mobile]
+      summary: Mark a mobile notification outbox item as sent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated mobile notification outbox item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileNotificationOutboxItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mobile/notifications/{id}/simulate-dispatch:
+    post:
+      operationId: simulateDispatchMobileNotificationOutboxItem
+      tags: [mobile]
+      summary: Simulate dispatching a queued mobile notification to an active device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulateDispatchMobileNotificationBody"
+      responses:
+        "200":
+          description: Updated mobile notification outbox item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileNotificationOutboxItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Dispatch is not possible in the current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mobile/notifications/{id}/acknowledge:
+    post:
+      operationId: acknowledgeMobileNotificationOutboxItem
+      tags: [mobile]
+      summary: Acknowledge a mobile notification outbox item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated mobile notification outbox item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileNotificationOutboxItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /life-ledger/{tab}/{id}:
     get:
       operationId: getLifeLedgerEntry
@@ -679,6 +944,193 @@ paths:
               schema:
                 $ref: "#/components/schemas/MyPermissionsResponse"
 
+  /ai-drafts:
+    get:
+      operationId: listAiDrafts
+      tags: [ai-drafts]
+      summary: List AI drafts for the current user
+      parameters:
+        - name: lane
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+        - name: draftKind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              [daily_frame_draft, weekly_frame_draft, vision_alignment_draft, life_ledger_classification_draft, reach_file_summary, bizdev_followup_draft, baby_kb_promotion_draft, baby_kb_assignment_draft]
+        - name: reviewState
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [draft, needs_review, approval_gated, approved, applied, rejected]
+        - name: targetSurfaceKey
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+      responses:
+        "200":
+          description: List of AI drafts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AIDraft"
+    post:
+      operationId: createAiDraft
+      tags: [ai-drafts]
+      summary: Create a new AI draft record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAIDraftBody"
+      responses:
+        "201":
+          description: Created AI draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIDraft"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai-drafts/{id}:
+    get:
+      operationId: getAiDraft
+      tags: [ai-drafts]
+      summary: Get an AI draft by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIDraft"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai-drafts/{id}/review-state:
+    patch:
+      operationId: updateAiDraftReviewState
+      tags: [ai-drafts]
+      summary: Update AI draft review state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAIDraftReviewStateBody"
+      responses:
+        "200":
+          description: Updated AI draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIDraft"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai-drafts/{id}/apply:
+    post:
+      operationId: applyAiDraft
+      tags: [ai-drafts]
+      summary: Apply a supported AI draft into live lane data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyAIDraftBody"
+      responses:
+        "200":
+          description: Applied AI draft and resulting Daily frame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyAIDraftResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Draft cannot be applied in the current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Stored draft payload cannot be applied to Daily
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/users:
     get:
       operationId: listAdminUsers
@@ -799,6 +1251,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ParentPacketImportRun"
+
+  /admin/baby-kb/assignment-suggestions:
+    post:
+      operationId: createAdminBabyKbAssignmentSuggestion
+      tags: [admin]
+      summary: Generate one approval-gated Baby KB assignment suggestion draft (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBabyKbAssignmentSuggestionBody"
+      responses:
+        "201":
+          description: Created Baby KB assignment suggestion draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIDraft"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Source entry is ineligible for suggestion generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Invalid model output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Provider unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/presets/{id}:
     delete:
@@ -1296,6 +1797,33 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        sourceType:
+          type: ["string", "null"]
+        sourceEntryId:
+          type: ["integer", "null"]
+        sourceAssignmentId:
+          type: ["integer", "null"]
+        nextDueDate:
+          type: ["string", "null"]
+        reminderPolicy:
+          type: object
+          additionalProperties: true
+        reminderEnabled:
+          type: boolean
+        reminderLeadDays:
+          type: array
+          items:
+            type: integer
+        nextReminderAt:
+          type: ["string", "null"]
+          format: date-time
+        reminderState:
+          type: string
+          enum: [inactive, scheduled, snoozed]
+        completionState:
+          type: ["string", "null"]
+        snoozedUntil:
+          type: ["string", "null"]
         amount:
           type: ["number", "null"]
         currency:
@@ -1315,6 +1843,276 @@ components:
         - tab
         - name
         - tags
+        - reminderPolicy
+        - reminderEnabled
+        - reminderLeadDays
+        - nextReminderAt
+        - reminderState
+
+    LifeLedgerEventReminderPolicyBody:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        leadDays:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 30
+      required:
+        - enabled
+
+    LifeLedgerEventReminderQueueItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        executionDate:
+          type: string
+        nextReminderAt:
+          type: string
+          format: date-time
+        reminderState:
+          type: string
+          enum: [scheduled, snoozed]
+        reminderLeadDays:
+          type: array
+          items:
+            type: integer
+        impactLevel:
+          type: ["string", "null"]
+          enum: [low, medium, high, null]
+        sourceType:
+          type: ["string", "null"]
+        route:
+          type: string
+        deepLink:
+          type: string
+        notificationCategory:
+          type: string
+          enum: [life_ledger_due]
+      required:
+        - id
+        - name
+        - executionDate
+        - nextReminderAt
+        - reminderState
+        - reminderLeadDays
+        - route
+        - deepLink
+        - notificationCategory
+
+    LifeLedgerEventReminderQueueResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LifeLedgerEventReminderQueueItem"
+      required:
+        - items
+
+    MobileNotificationOutboxDeliveryStatus:
+      type: string
+      enum: [queued, sent, cancelled, acknowledged]
+
+    MobileDevicePlatform:
+      type: string
+      enum: [ios, android]
+
+    MobileDeviceDeliveryProvider:
+      type: string
+      enum: [ios_local_notification, android_notification]
+
+    MobileQuickCaptureIntent:
+      type: string
+      enum: [current_work]
+
+    MobileQuickCaptureChannel:
+      type: string
+      enum: [ios_shortcut, android_shortcut]
+
+    MobileQuickCaptureBody:
+      type: object
+      properties:
+        intent:
+          $ref: "#/components/schemas/MobileQuickCaptureIntent"
+        text:
+          type: string
+        captureChannel:
+          $ref: "#/components/schemas/MobileQuickCaptureChannel"
+      required:
+        - intent
+        - text
+        - captureChannel
+
+    MobileQuickCaptureResponse:
+      type: object
+      properties:
+        lane:
+          type: string
+          enum: [daily]
+        route:
+          type: string
+        deepLink:
+          type: string
+        dailyFrame:
+          $ref: "#/components/schemas/DailyFrame"
+        capturedTaskId:
+          type: string
+      required:
+        - lane
+        - route
+        - deepLink
+        - dailyFrame
+        - capturedTaskId
+
+    MobileDevice:
+      type: object
+      properties:
+        id:
+          type: integer
+        installationId:
+          type: string
+        deviceLabel:
+          type: string
+        platform:
+          $ref: "#/components/schemas/MobileDevicePlatform"
+        deliveryProvider:
+          $ref: "#/components/schemas/MobileDeviceDeliveryProvider"
+        isActive:
+          type: boolean
+        lastSeenAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - installationId
+        - deviceLabel
+        - platform
+        - deliveryProvider
+        - isActive
+        - lastSeenAt
+        - createdAt
+        - updatedAt
+
+    MobileDeviceResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MobileDevice"
+      required:
+        - items
+
+    RegisterMobileDeviceBody:
+      type: object
+      properties:
+        installationId:
+          type: string
+        deviceLabel:
+          type: string
+        platform:
+          $ref: "#/components/schemas/MobileDevicePlatform"
+      required:
+        - installationId
+        - deviceLabel
+        - platform
+
+    SimulateDispatchMobileNotificationBody:
+      type: object
+      properties:
+        deviceId:
+          type: integer
+
+    MobileNotificationOutboxItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        sourceLane:
+          type: string
+        sourceEventId:
+          type: integer
+        notificationCategory:
+          type: string
+          enum: [life_ledger_due]
+        route:
+          type: string
+        deepLink:
+          type: string
+        eventName:
+          type: string
+        executionDate:
+          type: ["string", "null"]
+        sourceType:
+          type: ["string", "null"]
+        reminderState:
+          type: string
+          enum: [scheduled, snoozed]
+        reminderLeadDays:
+          type: array
+          items:
+            type: integer
+        scheduledFor:
+          type: string
+          format: date-time
+        deliveryStatus:
+          $ref: "#/components/schemas/MobileNotificationOutboxDeliveryStatus"
+        deliveredDeviceId:
+          type: ["integer", "null"]
+        deliveredDeviceLabel:
+          type: ["string", "null"]
+        deliveryProvider:
+          oneOf:
+            - $ref: "#/components/schemas/MobileDeviceDeliveryProvider"
+            - type: "null"
+        sentAt:
+          type: ["string", "null"]
+          format: date-time
+        acknowledgedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sourceLane
+        - sourceEventId
+        - notificationCategory
+        - route
+        - deepLink
+        - eventName
+        - reminderState
+        - reminderLeadDays
+        - scheduledFor
+        - deliveryStatus
+        - createdAt
+        - updatedAt
+
+    MobileNotificationOutboxResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MobileNotificationOutboxItem"
+      required:
+        - items
 
     LifeLedgerEntryBody:
       type: object
@@ -1347,6 +2145,22 @@ components:
       required:
         - name
         - tags
+
+    LifeLedgerEventExecutionStateAction:
+      type: string
+      enum:
+        - mark_scheduled
+        - mark_in_motion
+        - mark_completed
+        - mark_superseded
+
+    LifeLedgerEventExecutionStateBody:
+      type: object
+      properties:
+        action:
+          $ref: "#/components/schemas/LifeLedgerEventExecutionStateAction"
+      required:
+        - action
 
     Next90DaysEntry:
       type: object
@@ -1492,6 +2306,332 @@ components:
       required:
         - uploadURL
         - objectPath
+
+    AIDraftMetadata:
+      type: object
+      properties:
+        lane:
+          type: string
+          enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+        objectType:
+          type: string
+          enum: [ai-draft]
+        provenanceSource:
+          type: string
+        captureChannel:
+          type: string
+        reviewStatus:
+          type: string
+        confidence:
+          type: ["string", "null"]
+          enum: [low, medium, high, null]
+        externalRef:
+          type: ["string", "null"]
+        sourceTimestamp:
+          type: ["string", "null"]
+        reviewedAt:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        workspaceMoodContext:
+          $ref: "#/components/schemas/WorkspaceMoodContext"
+      required:
+        - lane
+        - objectType
+        - provenanceSource
+        - captureChannel
+        - reviewStatus
+
+    WorkspaceMoodContext:
+      type: object
+      properties:
+        colourState:
+          type: string
+          enum: [green, yellow, red, blue, purple]
+        label:
+          type: string
+          enum: [calm/ready, anxious/scattered, overwhelmed, low/flat, creative/energized]
+        supportMode:
+          type: string
+          enum: [steady, reduce_choices, recovery_first, low_energy, capture_then_choose]
+        source:
+          type: string
+          enum: [user_mode, daily_frame, fallback]
+      required:
+        - colourState
+        - label
+        - supportMode
+        - source
+
+    AIDraftSourceRef:
+      type: object
+      properties:
+        sourceType:
+          type: string
+          enum: [raw_input, reach_file, calendar_event, mobile_capture, message_excerpt, image_capture, existing_theta_object]
+        ref:
+          type: string
+        label:
+          type: ["string", "null"]
+      required:
+        - sourceType
+        - ref
+
+    AIDraft:
+      type: object
+      properties:
+        id:
+          type: integer
+        thetaObjectId:
+          type: string
+        userId:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/AIDraftMetadata"
+        draftKind:
+          type: string
+          enum:
+            [daily_frame_draft, weekly_frame_draft, vision_alignment_draft, life_ledger_classification_draft, reach_file_summary, bizdev_followup_draft, baby_kb_promotion_draft, baby_kb_assignment_draft]
+        targetLane:
+          type: string
+          enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+        targetSurfaceKey:
+          type: ["string", "null"]
+        targetObjectType:
+          type: string
+        mutationRisk:
+          type: string
+          enum: [low, medium, high, critical]
+        approvalRequired:
+          type: string
+          enum: [none, one_tap, explicit_review, two_step_review]
+        reviewState:
+          type: string
+          enum: [draft, needs_review, approval_gated, approved, applied, rejected]
+        confidenceMode:
+          type: string
+          enum: [suggest_only, one_tap_approve, auto_draft]
+        commitTool:
+          type: string
+        inputChannels:
+          type: array
+          items:
+            type: string
+            enum: [typed_text, voice_transcript, screenshot_or_photo, pasted_message_or_email, share_sheet_capture, calendar_import, reach_upload]
+        proposedPayload:
+          type: object
+          additionalProperties: true
+        sourceRefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIDraftSourceRef"
+        reviewNotes:
+          type: ["string", "null"]
+        reviewedAt:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        appliedAt:
+          type: ["string", "null"]
+        appliedBy:
+          type: ["string", "null"]
+        appliedTargetRef:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - thetaObjectId
+        - userId
+        - metadata
+        - draftKind
+        - targetLane
+        - targetObjectType
+        - mutationRisk
+        - approvalRequired
+        - reviewState
+        - confidenceMode
+        - commitTool
+        - inputChannels
+        - proposedPayload
+        - sourceRefs
+        - createdAt
+        - updatedAt
+
+    CreateAIDraftBody:
+      type: object
+      properties:
+        metadata:
+          $ref: "#/components/schemas/AIDraftMetadata"
+        draftKind:
+          type: string
+          enum:
+            [daily_frame_draft, weekly_frame_draft, vision_alignment_draft, life_ledger_classification_draft, reach_file_summary, bizdev_followup_draft, baby_kb_promotion_draft, baby_kb_assignment_draft]
+        targetLane:
+          type: string
+          enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+        targetSurfaceKey:
+          type: ["string", "null"]
+        targetObjectType:
+          type: string
+        mutationRisk:
+          type: string
+          enum: [low, medium, high, critical]
+        confidenceMode:
+          type: string
+          enum: [suggest_only, one_tap_approve, auto_draft]
+        commitTool:
+          type: string
+        inputChannels:
+          type: array
+          items:
+            type: string
+            enum: [typed_text, voice_transcript, screenshot_or_photo, pasted_message_or_email, share_sheet_capture, calendar_import, reach_upload]
+        proposedPayload:
+          type: object
+          additionalProperties: true
+        sourceRefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIDraftSourceRef"
+        reviewNotes:
+          type: ["string", "null"]
+      required:
+        - metadata
+        - draftKind
+        - targetLane
+        - targetObjectType
+        - mutationRisk
+        - confidenceMode
+        - commitTool
+        - inputChannels
+        - proposedPayload
+        - sourceRefs
+
+    UpdateAIDraftReviewStateBody:
+      type: object
+      properties:
+        reviewState:
+          type: string
+          enum: [draft, needs_review, approval_gated, approved, applied, rejected]
+        reviewNotes:
+          type: ["string", "null"]
+      required:
+        - reviewState
+
+    CreateBabyKbAssignmentSuggestionBody:
+      type: object
+      properties:
+        sourceEntryId:
+          type: integer
+      required:
+        - sourceEntryId
+
+    ApplyAIDraftBody:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        weekStart:
+          type: string
+          description: Week start in YYYY-MM-DD format
+        reachFileId:
+          type: integer
+          description: REACH file id for metadata-only draft apply
+
+    ApplyAIDraftResponse:
+      type: object
+      properties:
+        draft:
+          $ref: "#/components/schemas/AIDraft"
+        dailyFrame:
+          $ref: "#/components/schemas/DailyFrame"
+        weeklyFrame:
+          $ref: "#/components/schemas/WeeklyFrame"
+        visionFrame:
+          $ref: "#/components/schemas/VisionFrame"
+        reachFile:
+          $ref: "#/components/schemas/ReachFile"
+        lifeLedgerEntry:
+          $ref: "#/components/schemas/LifeLedgerEntry"
+        babyAssignment:
+          $ref: "#/components/schemas/BabyKbAssignment"
+      required:
+        - draft
+
+    BabyKbAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+        sourceEntryId:
+          type: integer
+        sourceMaterializationId:
+          type: ["integer", "null"]
+        assigneeUserId:
+          type: string
+        lifecycleState:
+          type: string
+          enum: [captured, verified, assigned, scheduled, due_soon, in_motion, completed, superseded]
+        effectiveLifecycleState:
+          type: string
+          enum: [captured, verified, assigned, scheduled, due_soon, in_motion, completed, superseded]
+        effectiveDate:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+        cadence:
+          type: ["string", "null"]
+          enum: [daily, weekly, monthly, quarterly, yearly, null]
+        projectionPolicy:
+          type: string
+          enum: [hold, event_only, event_and_heroes]
+        assignmentNotes:
+          type: ["string", "null"]
+        reminderPolicy:
+          type: object
+          additionalProperties: true
+        projectedEventId:
+          type: ["integer", "null"]
+        createdBy:
+          type: string
+        updatedBy:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        supersededAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        sourceEntryName:
+          type: ["string", "null"]
+        sourceEntryNotes:
+          type: ["string", "null"]
+        sourceTags:
+          nullable: true
+        sourcePath:
+          type: ["string", "null"]
+        sourceRecordKey:
+          type: ["string", "null"]
+      required:
+        - id
+        - sourceEntryId
+        - assigneeUserId
+        - lifecycleState
+        - effectiveLifecycleState
+        - effectiveDate
+        - projectionPolicy
+        - reminderPolicy
+        - createdBy
+        - createdAt
+        - updatedAt
 
     PermissionEntry:
       type: object

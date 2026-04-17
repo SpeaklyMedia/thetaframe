@@ -6,14 +6,15 @@ import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk } from "@clerk
 import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
+import { ThetaFrameStartup } from "@/components/shell/ThetaFrameStartup";
 import { AuthSessionProvider, useAuthSession } from "@/hooks/use-auth-session";
 import { usePermissions } from "@/hooks/usePermissions";
 import { SignedInOnboardingModal } from "@/components/signed-in-onboarding-modal";
-import { getPreferredRoute } from "@/lib/navigation";
 
 import Home from "@/pages/home";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
+import DashboardPage from "@/pages/dashboard";
 import DailyPage from "@/pages/daily";
 import WeeklyPage from "@/pages/weekly";
 import VisionPage from "@/pages/vision";
@@ -58,16 +59,43 @@ function PageSkeleton() {
 
 function HomeRedirect() {
   const { status } = useAuthSession();
-  const { modules, isAdmin, isLoading, isError } = usePermissions();
-  const preferredRoute = getPreferredRoute(modules, isAdmin);
+  const { isLoading, isError } = usePermissions();
 
   return (
     <>
       <Show when="signed-in">
-        {status === "loading" || isLoading ? <PageSkeleton /> : <Redirect to={isError ? "/daily" : preferredRoute} />}
+        {status === "loading" ? (
+          <ThetaFrameStartup />
+        ) : isLoading ? (
+          <PageSkeleton />
+        ) : (
+          <Redirect to={isError ? "/daily" : "/dashboard"} />
+        )}
       </Show>
       <Show when="signed-out">
         <Home />
+      </Show>
+    </>
+  );
+}
+
+function DashboardRoute() {
+  const { status } = useAuthSession();
+  const { isLoading } = usePermissions();
+
+  return (
+    <>
+      <Show when="signed-in">
+        {status === "loading" ? (
+          <ThetaFrameStartup />
+        ) : isLoading ? (
+          <PageSkeleton />
+        ) : (
+          <DashboardPage />
+        )}
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
       </Show>
     </>
   );
@@ -86,7 +114,9 @@ function ModuleRoute({
   return (
     <>
       <Show when="signed-in">
-        {status === "loading" || isLoading ? (
+        {status === "loading" ? (
+          <ThetaFrameStartup />
+        ) : isLoading ? (
           <PageSkeleton />
         ) : !isError && !hasModule(module) ? (
           <AccessDeniedPage />
@@ -107,7 +137,15 @@ function AdminRoute() {
   return (
     <>
       <Show when="signed-in">
-        {status === "loading" || isLoading ? <PageSkeleton /> : isAdmin ? <AdminPage /> : <AccessDeniedPage />}
+        {status === "loading" ? (
+          <ThetaFrameStartup />
+        ) : isLoading ? (
+          <PageSkeleton />
+        ) : isAdmin ? (
+          <AdminPage />
+        ) : (
+          <AccessDeniedPage />
+        )}
       </Show>
       <Show when="signed-out">
         <Redirect to="/" />
@@ -158,7 +196,7 @@ function ClerkProviderWithRoutes() {
           <ClerkQueryClientCacheInvalidator />
           <TooltipProvider>
             <ClerkLoading>
-              <PageSkeleton />
+              <ThetaFrameStartup />
             </ClerkLoading>
             <ClerkLoaded>
               <Show when="signed-in">
@@ -169,6 +207,9 @@ function ClerkProviderWithRoutes() {
                 <Route path="/sign-in/*?" component={SignInPage} />
                 <Route path="/sign-up/*?" component={SignUpPage} />
 
+                <Route path="/dashboard">
+                  <DashboardRoute />
+                </Route>
                 <Route path="/daily">
                   <ModuleRoute component={DailyPage} module="daily" />
                 </Route>

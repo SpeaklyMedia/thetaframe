@@ -1,17 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Layout } from "@/components/layout";
+import { AIDraftReviewPanel } from "@/components/shell/AIDraftReviewPanel";
+import { LaneHero } from "@/components/shell/LaneHero";
+import { CalendarLinkStatusCard } from "@/components/shell/CalendarLinkStatusCard";
+import { MobileIntegrationStatusCard } from "@/components/shell/MobileIntegrationStatusCard";
+import { SupportRail } from "@/components/shell/SupportRail";
 import {
+  type AIDraft,
+  ApiError,
+  useListAiDrafts,
+  useApplyAiDraft,
   useListLifeLedgerEntries,
   useCreateLifeLedgerEntry,
   useUpdateLifeLedgerEntry,
   useDeleteLifeLedgerEntry,
+  useUpdateLifeLedgerEventExecutionState,
+  useUpdateLifeLedgerEventReminderPolicy,
+  useUpdateAiDraftReviewState,
   useGetNext90Days,
+  useGetLifeLedgerEventReminderQueue,
+  useGetMobileDevices,
+  useGetMobileNotificationsOutbox,
+  useRegisterMobileDevice,
+  useDeactivateMobileDevice,
+  useSimulateDispatchMobileNotificationOutboxItem,
   useGetSubscriptionAudit,
   getListLifeLedgerEntriesQueryKey,
   getGetNext90DaysQueryKey,
+  getGetLifeLedgerEventReminderQueueQueryKey,
+  getGetMobileDevicesQueryKey,
+  getGetMobileNotificationsOutboxQueryKey,
   getGetSubscriptionAuditQueryKey,
   getGetDailyFrameQueryKey,
+  getListAiDraftsQueryKey,
   getGetWeeklyFrameQueryKey,
   getGetVisionFrameQueryKey,
   LifeLedgerEntry,
@@ -19,6 +41,11 @@ import {
   LifeLedgerEntryBodyImpactLevel,
   LifeLedgerEntryBodyReviewWindow,
   LifeLedgerEntryBodyBillingCycle,
+  useListAdminUsers,
+  type AdminUser,
+  type LifeLedgerEventReminderQueueItem,
+  type MobileDevice,
+  type MobileNotificationOutboxItem,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +53,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { HorizontalOverflowSelector } from "@/components/ui/horizontal-overflow-selector";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,21 +74,46 @@ import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   BABY_KB_PROMOTIONS_QUERY_KEY,
+  BABY_KB_ASSIGNMENTS_QUERY_KEY,
+  BABY_KB_HERO_ROLLUPS_QUERY_KEY,
   useParentPacketImports,
   useParentPacketMaterializations,
   useBabyKbPromotions,
+  useBabyKbAssignments,
   useCreateBabyKbPromotion,
+  useCreateBabyKbAssignment,
+  useCreateBabyKbAssignmentSuggestion,
   useBulkUpdateBabyKbEntries,
+  useUpdateBabyKbAssignment,
+  useBabyKbHeroRollups,
   type BabyKbPromotion,
+  type BabyKbAssignment,
+  type BabyKbAssignmentCadence,
+  type BabyKbAssignmentLifecycleState,
+  type BabyKbAssignmentProjectionPolicy,
   type ParentPacketMaterialization,
 } from "@/hooks/use-parent-packet-imports";
 import { useToast } from "@/hooks/use-toast";
+import {
+  babyAssignmentAIDraftListParams,
+  getBabyAssignmentAIDraftReviewPanelCopy,
+  getLifeLedgerAIDraftListParams,
+  getLifeLedgerAIDraftReviewPanelCopy,
+  type LifeLedgerDraftSurfaceKey,
+} from "@/lib/ai-draft-review";
 import { getMondayOfCurrentWeek, getTodayDateString } from "@/lib/dates";
+import { lifeLedgerEventsCalendarPlaceholder } from "@/lib/calendar-placeholders";
+import { lifeLedgerEventsMobilePlaceholder } from "@/lib/mobile-placeholders";
+import { BabyHeroConsequencesCard } from "@/components/shell/BabyHeroConsequencesCard";
 
 type Tab = "people" | "events" | "financial" | "subscriptions" | "travel" | "baby";
 type BabyReviewFilter = "all" | "framework" | "planning" | "reference" | "must-verify" | "verified";
 type BabyGroupBy = "source" | "phase" | "none";
-type BabyOperationalState = "needs-review" | "ready-to-promote" | "in-motion" | "already-represented";
+type BabyOperationalState = "needs-review" | "ready-to-assign" | "scheduled" | "due-soon" | "in-motion";
+type BabyTimelineBucket = "today" | "next-7-days" | "next-30-days" | "later";
+type BabyManualPromotionSurface = "daily" | "weekly" | "vision";
+type EventExecutionGroupKey = "due_soon" | "scheduled" | "in_motion" | "completed";
+type EventExecutionAction = "mark_scheduled" | "mark_in_motion" | "mark_completed" | "mark_superseded";
 
 type BabyReviewEntry = LifeLedgerEntry & {
   isImported: boolean;
@@ -94,24 +155,77 @@ const BABY_PROMOTION_BADGE_LABELS: Record<BabyKbPromotion["targetSurface"], stri
   daily: "Promoted to Daily",
   weekly: "Promoted to Weekly",
   vision: "Promoted to Vision",
+  events: "Projected to Events",
 };
 const BABY_PROMOTION_BUTTON_LABELS: Record<BabyKbPromotion["targetSurface"], string> = {
   daily: "Promote to Daily",
   weekly: "Promote to Weekly",
   vision: "Promote to Vision",
+  events: "Projected to Events",
+};
+const EVENT_GROUP_LABELS: Record<EventExecutionGroupKey, string> = {
+  due_soon: "Due Soon",
+  scheduled: "Scheduled",
+  in_motion: "In Motion",
+  completed: "Completed / Superseded",
+};
+const EVENT_GROUP_DESCRIPTIONS: Record<EventExecutionGroupKey, string> = {
+  due_soon: "Active event work that needs attention now or in the next 48 hours.",
+  scheduled: "Future dated obligations and commitments that are already projected into Events.",
+  in_motion: "Event work already underway and still visible in the execution lane.",
+  completed: "Finished or superseded event work kept for durable traceability.",
+};
+const EVENT_REMINDER_PRESETS: Array<{ label: string; leadDays: number[]; testIdSuffix: string }> = [
+  { label: "7 / 2 / 0", leadDays: [7, 2, 0], testIdSuffix: "720" },
+  { label: "2 / 0", leadDays: [2, 0], testIdSuffix: "20" },
+  { label: "Day of", leadDays: [0], testIdSuffix: "0" },
+];
+const MOBILE_SIMULATOR_INSTALLATION_STORAGE_KEYS: Record<Extract<MobileDevice["platform"], "ios" | "android">, string> = {
+  ios: "thetaframe-mobile-simulator-installation-id-ios",
+  android: "thetaframe-mobile-simulator-installation-id-android",
 };
 const BABY_OPERATIONAL_STATE_LABELS: Record<BabyOperationalState, string> = {
   "needs-review": "Needs review",
-  "ready-to-promote": "Ready to promote",
+  "ready-to-assign": "Ready to assign",
+  scheduled: "Scheduled",
+  "due-soon": "Due soon",
   "in-motion": "In motion",
-  "already-represented": "Already represented",
 };
 const BABY_OPERATIONAL_STATE_DESCRIPTIONS: Record<BabyOperationalState, string> = {
   "needs-review": "Framework items that still need a trust check before they should steer live planning.",
-  "ready-to-promote": "Items that are ready to move into a real Daily, Weekly, or Vision lane.",
-  "in-motion": "Items already linked into at least one live surface and active inside the system.",
-  "already-represented": "Items already linked broadly enough that Baby KB is now source truth and review context.",
+  "ready-to-assign": "Items that are verified enough to assign to a real account and rolling timeline.",
+  scheduled: "Items assigned with a dated event, but not yet close enough to require immediate attention.",
+  "due-soon": "Assigned items with a due date inside the immediate planning window.",
+  "in-motion": "Items already underway for the assigned account and active inside the system.",
 };
+const BABY_TIMELINE_BUCKET_LABELS: Record<BabyTimelineBucket, string> = {
+  today: "Today",
+  "next-7-days": "Next 7 Days",
+  "next-30-days": "Next 30 Days",
+  later: "Later",
+};
+const BABY_ASSIGNMENT_LIFECYCLE_LABELS: Record<BabyKbAssignmentLifecycleState, string> = {
+  captured: "Captured",
+  verified: "Verified",
+  assigned: "Assigned",
+  scheduled: "Scheduled",
+  due_soon: "Due soon",
+  in_motion: "In motion",
+  completed: "Completed",
+  superseded: "Superseded",
+};
+const BABY_ASSIGNMENT_CADENCE_OPTIONS: Array<{ value: BabyKbAssignmentCadence; label: string }> = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+];
+const BABY_ASSIGNMENT_PROJECTION_OPTIONS: Array<{ value: BabyKbAssignmentProjectionPolicy; label: string }> = [
+  { value: "hold", label: "Hold in Baby KB only" },
+  { value: "event_only", label: "Project to Events" },
+  { value: "event_and_heroes", label: "Project to Events + hero consequences" },
+];
 
 const TAB_TAG_SUGGESTIONS: Record<Tab, string[]> = {
   people: [
@@ -399,71 +513,203 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function getInitialLifeLedgerTab(): Tab {
+  if (typeof window === "undefined") return "people";
+  const rawTab = new URLSearchParams(window.location.search).get("tab");
+  return TABS.some((tab) => tab.key === rawTab) ? (rawTab as Tab) : "people";
+}
+
+function syncLifeLedgerTabToUrl(tab: Tab) {
+  if (typeof window === "undefined") return;
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set("tab", tab);
+  window.history.replaceState({}, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+}
+
+function formatAdminUserLabel(user: AdminUser | null | undefined) {
+  if (!user) return "Unknown account";
+  return [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+}
+
 function getPromotionTargetHref(surface: BabyKbPromotion["targetSurface"]) {
   if (surface === "daily") return "/daily";
   if (surface === "weekly") return "/weekly";
-  return "/vision";
+  if (surface === "vision") return "/vision";
+  return "/life-ledger?tab=events";
 }
 
 function getPromotionTargetLabel(surface: BabyKbPromotion["targetSurface"]) {
   if (surface === "daily") return "Open Daily";
   if (surface === "weekly") return "Open Weekly";
-  return "Open Vision";
+  if (surface === "vision") return "Open Vision";
+  return "Open Events";
 }
 
-function getBabyOperationalState(entry: BabyReviewEntry, promotions: BabyKbPromotion[]): BabyOperationalState {
+function getBabyOperationalState(
+  entry: BabyReviewEntry,
+  promotions: BabyKbPromotion[],
+  assignments: BabyKbAssignment[],
+): BabyOperationalState {
   const needsReview = entry.contentType === "must-verify" || entry.tagsList.includes("Needs verification");
 
   if (needsReview) return "needs-review";
-  if (promotions.length === 0) return "ready-to-promote";
-  if (promotions.length >= 3) return "already-represented";
+  const activeAssignments = assignments.filter((assignment) => assignment.effectiveLifecycleState !== "completed" && assignment.effectiveLifecycleState !== "superseded");
+  if (activeAssignments.some((assignment) => assignment.effectiveLifecycleState === "in_motion")) return "in-motion";
+  if (activeAssignments.some((assignment) => assignment.effectiveLifecycleState === "due_soon")) return "due-soon";
+  if (activeAssignments.some((assignment) => assignment.effectiveLifecycleState === "scheduled")) return "scheduled";
+  if (activeAssignments.length === 0 && promotions.some((promotion) => promotion.targetSurface === "events")) return "scheduled";
+  if (activeAssignments.length === 0 && promotions.length === 0) return "ready-to-assign";
   return "in-motion";
 }
 
-function getBabyActionSummary(entry: BabyReviewEntry, promotions: BabyKbPromotion[]) {
-  const state = getBabyOperationalState(entry, promotions);
+function getBabyActionSummary(entry: BabyReviewEntry, promotions: BabyKbPromotion[], assignments: BabyKbAssignment[]) {
+  const state = getBabyOperationalState(entry, promotions, assignments);
   const source = entry.sourceLabel ? `from ${entry.sourceLabel}` : "from Baby KB";
 
   if (state === "needs-review") {
     return `${source}. Review this framework item before it starts shaping a live Daily, Weekly, or Vision lane.`;
   }
 
-  if (state === "ready-to-promote") {
-    return `${source}. This item is not represented in a live operating surface yet, so it is a candidate for Daily, Weekly, or Vision.`;
+  if (state === "ready-to-assign") {
+    return `${source}. This item is verified enough to assign to a real account and schedule into Life Ledger Events.`;
   }
 
-  if (state === "already-represented") {
-    return `${source}. This item is already linked across Daily, Weekly, and Vision, so Baby KB is now the provenance and review layer.`;
+  if (state === "scheduled") {
+    return `${source}. This item has an assigned rolling event and is now staged for future planning surfaces.`;
   }
 
-  const linkedSurfaces = promotions
-    .map((promotion) => BABY_PROMOTION_BADGE_LABELS[promotion.targetSurface].replace("Promoted to ", ""))
-    .join(", ");
-  return `${source}. This item is already active in ${linkedSurfaces} and can still be reviewed here without overwriting those live copies.`;
+  if (state === "due-soon") {
+    return `${source}. This item is within the immediate planning window and should show up in Events plus Daily or Weekly hero consequences.`;
+  }
+
+  const linkedSurfaces = Array.from(new Set(promotions.map((promotion) => BABY_PROMOTION_BADGE_LABELS[promotion.targetSurface].replace(/^(Promoted|Projected) to /, ""))));
+  const linkedSummary = linkedSurfaces.length > 0 ? linkedSurfaces.join(", ") : "the assigned account";
+  return `${source}. This item is already active in ${linkedSummary} and can still be reviewed here without overwriting those live copies.`;
 }
 
 function BabyOperationalQueue({
   entries,
   promotionsByEntryId,
+  assignmentsByEntryId,
+  usersById,
 }: {
   entries: BabyReviewEntry[];
   promotionsByEntryId: Map<number, BabyKbPromotion[]>;
+  assignmentsByEntryId: Map<number, BabyKbAssignment[]>;
+  usersById: Map<string, AdminUser>;
 }) {
   const groups = new Map<BabyOperationalState, BabyReviewEntry[]>(
     (Object.keys(BABY_OPERATIONAL_STATE_LABELS) as BabyOperationalState[]).map((state) => [state, []]),
   );
 
   for (const entry of entries) {
-    const state = getBabyOperationalState(entry, promotionsByEntryId.get(entry.id) ?? []);
+    const state = getBabyOperationalState(entry, promotionsByEntryId.get(entry.id) ?? [], assignmentsByEntryId.get(entry.id) ?? []);
     groups.set(state, [...(groups.get(state) ?? []), entry]);
   }
 
+  const assignments = Array.from(assignmentsByEntryId.values()).flat();
+  const timelineGroups = new Map<BabyTimelineBucket, BabyKbAssignment[]>(
+    (Object.keys(BABY_TIMELINE_BUCKET_LABELS) as BabyTimelineBucket[]).map((bucket) => [bucket, []]),
+  );
+
+  for (const assignment of assignments) {
+    if (!assignment.dueDate || assignment.effectiveLifecycleState === "completed" || assignment.effectiveLifecycleState === "superseded") continue;
+    const today = new Date().toISOString().slice(0, 10);
+    const nextSeven = (() => {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() + 7);
+      return date.toISOString().slice(0, 10);
+    })();
+    const nextThirty = (() => {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() + 30);
+      return date.toISOString().slice(0, 10);
+    })();
+
+    const bucket: BabyTimelineBucket =
+      assignment.dueDate <= today
+        ? "today"
+        : assignment.dueDate <= nextSeven
+          ? "next-7-days"
+          : assignment.dueDate <= nextThirty
+            ? "next-30-days"
+            : "later";
+    timelineGroups.set(bucket, [...(timelineGroups.get(bucket) ?? []), assignment]);
+  }
+
   return (
-    <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4" data-testid="baby-kb-operational-queue">
+    <div className="space-y-4" data-testid="baby-kb-operational-queue">
+      <div className="grid gap-4 md:grid-cols-5">
+        {(Object.keys(BABY_OPERATIONAL_STATE_LABELS) as BabyOperationalState[]).map((state) => {
+          const count = (groups.get(state) ?? []).length;
+          return (
+            <div key={state} className="rounded-2xl border bg-card p-4 shadow-sm space-y-1" data-testid={`baby-kb-summary-${state}`}>
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{BABY_OPERATIONAL_STATE_LABELS[state]}</div>
+              <div className="text-2xl font-semibold">{count}</div>
+              <p className="text-xs text-muted-foreground">{BABY_OPERATIONAL_STATE_DESCRIPTIONS[state]}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4" data-testid="baby-kb-rolling-timeline">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold">Rolling timeline</h2>
+          <p className="text-sm text-muted-foreground">
+            Assigned Baby KB items stay here as an admin timeline, then project into Events and hero consequence surfaces for the assignee.
+          </p>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-4">
+          {(Object.keys(BABY_TIMELINE_BUCKET_LABELS) as BabyTimelineBucket[]).map((bucket) => {
+            const bucketAssignments = (timelineGroups.get(bucket) ?? []).sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
+
+            return (
+              <section key={bucket} className="rounded-xl border bg-muted/20 p-4 space-y-3" data-testid={`baby-kb-timeline-${bucket}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">{BABY_TIMELINE_BUCKET_LABELS[bucket]}</h3>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] text-muted-foreground">{bucketAssignments.length}</span>
+                </div>
+
+                {bucketAssignments.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No assigned items in this window.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bucketAssignments.slice(0, 4).map((assignment) => (
+                      <div key={assignment.id} className="rounded-lg border bg-background/80 p-3 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium truncate">{assignment.sourceEntryName ?? "Baby KB item"}</div>
+                          <span className="font-mono text-[11px] text-muted-foreground">{assignment.dueDate}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">{formatAdminUserLabel(usersById.get(assignment.assigneeUserId))}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            {BABY_ASSIGNMENT_LIFECYCLE_LABELS[assignment.effectiveLifecycleState]}
+                          </span>
+                          {assignment.cadence ? (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground capitalize">
+                              {assignment.cadence}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                    {bucketAssignments.length > 4 ? (
+                      <div className="text-xs text-muted-foreground">+{bucketAssignments.length - 4} more assigned items</div>
+                    ) : null}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
       <div className="space-y-1">
         <h2 className="text-sm font-semibold">Items in Motion</h2>
         <p className="text-sm text-muted-foreground">
-          Use Baby KB as the parenting review and source-truth lane, then move the right items into Daily, Weekly, and Vision where real behavior change happens.
+          Use Baby KB as the parenting review and source-truth lane, then assign the right items to real accounts and project them into Events plus hero consequence surfaces.
         </p>
       </div>
 
@@ -489,10 +735,20 @@ function BabyOperationalQueue({
                 <div className="space-y-2">
                   {stateEntries.slice(0, 4).map((entry) => {
                     const promotions = promotionsByEntryId.get(entry.id) ?? [];
+                    const assignmentsForEntry = assignmentsByEntryId.get(entry.id) ?? [];
                     return (
                       <div key={entry.id} className="rounded-lg border bg-background/80 p-3 space-y-2">
                         <div className="text-sm font-medium">{entry.name || "Untitled imported note"}</div>
-                        <p className="text-xs text-muted-foreground">{getBabyActionSummary(entry, promotions)}</p>
+                        <p className="text-xs text-muted-foreground">{getBabyActionSummary(entry, promotions, assignmentsForEntry)}</p>
+                        {assignmentsForEntry.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {assignmentsForEntry.slice(0, 2).map((assignment) => (
+                              <span key={assignment.id} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                                {formatAdminUserLabel(usersById.get(assignment.assigneeUserId))} · {BABY_ASSIGNMENT_LIFECYCLE_LABELS[assignment.effectiveLifecycleState]}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                         {promotions.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {promotions.map((promotion) => (
@@ -520,6 +776,7 @@ function BabyOperationalQueue({
             </section>
           );
         })}
+      </div>
       </div>
     </div>
   );
@@ -844,6 +1101,357 @@ function TabTable({
   );
 }
 
+function getEventExecutionDate(entry: LifeLedgerEntry): string | null {
+  return entry.nextDueDate ?? entry.dueDate ?? null;
+}
+
+function getDateDaysFromTodayLocal(offsetDays: number): string {
+  const next = new Date();
+  next.setUTCDate(next.getUTCDate() + offsetDays);
+  return next.toISOString().slice(0, 10);
+}
+
+function getEventExecutionGroup(entry: LifeLedgerEntry): EventExecutionGroupKey {
+  if (entry.completionState === "completed" || entry.completionState === "superseded") {
+    return "completed";
+  }
+
+  if (entry.completionState === "in_motion") {
+    return "in_motion";
+  }
+
+  const executionDate = getEventExecutionDate(entry);
+  if (executionDate && executionDate <= getDateDaysFromTodayLocal(2)) {
+    return "due_soon";
+  }
+
+  return "scheduled";
+}
+
+function formatEventStateLabel(entry: LifeLedgerEntry): string {
+  const explicit = entry.completionState;
+  if (explicit === "completed" || explicit === "superseded" || explicit === "in_motion") {
+    return explicit.replace(/_/g, " ");
+  }
+  return getEventExecutionGroup(entry) === "due_soon" ? "due soon" : "scheduled";
+}
+
+function formatReminderTimestamp(value: string | null | undefined): string | null {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function isReminderDueNow(value: string): boolean {
+  const reminderAt = new Date(value).getTime();
+  if (Number.isNaN(reminderAt)) return false;
+  return reminderAt <= Date.now() + 24 * 60 * 60 * 1000;
+}
+
+function getMobileSimulatorInstallationId(platform: Extract<MobileDevice["platform"], "ios" | "android">): string {
+  const storageKey = MOBILE_SIMULATOR_INSTALLATION_STORAGE_KEYS[platform];
+
+  if (typeof window === "undefined") {
+    return `${platform}-simulator-server-fallback`;
+  }
+
+  const existingValue = window.localStorage.getItem(storageKey);
+  if (existingValue) {
+    return existingValue;
+  }
+
+  const generatedValue =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${platform}-${Date.now()}`;
+  window.localStorage.setItem(storageKey, generatedValue);
+  return generatedValue;
+}
+
+function areReminderLeadDaysEqual(left: number[], right: number[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
+function getEventReminderSummary(entry: LifeLedgerEntry): string {
+  if (!entry.reminderEnabled) {
+    return "Reminders off";
+  }
+
+  const leadSummary = entry.reminderLeadDays.length > 0
+    ? `${entry.reminderLeadDays.join(" / ")} day lead`
+    : "Reminder on";
+  const nextReminder = formatReminderTimestamp(entry.nextReminderAt);
+  const stateLabel = entry.reminderState.replace(/_/g, " ");
+
+  return nextReminder ? `${leadSummary} · ${stateLabel} · Next ${nextReminder}` : `${leadSummary} · ${stateLabel}`;
+}
+
+function EventExecutionBoard({
+  entries,
+  editingId,
+  onEdit,
+  onDelete,
+  onRunExecutionAction,
+  onUpdateReminderPolicy,
+  actionState,
+  reminderState,
+  actionErrorMessage,
+  reminderErrorMessage,
+}: {
+  entries: LifeLedgerEntry[];
+  editingId: number | null;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+  onRunExecutionAction: (id: number, action: EventExecutionAction) => void;
+  onUpdateReminderPolicy: (id: number, leadDays: number[] | null) => void;
+  actionState: { id: number; action: EventExecutionAction } | null;
+  reminderState: { id: number; leadDays: number[] | null } | null;
+  actionErrorMessage?: string | null;
+  reminderErrorMessage?: string | null;
+}) {
+  const grouped = entries.reduce<Record<EventExecutionGroupKey, LifeLedgerEntry[]>>(
+    (acc, entry) => {
+      acc[getEventExecutionGroup(entry)].push(entry);
+      return acc;
+    },
+    {
+      due_soon: [],
+      scheduled: [],
+      in_motion: [],
+      completed: [],
+    },
+  );
+
+  const orderedGroups: EventExecutionGroupKey[] = ["due_soon", "scheduled", "in_motion", "completed"];
+
+  return (
+    <div className="space-y-4" data-testid="events-execution-board">
+      {actionErrorMessage ? (
+        <div
+          className="rounded-xl border border-destructive/30 bg-destructive/5 p-3"
+          data-testid="events-execution-action-error"
+        >
+          <p className="text-sm text-destructive">{actionErrorMessage}</p>
+        </div>
+      ) : null}
+      {reminderErrorMessage ? (
+        <div
+          className="rounded-xl border border-destructive/30 bg-destructive/5 p-3"
+          data-testid="events-reminder-action-error"
+        >
+          <p className="text-sm text-destructive">{reminderErrorMessage}</p>
+        </div>
+      ) : null}
+      {orderedGroups.map((group) => {
+        const groupEntries = grouped[group];
+        if (groupEntries.length === 0) {
+          return null;
+        }
+
+        return (
+          <section key={group} className="space-y-3" data-testid={`events-group-${group}`}>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold">{EVENT_GROUP_LABELS[group]}</h2>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                  {groupEntries.length}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{EVENT_GROUP_DESCRIPTIONS[group]}</p>
+            </div>
+
+            <div className="grid gap-3">
+              {groupEntries.map((entry) => {
+                if (editingId === entry.id) return null;
+
+                const executionDate = getEventExecutionDate(entry);
+                const isBabyDerived = entry.sourceType === "baby_kb_assignment";
+                const currentState = entry.completionState;
+                const isActionPendingForEntry = actionState?.id === entry.id;
+                const isReminderPendingForEntry = reminderState?.id === entry.id;
+                const canResetToScheduled =
+                  currentState === "completed" ||
+                  currentState === "superseded" ||
+                  currentState === "in_motion";
+                const hasExecutionDate = Boolean(executionDate);
+                const nextReminderLabel = formatReminderTimestamp(entry.nextReminderAt);
+
+                return (
+                  <article
+                    key={entry.id}
+                    className="rounded-2xl border bg-card p-4 shadow-sm space-y-3"
+                    data-testid={`entry-row-${entry.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-semibold truncate">{entry.name}</h3>
+                          <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground capitalize">
+                            {formatEventStateLabel(entry)}
+                          </span>
+                          {isBabyDerived ? (
+                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
+                              Baby-derived
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                              Manual event
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {executionDate ? (
+                            <span className="font-mono">Next due: {executionDate}</span>
+                          ) : (
+                            <span className="font-mono">Next due: undated</span>
+                          )}
+                          {entry.snoozedUntil ? <span className="font-mono">Snoozed until {entry.snoozedUntil}</span> : null}
+                          {entry.sourceAssignmentId ? <span>Assignment #{entry.sourceAssignmentId}</span> : null}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(entry.id)} aria-label="Edit" data-testid={`button-edit-entry-${entry.id}`}>
+                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(entry.id)} aria-label="Delete" data-testid={`button-delete-entry-${entry.id}`}>
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {entry.tags.map((tag) => (
+                        <span key={`${entry.id}-${tag}`} className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                          {tag}
+                        </span>
+                      ))}
+                      {entry.impactLevel ? (
+                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground capitalize">
+                          {entry.impactLevel} impact
+                        </span>
+                      ) : null}
+                      {entry.reviewWindow ? (
+                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground capitalize">
+                          {entry.reviewWindow}
+                        </span>
+                      ) : null}
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                        {getEventReminderSummary(entry)}
+                      </span>
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground capitalize">
+                        Reminder {entry.reminderState}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                          {entry.reminderEnabled ? "Reminders on" : "Reminders off"}
+                        </span>
+                        {nextReminderLabel ? <span>Next reminder {nextReminderLabel}</span> : null}
+                        {!hasExecutionDate ? <span>Add a due date to enable reminders.</span> : null}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {EVENT_REMINDER_PRESETS.map((preset) => {
+                          const isActive = entry.reminderEnabled && areReminderLeadDaysEqual(entry.reminderLeadDays, preset.leadDays);
+                          return (
+                            <Button
+                              key={`${entry.id}-${preset.testIdSuffix}`}
+                              variant={isActive ? "default" : "outline"}
+                              size="sm"
+                              disabled={!hasExecutionDate || isReminderPendingForEntry}
+                              onClick={() => onUpdateReminderPolicy(entry.id, preset.leadDays)}
+                              data-testid={`button-event-reminder-${preset.testIdSuffix}-${entry.id}`}
+                            >
+                              {isReminderPendingForEntry && areReminderLeadDaysEqual(reminderState?.leadDays ?? [], preset.leadDays)
+                                ? "Saving..."
+                                : preset.label}
+                            </Button>
+                          );
+                        })}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isReminderPendingForEntry || !entry.reminderEnabled}
+                          onClick={() => onUpdateReminderPolicy(entry.id, null)}
+                          data-testid={`button-event-reminder-clear-${entry.id}`}
+                        >
+                          {isReminderPendingForEntry && reminderState?.leadDays === null ? "Clearing..." : "Clear"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {canResetToScheduled ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionPendingForEntry}
+                          onClick={() => onRunExecutionAction(entry.id, "mark_scheduled")}
+                          data-testid={`button-event-mark-scheduled-${entry.id}`}
+                        >
+                          {actionState?.action === "mark_scheduled" && isActionPendingForEntry ? "Saving..." : "Back to scheduled"}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionPendingForEntry}
+                          onClick={() => onRunExecutionAction(entry.id, "mark_in_motion")}
+                          data-testid={`button-event-mark-in-motion-${entry.id}`}
+                        >
+                          {actionState?.action === "mark_in_motion" && isActionPendingForEntry ? "Saving..." : "Mark in motion"}
+                        </Button>
+                      )}
+                      {currentState !== "completed" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionPendingForEntry}
+                          onClick={() => onRunExecutionAction(entry.id, "mark_completed")}
+                          data-testid={`button-event-mark-completed-${entry.id}`}
+                        >
+                          {actionState?.action === "mark_completed" && isActionPendingForEntry ? "Saving..." : "Complete"}
+                        </Button>
+                      ) : null}
+                      {currentState !== "superseded" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isActionPendingForEntry}
+                          onClick={() => onRunExecutionAction(entry.id, "mark_superseded")}
+                          data-testid={`button-event-mark-superseded-${entry.id}`}
+                        >
+                          {actionState?.action === "mark_superseded" && isActionPendingForEntry ? "Saving..." : "Supersede"}
+                        </Button>
+                      ) : null}
+                    </div>
+
+                    {entry.notes ? (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                        {entry.notes}
+                      </p>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function BabyReviewBoard({
   entries,
   filter,
@@ -854,7 +1462,11 @@ function BabyReviewBoard({
   collapsedGroupKeys,
   bulkTagInput,
   promotionsByEntryId,
+  assignmentsByEntryId,
+  usersById,
   promotingKey,
+  generatingSuggestionEntryId,
+  pendingSuggestionEntryIds,
   onFilterChange,
   onGroupByChange,
   onSearchChange,
@@ -868,6 +1480,10 @@ function BabyReviewBoard({
   onEdit,
   onDelete,
   onPromoteToSurface,
+  onAssignToAccount,
+  onGenerateAssignmentSuggestion,
+  onEditAssignment,
+  onUpdateAssignmentState,
 }: {
   entries: BabyReviewEntry[];
   filter: BabyReviewFilter;
@@ -878,7 +1494,11 @@ function BabyReviewBoard({
   collapsedGroupKeys: string[];
   bulkTagInput: string;
   promotionsByEntryId: Map<number, BabyKbPromotion[]>;
+  assignmentsByEntryId: Map<number, BabyKbAssignment[]>;
+  usersById: Map<string, AdminUser>;
   promotingKey: string | null;
+  generatingSuggestionEntryId: number | null;
+  pendingSuggestionEntryIds: Set<number>;
   onFilterChange: (filter: BabyReviewFilter) => void;
   onGroupByChange: (groupBy: BabyGroupBy) => void;
   onSearchChange: (value: string) => void;
@@ -891,7 +1511,11 @@ function BabyReviewBoard({
   onBulkRemoveTag: () => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
-  onPromoteToSurface: (entry: BabyReviewEntry, surface: BabyKbPromotion["targetSurface"]) => void;
+  onPromoteToSurface: (entry: BabyReviewEntry, surface: BabyManualPromotionSurface) => void;
+  onAssignToAccount: (entry: BabyReviewEntry) => void;
+  onGenerateAssignmentSuggestion: (entry: BabyReviewEntry) => void;
+  onEditAssignment: (entry: BabyReviewEntry, assignment: BabyKbAssignment) => void;
+  onUpdateAssignmentState: (assignment: BabyKbAssignment, lifecycleState: BabyKbAssignmentLifecycleState) => void;
 }) {
   const visibleEntries = entries.filter((entry) => entry.id !== editingId);
   const groups = groupBabyEntries(visibleEntries, groupBy);
@@ -1058,7 +1682,16 @@ function BabyReviewBoard({
                 {group.entries.map((entry) => {
                   const notePreview = previewNotes(entry.notes ?? "");
                   const promotions = promotionsByEntryId.get(entry.id) ?? [];
+                  const assignments = assignmentsByEntryId.get(entry.id) ?? [];
                   const promotedSurfaces = new Set(promotions.map((promotion) => promotion.targetSurface));
+                  const hasActiveAssignment = assignments.some(
+                    (assignment) => assignment.effectiveLifecycleState !== "completed" && assignment.effectiveLifecycleState !== "superseded",
+                  );
+                  const canGenerateSuggestion =
+                    entry.isVerified
+                    && !entry.tagsList.includes("Needs verification")
+                    && !hasActiveAssignment
+                    && !pendingSuggestionEntryIds.has(entry.id);
                   return (
                     <article
                       key={entry.id}
@@ -1101,11 +1734,30 @@ function BabyReviewBoard({
                             {entry.phase && <span>Phase: {phaseLabel(entry.phase)}</span>}
                           </div>
                           <p className="max-w-2xl text-xs text-muted-foreground">
-                            {getBabyActionSummary(entry, promotions)}
+                            {getBabyActionSummary(entry, promotions, assignments)}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {(["daily", "weekly", "vision"] as BabyKbPromotion["targetSurface"][]).map((surface) => {
+                          {canGenerateSuggestion ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onGenerateAssignmentSuggestion(entry)}
+                              disabled={generatingSuggestionEntryId === entry.id}
+                              data-testid={`button-generate-baby-assignment-suggestion-${entry.id}`}
+                            >
+                              {generatingSuggestionEntryId === entry.id ? "Generating..." : "Generate AI assignment suggestion"}
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAssignToAccount(entry)}
+                            data-testid={`button-assign-baby-entry-${entry.id}`}
+                          >
+                            Assign to account
+                          </Button>
+                          {(["daily", "weekly", "vision"] as BabyManualPromotionSurface[]).map((surface) => {
                             const promotionKey = `${entry.id}:${surface}`;
                             const isPromoting = promotingKey === promotionKey;
                             const alreadyPromoted = promotedSurfaces.has(surface);
@@ -1160,6 +1812,90 @@ function BabyReviewBoard({
                         </div>
                       )}
 
+                      {assignments.length > 0 && (
+                        <div className="rounded-xl border bg-muted/20 p-3 space-y-3" data-testid={`baby-kb-assignments-${entry.id}`}>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Assignments</div>
+                          <div className="space-y-3">
+                            {assignments.map((assignment) => (
+                              <div key={assignment.id} className="rounded-lg border bg-background/80 p-3 space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-medium">{formatAdminUserLabel(usersById.get(assignment.assigneeUserId))}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Effective {assignment.effectiveDate}
+                                      {assignment.dueDate ? ` · due ${assignment.dueDate}` : ""}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                                      {BABY_ASSIGNMENT_LIFECYCLE_LABELS[assignment.effectiveLifecycleState]}
+                                    </span>
+                                    {assignment.cadence ? (
+                                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground capitalize">
+                                        {assignment.cadence}
+                                      </span>
+                                    ) : null}
+                                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                                      {assignment.projectionPolicy.replace(/_/g, " ")}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {assignment.assignmentNotes ? (
+                                  <p className="text-xs text-muted-foreground">{assignment.assignmentNotes}</p>
+                                ) : null}
+
+                                <div className="flex flex-wrap gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => onEditAssignment(entry, assignment)}>
+                                    Edit
+                                  </Button>
+                                  {(assignment.effectiveLifecycleState === "assigned" || assignment.effectiveLifecycleState === "scheduled" || assignment.effectiveLifecycleState === "due_soon") ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onUpdateAssignmentState(assignment, "in_motion")}
+                                      data-testid={`button-mark-in-motion-${assignment.id}`}
+                                    >
+                                      Mark in motion
+                                    </Button>
+                                  ) : null}
+                                  {assignment.effectiveLifecycleState === "assigned" ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onUpdateAssignmentState(assignment, "scheduled")}
+                                      data-testid={`button-schedule-baby-assignment-${assignment.id}`}
+                                    >
+                                      Schedule event
+                                    </Button>
+                                  ) : null}
+                                  {(assignment.effectiveLifecycleState === "scheduled" || assignment.effectiveLifecycleState === "due_soon" || assignment.effectiveLifecycleState === "in_motion") ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onUpdateAssignmentState(assignment, "completed")}
+                                      data-testid={`button-complete-baby-assignment-${assignment.id}`}
+                                    >
+                                      Complete
+                                    </Button>
+                                  ) : null}
+                                  {(assignment.effectiveLifecycleState === "assigned" || assignment.effectiveLifecycleState === "scheduled" || assignment.effectiveLifecycleState === "due_soon" || assignment.effectiveLifecycleState === "in_motion") ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => onUpdateAssignmentState(assignment, "superseded")}
+                                      data-testid={`button-supersede-baby-assignment-${assignment.id}`}
+                                    >
+                                      Supersede
+                                    </Button>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {notePreview && (
                         <pre className="whitespace-pre-wrap break-words rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground font-sans">
                           {notePreview}
@@ -1200,6 +1936,396 @@ function Next90DaysPanel() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function EventReminderReturnCard({
+  items,
+  entries,
+  onRunExecutionAction,
+  actionState,
+}: {
+  items: LifeLedgerEventReminderQueueItem[];
+  entries: LifeLedgerEntry[];
+  onRunExecutionAction: (id: number, action: EventExecutionAction) => void;
+  actionState: { id: number; action: EventExecutionAction } | null;
+}) {
+  const entryById = new Map(entries.map((entry) => [entry.id, entry]));
+  const nextReminderLabel = items[0]?.nextReminderAt ? formatReminderTimestamp(items[0].nextReminderAt) : null;
+  const dueNowItems = items.filter((item) => isReminderDueNow(item.nextReminderAt));
+  const comingUpItems = items.filter((item) => !isReminderDueNow(item.nextReminderAt));
+  const statusLabel = items.length > 0 ? "Reminder queue active" : "Reminder queue ready";
+  const dynamicChips = [
+    ...lifeLedgerEventsMobilePlaceholder.chips,
+    `Active reminders: ${items.length}`,
+    `Due now: ${dueNowItems.length}`,
+    `Coming up: ${comingUpItems.length}`,
+    nextReminderLabel ? `Next reminder: ${nextReminderLabel}` : "Next reminder: none",
+  ];
+
+  const renderQueueRow = (item: LifeLedgerEventReminderQueueItem) => {
+    const linkedEntry = entryById.get(item.id);
+    const currentState = linkedEntry?.completionState;
+    const canResetToScheduled =
+      currentState === "completed" ||
+      currentState === "superseded" ||
+      currentState === "in_motion";
+    const isActionPendingForEntry = actionState?.id === item.id;
+
+    return (
+      <div
+        key={item.id}
+        className="rounded-lg border border-border/50 bg-background/80 px-3 py-3 text-sm space-y-3"
+        data-testid={`mobile-reminder-preview-${item.id}`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate font-medium">{item.name}</p>
+              <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground capitalize">
+                {item.reminderState.replace(/_/g, " ")}
+              </span>
+              <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+                {item.sourceType === "baby_kb_assignment" ? "Baby-derived" : "Manual event"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {item.reminderLeadDays.join(" / ")} day lead · next {formatReminderTimestamp(item.nextReminderAt) ?? item.nextReminderAt}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Executes {item.executionDate}
+              {linkedEntry ? ` · state ${formatEventStateLabel(linkedEntry)}` : " · route-ready item"}
+            </p>
+          </div>
+          <Link href={item.route} className="inline-flex items-center gap-1 text-xs font-medium text-primary shrink-0">
+            Open Events
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {linkedEntry ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isActionPendingForEntry}
+              onClick={() => onRunExecutionAction(item.id, canResetToScheduled ? "mark_scheduled" : "mark_in_motion")}
+              data-testid={`button-reminder-queue-toggle-state-${item.id}`}
+            >
+              {isActionPendingForEntry && actionState?.action === (canResetToScheduled ? "mark_scheduled" : "mark_in_motion")
+                ? "Saving..."
+                : canResetToScheduled
+                  ? "Back to scheduled"
+                  : "Mark in motion"}
+            </Button>
+            {currentState !== "completed" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isActionPendingForEntry}
+                onClick={() => onRunExecutionAction(item.id, "mark_completed")}
+                data-testid={`button-reminder-queue-complete-${item.id}`}
+              >
+                {isActionPendingForEntry && actionState?.action === "mark_completed" ? "Saving..." : "Complete"}
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">
+            This reminder item is route-ready, but its matching event row is not loaded for inline actions right now.
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <MobileIntegrationStatusCard
+      mode={lifeLedgerEventsMobilePlaceholder.mode}
+      statusLabel={statusLabel}
+      title={lifeLedgerEventsMobilePlaceholder.title}
+      description={lifeLedgerEventsMobilePlaceholder.description}
+      chips={dynamicChips}
+      note={lifeLedgerEventsMobilePlaceholder.note}
+      data-testid="mobile-placeholder-life-ledger-events"
+    >
+      <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Reminder-return queue</p>
+            <p className="text-xs text-muted-foreground">
+              {items.length > 0
+                ? `The next reminder-active event will surface here at ${nextReminderLabel ?? "the scheduled reminder time"}, and you can act on it without leaving Events.`
+                : "No reminder-active events are waiting to return right now."}
+            </p>
+          </div>
+          <Link href="/life-ledger?tab=events" className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+            Open Events
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {items.length > 0 ? (
+          <div className="space-y-4" data-testid="events-reminder-queue-surface">
+            <section className="space-y-2" data-testid="events-reminder-queue-due-now">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Due Now</p>
+                  <p className="text-xs text-muted-foreground">Overdue or due to remind within the next 24 hours.</p>
+                </div>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{dueNowItems.length}</span>
+              </div>
+              {dueNowItems.length > 0 ? (
+                <div className="space-y-2">
+                  {dueNowItems.map(renderQueueRow)}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-xs text-muted-foreground">
+                  Nothing is due now. The next reminder-active items are staged below.
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-2" data-testid="events-reminder-queue-coming-up">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Coming Up</p>
+                  <p className="text-xs text-muted-foreground">Reminder-active items scheduled beyond the next 24 hours.</p>
+                </div>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{comingUpItems.length}</span>
+              </div>
+              {comingUpItems.length > 0 ? (
+                <div className="space-y-2">
+                  {comingUpItems.map(renderQueueRow)}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-xs text-muted-foreground">
+                  No additional reminder-active items are queued after the due-now window.
+                </div>
+              )}
+            </section>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-xs text-muted-foreground">
+            Add or enable reminders on Events to populate the mobile return queue.
+          </div>
+        )}
+      </div>
+    </MobileIntegrationStatusCard>
+  );
+}
+
+function EventReminderDeliveryStatusBlock({
+  queueItems,
+  outboxItems,
+  devices,
+  onRegisterDevice,
+  onDeactivateDevice,
+  onDispatchNextQueuedReminder,
+  registrationPlatform,
+  deactivatingDeviceId,
+  dispatchingOutboxId,
+  errorMessage,
+}: {
+  queueItems: LifeLedgerEventReminderQueueItem[];
+  outboxItems: MobileNotificationOutboxItem[];
+  devices: MobileDevice[];
+  onRegisterDevice: (platform: Extract<MobileDevice["platform"], "ios" | "android">) => void;
+  onDeactivateDevice: (deviceId: number) => void;
+  onDispatchNextQueuedReminder: (outboxId: number) => void;
+  registrationPlatform: Extract<MobileDevice["platform"], "ios" | "android"> | null;
+  deactivatingDeviceId: number | null;
+  dispatchingOutboxId: number | null;
+  errorMessage: string | null;
+}) {
+  const queuedItems = outboxItems.filter((item) => item.deliveryStatus === "queued");
+  const dueNowItems = queueItems.filter((item) => isReminderDueNow(item.nextReminderAt));
+  const queuedDueNowIds = new Set(queuedItems.map((item) => item.sourceEventId));
+  const dueNowQueuedCount = dueNowItems.filter((item) => queuedDueNowIds.has(item.id)).length;
+  const dueNowLocalOnlyCount = Math.max(0, dueNowItems.length - dueNowQueuedCount);
+  const activeDevices = devices.filter((device) => device.isActive);
+  const mostRecentActiveDevice = activeDevices[0];
+  const nextQueuedItem = queuedItems[0] ?? null;
+  const mostRecentSent = [...outboxItems]
+    .filter((item) => item.sentAt)
+    .sort((left, right) => (right.sentAt ?? "").localeCompare(left.sentAt ?? ""))[0];
+  const mostRecentDispatchedItem = [...outboxItems]
+    .filter((item) => item.sentAt && item.deliveredDeviceLabel)
+    .sort((left, right) => (right.sentAt ?? "").localeCompare(left.sentAt ?? ""))[0];
+
+  return (
+    <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3" data-testid="events-delivery-status-block">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold">Reminder delivery status</h2>
+          <p className="text-xs text-muted-foreground">
+            ThetaFrame is now keeping a durable delivery outbox for `life_ledger_due` reminders before native mobile transport exists.
+          </p>
+        </div>
+        <Link href="/life-ledger?tab=events" className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+          Open Events
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+          Queued deliveries: {queuedItems.length}
+        </span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+          Due-now queued: {dueNowQueuedCount}
+        </span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+          Due-now local only: {dueNowLocalOnlyCount}
+        </span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+          Active devices: {activeDevices.length}
+        </span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+          Most recent sent: {mostRecentSent?.sentAt ? formatReminderTimestamp(mostRecentSent.sentAt) ?? mostRecentSent.sentAt : "none"}
+        </span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Queued</p>
+          <p className="mt-1 text-xl font-semibold">{queuedItems.length}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Reminder deliveries waiting for transport or simulation.</p>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Due-now coverage</p>
+          <p className="mt-1 text-xl font-semibold">{dueNowQueuedCount}/{dueNowItems.length}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Due-now reminders that already have queued delivery rows.</p>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Most recent sent</p>
+          <p className="mt-1 text-sm font-medium truncate">{mostRecentSent?.eventName ?? "No sent deliveries yet"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {mostRecentSent?.sentAt ? `Sent ${formatReminderTimestamp(mostRecentSent.sentAt) ?? mostRecentSent.sentAt}` : "Sent state will appear here once a queued delivery is marked sent."}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-3" data-testid="events-mobile-delivery-simulator">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Mobile Delivery Simulator</p>
+            <p className="text-xs text-muted-foreground">
+              Register a simulated iPhone or Android endpoint, then dispatch the next queued reminder through the current outbox.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={registrationPlatform !== null}
+              onClick={() => onRegisterDevice("ios")}
+              data-testid="button-register-mobile-device-ios"
+            >
+              {registrationPlatform === "ios" ? "Registering..." : "Register iPhone"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={registrationPlatform !== null}
+              onClick={() => onRegisterDevice("android")}
+              data-testid="button-register-mobile-device-android"
+            >
+              {registrationPlatform === "android" ? "Registering..." : "Register Android"}
+            </Button>
+            <Button
+              size="sm"
+              disabled={!nextQueuedItem || dispatchingOutboxId !== null}
+              onClick={() => nextQueuedItem && onDispatchNextQueuedReminder(nextQueuedItem.id)}
+              data-testid="button-dispatch-next-queued-reminder"
+            >
+              {dispatchingOutboxId === nextQueuedItem?.id ? "Dispatching..." : "Dispatch next queued reminder"}
+            </Button>
+          </div>
+        </div>
+
+        {errorMessage ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive" data-testid="events-mobile-delivery-simulator-error">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Registered devices</p>
+            <p className="mt-1 text-xl font-semibold">{activeDevices.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {mostRecentActiveDevice
+                ? `${mostRecentActiveDevice.deviceLabel} · seen ${formatReminderTimestamp(mostRecentActiveDevice.lastSeenAt) ?? mostRecentActiveDevice.lastSeenAt}`
+                : "No active device registered yet."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Queued dispatchable</p>
+            <p className="mt-1 text-xl font-semibold">{queuedItems.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {nextQueuedItem
+                ? `${nextQueuedItem.eventName} · ${formatReminderTimestamp(nextQueuedItem.scheduledFor) ?? nextQueuedItem.scheduledFor}`
+                : "No queued reminder is waiting for dispatch right now."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Most recent dispatched device</p>
+            <p className="mt-1 text-sm font-medium truncate">{mostRecentDispatchedItem?.deliveredDeviceLabel ?? "No simulated dispatch yet"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {mostRecentDispatchedItem?.sentAt
+                ? `${mostRecentDispatchedItem.deliveryProvider ?? "provider unknown"} · ${formatReminderTimestamp(mostRecentDispatchedItem.sentAt) ?? mostRecentDispatchedItem.sentAt}`
+                : "Once a queued reminder is dispatched, the target device/provider will appear here."}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Active endpoints</p>
+          {devices.length > 0 ? (
+            <div className="space-y-2">
+              {devices.map((device) => (
+                <div
+                  key={device.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/80 px-3 py-3 text-sm"
+                  data-testid={`mobile-device-row-${device.id}`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{device.deviceLabel}</span>
+                      <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground uppercase">
+                        {device.platform}
+                      </span>
+                      <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+                        {device.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {device.deliveryProvider} · last seen {formatReminderTimestamp(device.lastSeenAt) ?? device.lastSeenAt}
+                    </p>
+                  </div>
+                  {device.isActive ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={deactivatingDeviceId === device.id}
+                      onClick={() => onDeactivateDevice(device.id)}
+                      data-testid={`button-deactivate-mobile-device-${device.id}`}
+                    >
+                      {deactivatingDeviceId === device.id ? "Deactivating..." : "Deactivate"}
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-xs text-muted-foreground">
+              Register a simulated device to prove dispatch against the queued reminder outbox.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1253,10 +2379,186 @@ function SubscriptionAuditPanel() {
   );
 }
 
+function BabyAssignmentDialog({
+  open,
+  onOpenChange,
+  users,
+  sourceEntry,
+  initialAssignment,
+  onSubmit,
+  isSaving,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  users: AdminUser[];
+  sourceEntry: BabyReviewEntry | null;
+  initialAssignment: BabyKbAssignment | null;
+  onSubmit: (data: {
+    sourceEntryId: number;
+    assigneeUserId: string;
+    effectiveDate: string;
+    dueDate: string | null;
+    cadence: BabyKbAssignmentCadence | null;
+    projectionPolicy: BabyKbAssignmentProjectionPolicy;
+    lifecycleState: BabyKbAssignmentLifecycleState;
+    assignmentNotes: string | null;
+  }) => void;
+  isSaving: boolean;
+}) {
+  const today = getTodayDateString();
+  const [assigneeUserId, setAssigneeUserId] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(today);
+  const [dueDate, setDueDate] = useState("");
+  const [cadence, setCadence] = useState<BabyKbAssignmentCadence | "">("");
+  const [projectionPolicy, setProjectionPolicy] = useState<BabyKbAssignmentProjectionPolicy>("event_and_heroes");
+  const [lifecycleState, setLifecycleState] = useState<BabyKbAssignmentLifecycleState>("assigned");
+  const [assignmentNotes, setAssignmentNotes] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setAssigneeUserId(initialAssignment?.assigneeUserId ?? "");
+    setEffectiveDate(initialAssignment?.effectiveDate ?? today);
+    setDueDate(initialAssignment?.dueDate ?? "");
+    setCadence(initialAssignment?.cadence ?? "");
+    setProjectionPolicy(initialAssignment?.projectionPolicy ?? "event_and_heroes");
+    setLifecycleState(initialAssignment?.lifecycleState ?? "assigned");
+    setAssignmentNotes(initialAssignment?.assignmentNotes ?? "");
+  }, [initialAssignment, open, today]);
+
+  const handleSubmit = () => {
+    if (!sourceEntry || !assigneeUserId || !effectiveDate) return;
+    onSubmit({
+      sourceEntryId: sourceEntry.id,
+      assigneeUserId,
+      effectiveDate,
+      dueDate: dueDate || null,
+      cadence: cadence || null,
+      projectionPolicy,
+      lifecycleState,
+      assignmentNotes: assignmentNotes.trim() || null,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="baby-kb-assignment-dialog">
+        <DialogHeader>
+          <DialogTitle>{initialAssignment ? "Edit Baby KB assignment" : "Assign Baby KB item"}</DialogTitle>
+          <DialogDescription>
+            {sourceEntry
+              ? `Apply "${sourceEntry.name || "Untitled imported note"}" to a real account without breaking Baby KB provenance.`
+              : "Choose an account, dates, cadence, and projection behavior for this Baby KB item."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Assignee account</label>
+              <select
+                value={assigneeUserId}
+                onChange={(event) => setAssigneeUserId(event.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                data-testid="select-baby-assignee"
+              >
+                <option value="">Select an account…</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {formatAdminUserLabel(user)} ({user.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Lifecycle state</label>
+              <select
+                value={lifecycleState}
+                onChange={(event) => setLifecycleState(event.target.value as BabyKbAssignmentLifecycleState)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                data-testid="select-baby-lifecycle-state"
+              >
+                {(["assigned", "scheduled", "in_motion", "completed", "superseded"] as BabyKbAssignmentLifecycleState[]).map((state) => (
+                  <option key={state} value={state}>
+                    {BABY_ASSIGNMENT_LIFECYCLE_LABELS[state]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Effective date</label>
+              <Input type="date" value={effectiveDate} onChange={(event) => setEffectiveDate(event.target.value)} data-testid="input-baby-effective-date" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Due date</label>
+              <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} data-testid="input-baby-due-date" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Cadence</label>
+              <select
+                value={cadence}
+                onChange={(event) => setCadence(event.target.value as BabyKbAssignmentCadence | "")}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                data-testid="select-baby-cadence"
+              >
+                <option value="">No recurrence</option>
+                {BABY_ASSIGNMENT_CADENCE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Projection behavior</label>
+              <select
+                value={projectionPolicy}
+                onChange={(event) => setProjectionPolicy(event.target.value as BabyKbAssignmentProjectionPolicy)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                data-testid="select-baby-projection-policy"
+              >
+                {BABY_ASSIGNMENT_PROJECTION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Admin assignment note</label>
+            <Textarea
+              value={assignmentNotes}
+              onChange={(event) => setAssignmentNotes(event.target.value)}
+              className="resize-none h-24"
+              placeholder="Why is this being assigned now?"
+              data-testid="textarea-baby-assignment-notes"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSaving || !sourceEntry || !assigneeUserId || !effectiveDate} data-testid="button-save-baby-assignment">
+            {isSaving ? "Saving..." : initialAssignment ? "Update assignment" : "Assign to account"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function LifeLedgerPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<Tab>("people");
+  const [activeTab, setActiveTab] = useState<Tab>(() => getInitialLifeLedgerTab());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [babyFilter, setBabyFilter] = useState<BabyReviewFilter>("all");
@@ -1266,10 +2568,17 @@ export default function LifeLedgerPage() {
   const [collapsedBabyGroups, setCollapsedBabyGroups] = useState<string[]>([]);
   const [bulkTagInput, setBulkTagInput] = useState("");
   const [promotingKey, setPromotingKey] = useState<string | null>(null);
+  const [assignmentEntryId, setAssignmentEntryId] = useState<number | null>(null);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null);
   const { isAdmin } = usePermissions();
   const { data: parentPacketImports } = useParentPacketImports(isAdmin);
   const { data: parentPacketMaterializations } = useParentPacketMaterializations(isAdmin);
   const { data: babyKbPromotions } = useBabyKbPromotions(isAdmin);
+  const { data: babyKbAssignments } = useBabyKbAssignments(isAdmin);
+  const { data: adminUsers } = useListAdminUsers({
+    query: { enabled: isAdmin, queryKey: ["admin-users", "baby-kb-assignment"], refetchOnWindowFocus: false },
+  });
+  const { data: babyHeroRollups } = useBabyKbHeroRollups(true);
   const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
   const activeTabCopy = TAB_COPY[activeTab];
   const latestParentPacketImport = parentPacketImports?.[0];
@@ -1281,13 +2590,62 @@ export default function LifeLedgerPage() {
       queryKey: getListLifeLedgerEntriesQueryKey(activeTab),
     },
   });
+  const { data: eventReminderQueue } = useGetLifeLedgerEventReminderQueue({
+    query: {
+      enabled: activeTab === "events",
+      queryKey: getGetLifeLedgerEventReminderQueueQueryKey(),
+      refetchOnWindowFocus: false,
+    },
+  });
+  const { data: mobileDevices } = useGetMobileDevices({
+    query: {
+      enabled: activeTab === "events",
+      queryKey: getGetMobileDevicesQueryKey(),
+      refetchOnWindowFocus: false,
+    },
+  });
+  const { data: mobileNotificationOutbox } = useGetMobileNotificationsOutbox({
+    query: {
+      enabled: activeTab === "events",
+      queryKey: getGetMobileNotificationsOutboxQueryKey(),
+      refetchOnWindowFocus: false,
+    },
+  });
 
   const createMutation = useCreateLifeLedgerEntry();
   const updateMutation = useUpdateLifeLedgerEntry();
   const deleteMutation = useDeleteLifeLedgerEntry();
+  const updateEventExecutionState = useUpdateLifeLedgerEventExecutionState();
+  const updateEventReminderPolicy = useUpdateLifeLedgerEventReminderPolicy();
+  const registerMobileDeviceMutation = useRegisterMobileDevice();
+  const deactivateMobileDeviceMutation = useDeactivateMobileDevice();
+  const simulateDispatchMobileNotificationMutation = useSimulateDispatchMobileNotificationOutboxItem();
+  const applyAiDraft = useApplyAiDraft();
+  const updateAiDraftReviewState = useUpdateAiDraftReviewState();
   const bulkUpdateBabyKbMutation = useBulkUpdateBabyKbEntries();
   const createBabyKbPromotionMutation = useCreateBabyKbPromotion();
+  const createBabyKbAssignmentMutation = useCreateBabyKbAssignment();
+  const createBabyKbAssignmentSuggestionMutation = useCreateBabyKbAssignmentSuggestion();
+  const updateBabyKbAssignmentMutation = useUpdateBabyKbAssignment();
   const { isSurfaceComplete } = useOnboardingProgress();
+  const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
+  const [reviewingDraftId, setReviewingDraftId] = useState<number | null>(null);
+  const [draftActionError, setDraftActionError] = useState<string | null>(null);
+  const [eventActionState, setEventActionState] = useState<{ id: number; action: EventExecutionAction } | null>(null);
+  const [eventActionError, setEventActionError] = useState<string | null>(null);
+  const [eventReminderState, setEventReminderState] = useState<{ id: number; leadDays: number[] | null } | null>(null);
+  const [eventReminderError, setEventReminderError] = useState<string | null>(null);
+  const [mobileSimulatorState, setMobileSimulatorState] = useState<{
+    registrationPlatform: Extract<MobileDevice["platform"], "ios" | "android"> | null;
+    deactivatingDeviceId: number | null;
+    dispatchingOutboxId: number | null;
+  }>({
+    registrationPlatform: null,
+    deactivatingDeviceId: null,
+    dispatchingOutboxId: null,
+  });
+  const [mobileSimulatorError, setMobileSimulatorError] = useState<string | null>(null);
+  const [generatingBabySuggestionEntryId, setGeneratingBabySuggestionEntryId] = useState<number | null>(null);
 
   useEffect(() => {
     if (activeTab === "baby" && !isAdmin) {
@@ -1305,9 +2663,31 @@ export default function LifeLedgerPage() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab !== "events") {
+      setEventActionState(null);
+      setEventActionError(null);
+      setEventReminderState(null);
+      setEventReminderError(null);
+      setMobileSimulatorState({
+        registrationPlatform: null,
+        deactivatingDeviceId: null,
+        dispatchingOutboxId: null,
+      });
+      setMobileSimulatorError(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    syncLifeLedgerTabToUrl(activeTab);
+  }, [activeTab]);
+
   const invalidateTab = (tab: Tab) => {
     queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey(tab) });
     queryClient.invalidateQueries({ queryKey: getGetNext90DaysQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetLifeLedgerEventReminderQueueQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetMobileDevicesQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetMobileNotificationsOutboxQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetSubscriptionAuditQueryKey() });
     queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
   };
@@ -1353,6 +2733,25 @@ export default function LifeLedgerPage() {
     return grouped;
   }, [babyKbPromotions]);
 
+  const babyAssignmentsByEntryId = useMemo(() => {
+    const grouped = new Map<number, BabyKbAssignment[]>();
+    for (const assignment of babyKbAssignments ?? []) {
+      grouped.set(assignment.sourceEntryId, [...(grouped.get(assignment.sourceEntryId) ?? []), assignment]);
+    }
+    for (const assignments of grouped.values()) {
+      assignments.sort((a, b) => (a.dueDate ?? "9999-99-99").localeCompare(b.dueDate ?? "9999-99-99") || b.id - a.id);
+    }
+    return grouped;
+  }, [babyKbAssignments]);
+
+  const adminUsersById = useMemo(() => {
+    const next = new Map<string, AdminUser>();
+    for (const user of adminUsers ?? []) {
+      next.set(user.id, user);
+    }
+    return next;
+  }, [adminUsers]);
+
   const handleCreate = (data: LifeLedgerEntryBody) => {
     createMutation.mutate({ tab: activeTab, data }, {
       onSuccess: () => {
@@ -1375,9 +2774,188 @@ export default function LifeLedgerPage() {
     deleteMutation.mutate({ tab: activeTab, id }, { onSuccess: () => invalidateTab(activeTab) });
   };
 
+  const handleEventExecutionAction = async (id: number, action: EventExecutionAction) => {
+    setEventActionState({ id, action });
+    setEventActionError(null);
+
+    try {
+      const updatedEntry = await updateEventExecutionState.mutateAsync({
+        id,
+        data: { action },
+      });
+
+      queryClient.setQueryData(getListLifeLedgerEntriesQueryKey("events"), (current: LifeLedgerEntry[] | undefined) =>
+        current?.map((entry) => (entry.id === updatedEntry.id ? updatedEntry : entry)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey("events") });
+      queryClient.invalidateQueries({ queryKey: getGetNext90DaysQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetLifeLedgerEventReminderQueueQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetMobileNotificationsOutboxQueryKey() });
+      queryClient.invalidateQueries({ queryKey: BABY_KB_HERO_ROLLUPS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 404) {
+          setEventActionError("This event no longer exists. Refresh the events lane and try again.");
+        } else if (error.status === 400) {
+          setEventActionError("This execution-state update was invalid for the selected event.");
+        } else {
+          setEventActionError(`Failed to update the event state (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setEventActionError(error.message);
+      } else {
+        setEventActionError("Failed to update the event state.");
+      }
+    } finally {
+      setEventActionState(null);
+    }
+  };
+
+  const handleEventReminderPolicyUpdate = async (id: number, leadDays: number[] | null) => {
+    setEventReminderState({ id, leadDays });
+    setEventReminderError(null);
+
+    try {
+      const updatedEntry = await updateEventReminderPolicy.mutateAsync({
+        id,
+        data: {
+          enabled: Array.isArray(leadDays) && leadDays.length > 0,
+          leadDays: leadDays ?? undefined,
+        },
+      });
+
+      queryClient.setQueryData(getListLifeLedgerEntriesQueryKey("events"), (current: LifeLedgerEntry[] | undefined) =>
+        current?.map((entry) => (entry.id === updatedEntry.id ? updatedEntry : entry)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: getListLifeLedgerEntriesQueryKey("events") });
+      queryClient.invalidateQueries({ queryKey: getGetNext90DaysQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetLifeLedgerEventReminderQueueQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetMobileNotificationsOutboxQueryKey() });
+      queryClient.invalidateQueries({ queryKey: BABY_KB_HERO_ROLLUPS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 404) {
+          setEventReminderError("This event no longer exists. Refresh the events lane and try again.");
+        } else if (error.status === 409) {
+          setEventReminderError("Add or restore a due date before enabling reminders for this event.");
+        } else if (error.status === 400) {
+          setEventReminderError("This reminder update was invalid for the selected event.");
+        } else {
+          setEventReminderError(`Failed to update the reminder policy (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setEventReminderError(error.message);
+      } else {
+        setEventReminderError("Failed to update the reminder policy.");
+      }
+    } finally {
+      setEventReminderState(null);
+    }
+  };
+
+  const handleRegisterMobileDevice = async (platform: Extract<MobileDevice["platform"], "ios" | "android">) => {
+    setMobileSimulatorState((current) => ({
+      ...current,
+      registrationPlatform: platform,
+    }));
+    setMobileSimulatorError(null);
+
+    try {
+      await registerMobileDeviceMutation.mutateAsync({
+        data: {
+          installationId: getMobileSimulatorInstallationId(platform),
+          deviceLabel: platform === "ios" ? "Simulated iPhone" : "Simulated Android",
+          platform,
+        },
+      });
+
+      queryClient.invalidateQueries({ queryKey: getGetMobileDevicesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetMobileNotificationsOutboxQueryKey() });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setMobileSimulatorError(`Failed to register the simulated ${platform} device (HTTP ${error.status}).`);
+      } else if (error instanceof Error) {
+        setMobileSimulatorError(error.message);
+      } else {
+        setMobileSimulatorError("Failed to register the simulated mobile device.");
+      }
+    } finally {
+      setMobileSimulatorState((current) => ({
+        ...current,
+        registrationPlatform: null,
+      }));
+    }
+  };
+
+  const handleDeactivateMobileDevice = async (deviceId: number) => {
+    setMobileSimulatorState((current) => ({
+      ...current,
+      deactivatingDeviceId: deviceId,
+    }));
+    setMobileSimulatorError(null);
+
+    try {
+      await deactivateMobileDeviceMutation.mutateAsync({ id: deviceId });
+      queryClient.invalidateQueries({ queryKey: getGetMobileDevicesQueryKey() });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setMobileSimulatorError(`Failed to deactivate the mobile device (HTTP ${error.status}).`);
+      } else if (error instanceof Error) {
+        setMobileSimulatorError(error.message);
+      } else {
+        setMobileSimulatorError("Failed to deactivate the mobile device.");
+      }
+    } finally {
+      setMobileSimulatorState((current) => ({
+        ...current,
+        deactivatingDeviceId: null,
+      }));
+    }
+  };
+
+  const handleDispatchNextQueuedReminder = async (outboxId: number) => {
+    setMobileSimulatorState((current) => ({
+      ...current,
+      dispatchingOutboxId: outboxId,
+    }));
+    setMobileSimulatorError(null);
+
+    try {
+      await simulateDispatchMobileNotificationMutation.mutateAsync({
+        id: outboxId,
+        data: {},
+      });
+      queryClient.invalidateQueries({ queryKey: getGetMobileNotificationsOutboxQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetMobileDevicesQueryKey() });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setMobileSimulatorError("No active mobile device is available for dispatch, or the selected reminder is no longer queued.");
+        } else if (error.status === 404) {
+          setMobileSimulatorError("That queued reminder no longer exists. Refresh the Events lane and try again.");
+        } else {
+          setMobileSimulatorError(`Failed to dispatch the queued reminder (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setMobileSimulatorError(error.message);
+      } else {
+        setMobileSimulatorError("Failed to dispatch the queued reminder.");
+      }
+    } finally {
+      setMobileSimulatorState((current) => ({
+        ...current,
+        dispatchingOutboxId: null,
+      }));
+    }
+  };
+
   const invalidateBabyKbState = () => {
     invalidateTab("baby");
     queryClient.invalidateQueries({ queryKey: BABY_KB_PROMOTIONS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: BABY_KB_ASSIGNMENTS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: BABY_KB_HERO_ROLLUPS_QUERY_KEY });
     queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
   };
 
@@ -1415,7 +2993,7 @@ export default function LifeLedgerPage() {
     );
   };
 
-  const handlePromoteToSurface = (entry: BabyReviewEntry, surface: BabyKbPromotion["targetSurface"]) => {
+  const handlePromoteToSurface = (entry: BabyReviewEntry, surface: BabyManualPromotionSurface) => {
     const targetContainerKey =
       surface === "daily" ? todayDate : surface === "weekly" ? currentWeekStart : "me";
     const mutationKey = `${entry.id}:${surface}`;
@@ -1458,22 +3036,405 @@ export default function LifeLedgerPage() {
     );
   };
 
+  const selectedAssignmentEntry = assignmentEntryId === null
+    ? null
+    : babyEntries.find((entry) => entry.id === assignmentEntryId) ?? null;
+  const editingAssignment = editingAssignmentId === null
+    ? null
+    : (babyKbAssignments ?? []).find((assignment) => assignment.id === editingAssignmentId) ?? null;
+
+  const handleSubmitBabyAssignment = (data: {
+    sourceEntryId: number;
+    assigneeUserId: string;
+    effectiveDate: string;
+    dueDate: string | null;
+    cadence: BabyKbAssignmentCadence | null;
+    projectionPolicy: BabyKbAssignmentProjectionPolicy;
+    lifecycleState: BabyKbAssignmentLifecycleState;
+    assignmentNotes: string | null;
+  }) => {
+    const onSuccess = () => {
+      invalidateBabyKbState();
+      setAssignmentEntryId(null);
+      setEditingAssignmentId(null);
+      toast({
+        title: editingAssignment ? "Assignment updated" : "Baby KB assigned",
+        description: editingAssignment
+          ? "The Baby KB assignment was updated."
+          : "The Baby KB item is now assigned to an account and can roll through Events and hero surfaces.",
+      });
+    };
+
+    const onError = (error: unknown) => {
+      toast({
+        title: "Assignment failed",
+        description: getErrorMessage(error, "The Baby KB assignment could not be saved."),
+        variant: "destructive",
+      });
+    };
+
+    if (editingAssignment) {
+      updateBabyKbAssignmentMutation.mutate(
+        {
+          id: editingAssignment.id,
+          data: {
+            assigneeUserId: data.assigneeUserId,
+            effectiveDate: data.effectiveDate,
+            dueDate: data.dueDate,
+            cadence: data.cadence,
+            projectionPolicy: data.projectionPolicy,
+            lifecycleState: data.lifecycleState,
+            assignmentNotes: data.assignmentNotes,
+          },
+        },
+        { onSuccess, onError },
+      );
+      return;
+    }
+
+    createBabyKbAssignmentMutation.mutate(data, { onSuccess, onError });
+  };
+
+  const handleUpdateAssignmentState = (assignment: BabyKbAssignment, lifecycleState: BabyKbAssignmentLifecycleState) => {
+    updateBabyKbAssignmentMutation.mutate(
+      {
+        id: assignment.id,
+        data: { lifecycleState },
+      },
+      {
+        onSuccess: () => {
+          invalidateBabyKbState();
+          toast({
+            title: "Assignment updated",
+            description: `${assignment.sourceEntryName ?? "Baby KB item"} is now ${BABY_ASSIGNMENT_LIFECYCLE_LABELS[lifecycleState].toLowerCase()}.`,
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Assignment update failed",
+            description: getErrorMessage(error, "The Baby KB assignment could not be updated."),
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
   const editingEntry = entries?.find((e) => e.id === editingId);
+  const activeDraftSurfaceKey = activeTab === "baby" ? null : (activeTab as LifeLedgerDraftSurfaceKey);
+  const aiDraftListParams = activeTab === "baby"
+    ? babyAssignmentAIDraftListParams
+    : activeDraftSurfaceKey
+      ? getLifeLedgerAIDraftListParams(activeDraftSurfaceKey)
+      : undefined;
+  const currentAIDraftQueryKey = aiDraftListParams
+    ? getListAiDraftsQueryKey(aiDraftListParams)
+    : ["life-ledger-ai-drafts-disabled"];
+  const {
+    data: aiDrafts,
+    isLoading: isAIDraftsLoading,
+    error: aiDraftsError,
+  } = useListAiDrafts(aiDraftListParams, {
+    query: {
+      enabled: Boolean(aiDraftListParams),
+      queryKey: currentAIDraftQueryKey,
+      refetchOnWindowFocus: false,
+    },
+  });
+  const lifeLedgerAIDraftReview = activeTab === "baby"
+    ? getBabyAssignmentAIDraftReviewPanelCopy()
+    : activeDraftSurfaceKey
+      ? getLifeLedgerAIDraftReviewPanelCopy(activeDraftSurfaceKey)
+      : null;
+  const pendingBabySuggestionEntryIds = useMemo(() => {
+    if (activeTab !== "baby" || !aiDrafts) return new Set<number>();
+    return new Set(
+      aiDrafts
+        .filter((draft) => draft.reviewState !== "applied" && draft.reviewState !== "rejected")
+        .map((draft) => Number((draft.proposedPayload as Record<string, unknown>)?.sourceEntryId))
+        .filter((value) => Number.isFinite(value) && value > 0),
+    );
+  }, [activeTab, aiDrafts]);
+
+  const handleApplyDraft = async (draftId: number) => {
+    setApplyingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const response = await applyAiDraft.mutateAsync({
+        id: draftId,
+        data: {},
+      });
+
+      if (activeTab === "baby") {
+        if (!response.babyAssignment) {
+          throw new Error("Baby draft apply response did not include a Baby assignment.");
+        }
+        queryClient.setQueryData(currentAIDraftQueryKey, (current: AIDraft[] | undefined) =>
+          current?.map((draft) => (draft.id === response.draft.id ? response.draft : draft)) ?? current,
+        );
+        invalidateBabyKbState();
+        queryClient.invalidateQueries({ queryKey: currentAIDraftQueryKey });
+        toast({
+          title: "AI assignment applied",
+          description: `${response.babyAssignment.sourceEntryName ?? "Baby KB item"} is now assigned and will project through the existing Baby flow.`,
+        });
+        return;
+      }
+
+      if (!response.lifeLedgerEntry) {
+        throw new Error("Life Ledger apply response did not include a durable Life Ledger entry.");
+      }
+
+      queryClient.setQueryData(currentAIDraftQueryKey, (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === response.draft.id ? response.draft : draft)) ?? current,
+      );
+      invalidateTab(activeTab);
+      queryClient.invalidateQueries({ queryKey: currentAIDraftQueryKey });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be applied. Refresh the review panel and try another draft.");
+        } else if (error.status === 422) {
+          setDraftActionError(
+            activeTab === "baby"
+              ? "This stored Baby assignment draft no longer matches the assignment contract and could not be applied."
+              : activeTab === "people"
+              ? "This stored draft payload no longer matches the Life Ledger people contract and could not be applied."
+              : activeTab === "financial"
+                ? "This stored draft payload no longer matches the Life Ledger financial contract and could not be applied."
+                : activeTab === "subscriptions"
+                  ? "This stored draft payload no longer matches the Life Ledger subscriptions contract and could not be applied."
+                  : activeTab === "travel"
+                    ? "This stored draft payload no longer matches the Life Ledger travel contract and could not be applied."
+                : "This stored draft payload no longer matches the Life Ledger events contract and could not be applied.",
+          );
+        } else {
+          setDraftActionError(`Failed to apply the draft (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to apply the draft.");
+      }
+    } finally {
+      setApplyingDraftId(null);
+    }
+  };
+
+  const handleReviewStateChange = async (draftId: number, reviewState: "approved" | "rejected") => {
+    setReviewingDraftId(draftId);
+    setDraftActionError(null);
+
+    try {
+      const updatedDraft = await updateAiDraftReviewState.mutateAsync({
+        id: draftId,
+        data: { reviewState },
+      });
+
+      queryClient.setQueryData(currentAIDraftQueryKey, (current: AIDraft[] | undefined) =>
+        current?.map((draft) => (draft.id === updatedDraft.id ? updatedDraft : draft)) ?? current,
+      );
+      queryClient.invalidateQueries({ queryKey: currentAIDraftQueryKey });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          setDraftActionError("This draft can no longer be reviewed from the current state.");
+        } else {
+          setDraftActionError(`Failed to update the draft review state (HTTP ${error.status}).`);
+        }
+      } else if (error instanceof Error) {
+        setDraftActionError(error.message);
+      } else {
+        setDraftActionError("Failed to update the draft review state.");
+      }
+    } finally {
+      setReviewingDraftId(null);
+    }
+  };
+
+  const handleGenerateBabyAssignmentSuggestion = (entry: BabyReviewEntry) => {
+    setGeneratingBabySuggestionEntryId(entry.id);
+    setDraftActionError(null);
+
+    createBabyKbAssignmentSuggestionMutation.mutate(
+      { sourceEntryId: entry.id },
+      {
+        onSuccess: (draft) => {
+          queryClient.invalidateQueries({ queryKey: currentAIDraftQueryKey });
+          toast({
+            title: "AI suggestion drafted",
+            description: `${entry.name || "This Baby KB item"} now has an approval-gated assignment suggestion ready for review.`,
+          });
+          queryClient.setQueryData(currentAIDraftQueryKey, (current: AIDraft[] | undefined) =>
+            current ? [draft, ...current.filter((item) => item.id !== draft.id)] : [draft],
+          );
+        },
+        onError: (error) => {
+          setDraftActionError(getErrorMessage(error, "The AI assignment suggestion could not be generated."));
+        },
+        onSettled: () => setGeneratingBabySuggestionEntryId(null),
+      },
+    );
+  };
 
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-5xl space-y-8">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight" data-testid="text-life-ledger-title">Life Ledger</h1>
-            <p className="text-muted-foreground mt-1">{activeTabCopy.intro}</p>
-          </div>
+        <div className="flex items-start justify-between gap-4">
+          <LaneHero
+            label="Life Ledger"
+            title="Structured obligations and plans"
+            subtitle={activeTabCopy.intro}
+            headingTestId="text-life-ledger-title"
+          />
           {!showForm && editingId === null && (
             <Button onClick={() => setShowForm(true)} data-testid="button-new-entry">
               <Plus className="w-4 h-4 mr-2" /> {activeTabCopy.newLabel}
             </Button>
           )}
-        </header>
+        </div>
+
+        <SupportRail direction="row">
+          <span className="text-xs text-muted-foreground">
+            {activeTab === "baby" ? "Baby KB · Review · Assignment · Projection" : "People · Events · Financial · Subscriptions · Travel"}
+          </span>
+        </SupportRail>
+
+        {lifeLedgerAIDraftReview && (
+          <AIDraftReviewPanel
+            title={lifeLedgerAIDraftReview.title}
+            emptyTitle={lifeLedgerAIDraftReview.emptyTitle}
+            emptyDescription={lifeLedgerAIDraftReview.emptyDescription}
+            drafts={aiDrafts}
+            isLoading={isAIDraftsLoading}
+            errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
+            actionErrorMessage={draftActionError}
+            modeBadgeLabel={
+              activeTab === "baby"
+              || activeTab === "events"
+              || activeTab === "people"
+              || activeTab === "financial"
+              || activeTab === "subscriptions"
+              || activeTab === "travel"
+                ? "Apply enabled"
+                : "Read only"
+            }
+            footerNote={
+              activeTab === "baby"
+                ? "Stored Baby assignment suggestions can be approved, rejected, and explicitly applied into the admin-only Baby assignment flow. No silent account assignment exists in this slice."
+                : activeTab === "events"
+                ? "Stored event drafts can be approved, rejected, and applied into Life Ledger events. Other Life Ledger tabs remain review-only in this slice."
+                : activeTab === "people"
+                  ? "Stored people drafts can be approved, rejected, and applied into new Life Ledger people entries. Other Life Ledger tabs remain review-only in this slice."
+                  : activeTab === "financial"
+                    ? "Stored financial drafts can be approved, rejected, and applied into new Life Ledger financial entries. Other Life Ledger tabs remain review-only in this slice."
+                    : activeTab === "subscriptions"
+                      ? "Stored subscription drafts can be approved, rejected, and applied into new Life Ledger subscription entries. Other Life Ledger tabs remain review-only in this slice."
+                      : activeTab === "travel"
+                        ? "Stored travel drafts can be approved, rejected, and applied into new Life Ledger travel entries. Baby remains non-applicable in this slice."
+                  : "Stored drafts are visible here for review only. Apply actions are not enabled for this Life Ledger tab in this slice."
+            }
+            renderDraftActions={
+              activeTab === "baby"
+              || activeTab === "events"
+              || activeTab === "people"
+              || activeTab === "financial"
+              || activeTab === "subscriptions"
+              || activeTab === "travel"
+                ? (draft) => {
+                    const canReview =
+                      draft.reviewState === "needs_review" || draft.reviewState === "approval_gated";
+                    const canApply =
+                      draft.reviewState === "needs_review" || draft.reviewState === "approved";
+                    const isApplying = applyingDraftId === draft.id;
+                    const isReviewing = reviewingDraftId === draft.id;
+
+                    return (
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {canReview ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isApplying || isReviewing}
+                            onClick={() => void handleReviewStateChange(draft.id, "approved")}
+                            data-testid={`button-approve-ai-draft-${draft.id}`}
+                          >
+                            {isReviewing ? "Saving..." : "Approve"}
+                          </Button>
+                        ) : null}
+                        {draft.reviewState !== "rejected" && draft.reviewState !== "applied" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isApplying || isReviewing}
+                            onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                            data-testid={`button-reject-ai-draft-${draft.id}`}
+                          >
+                            {isReviewing ? "Saving..." : "Reject"}
+                          </Button>
+                        ) : null}
+                        <Button
+                          size="sm"
+                          disabled={!canApply || isApplying || isReviewing}
+                          onClick={() => void handleApplyDraft(draft.id)}
+                          data-testid={`button-apply-ai-draft-${draft.id}`}
+                        >
+                          {draft.reviewState === "applied"
+                            ? "Applied"
+                            : isApplying
+                              ? "Applying..."
+                              : activeTab === "people"
+                                ? "Apply to people"
+                                : activeTab === "financial"
+                                  ? "Apply to financial"
+                                  : activeTab === "subscriptions"
+                                    ? "Apply to subscriptions"
+                                    : activeTab === "travel"
+                                      ? "Apply to travel"
+                                      : activeTab === "baby"
+                                        ? "Apply suggested assignment"
+                                        : "Apply to events"}
+                        </Button>
+                      </div>
+                    );
+                  }
+                : undefined
+            }
+            data-testid={`ai-draft-placeholder-life-ledger-${activeTab}`}
+          />
+        )}
+
+        {activeTab === "events" && (
+          <>
+            <CalendarLinkStatusCard
+              state={lifeLedgerEventsCalendarPlaceholder.state}
+              title={lifeLedgerEventsCalendarPlaceholder.title}
+              description={lifeLedgerEventsCalendarPlaceholder.description}
+              chips={lifeLedgerEventsCalendarPlaceholder.chips}
+              note={lifeLedgerEventsCalendarPlaceholder.note}
+              data-testid="calendar-placeholder-life-ledger-events"
+            />
+            <EventReminderDeliveryStatusBlock
+              queueItems={eventReminderQueue?.items ?? []}
+              outboxItems={mobileNotificationOutbox?.items ?? []}
+              devices={mobileDevices?.items ?? []}
+              onRegisterDevice={handleRegisterMobileDevice}
+              onDeactivateDevice={handleDeactivateMobileDevice}
+              onDispatchNextQueuedReminder={handleDispatchNextQueuedReminder}
+              registrationPlatform={mobileSimulatorState.registrationPlatform}
+              deactivatingDeviceId={mobileSimulatorState.deactivatingDeviceId}
+              dispatchingOutboxId={mobileSimulatorState.dispatchingOutboxId}
+              errorMessage={mobileSimulatorError}
+            />
+            <EventReminderReturnCard
+              items={eventReminderQueue?.items ?? []}
+              entries={entries ?? []}
+              onRunExecutionAction={handleEventExecutionAction}
+              actionState={eventActionState}
+            />
+          </>
+        )}
 
         {!isSurfaceComplete("life-ledger") && <SurfaceOnboardingCard surface="life-ledger" />}
 
@@ -1483,14 +3444,14 @@ export default function LifeLedgerPage() {
 
         {activeTab === "baby" && (
           <div className="space-y-4">
-            <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+            <div className="grid gap-4 lg:grid-cols-[1.6fr_0.9fr]">
               <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-2" data-testid="baby-kb-intro">
                 <h2 className="text-sm font-semibold">Baby KB</h2>
                 <p className="text-sm text-muted-foreground">
-                  Use this admin-only lane to turn parenting framework content into better daily pacing, weekly alignment, and longer-range visibility without losing the source material.
+                  Use this admin-only lane to turn parenting framework content into account-level rolling assignments, dated events, and hero consequence surfaces without losing the source material.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Baby KB is a supporting review and planning lane. Daily, Weekly, and Vision remain the live operating surfaces for action.
+                  Baby KB remains the provenance and governance lane. Life Ledger Events becomes the dated execution surface, while Daily, Weekly, and Vision only show the currently relevant consequences.
                 </p>
               </div>
               <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3" data-testid="baby-kb-import-summary">
@@ -1539,11 +3500,20 @@ export default function LifeLedgerPage() {
               </div>
             </div>
 
-            <BabyOperationalQueue entries={babyEntries} promotionsByEntryId={babyPromotionsByEntryId} />
+            <BabyOperationalQueue
+              entries={babyEntries}
+              promotionsByEntryId={babyPromotionsByEntryId}
+              assignmentsByEntryId={babyAssignmentsByEntryId}
+              usersById={adminUsersById}
+            />
           </div>
         )}
 
-        <div className="flex gap-1 border-b" data-testid="tab-bar">
+        <HorizontalOverflowSelector
+          className="border-b"
+          data-testid="tab-bar"
+          activeItemSelector='[data-active="true"]'
+        >
           {visibleTabs.map((t) => (
             <button
               key={t.key}
@@ -1552,17 +3522,18 @@ export default function LifeLedgerPage() {
                 setShowForm(false);
                 setEditingId(null);
               }}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === t.key
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
+              data-active={activeTab === t.key ? "true" : undefined}
               data-testid={`tab-${t.key}`}
             >
               {t.label}
             </button>
           ))}
-        </div>
+        </HorizontalOverflowSelector>
 
         {(showForm || editingId !== null) && (
           <div className="bg-card border rounded-2xl p-6 shadow-sm" data-testid="entry-form-panel">
@@ -1615,7 +3586,11 @@ export default function LifeLedgerPage() {
             collapsedGroupKeys={collapsedBabyGroups}
             bulkTagInput={bulkTagInput}
             promotionsByEntryId={babyPromotionsByEntryId}
+            assignmentsByEntryId={babyAssignmentsByEntryId}
+            usersById={adminUsersById}
             promotingKey={promotingKey}
+            generatingSuggestionEntryId={generatingBabySuggestionEntryId}
+            pendingSuggestionEntryIds={pendingBabySuggestionEntryIds}
             onFilterChange={setBabyFilter}
             onGroupByChange={setBabyGroupBy}
             onSearchChange={setBabySearch}
@@ -1648,6 +3623,29 @@ export default function LifeLedgerPage() {
             onEdit={(id) => { setShowForm(false); setEditingId(id); }}
             onDelete={handleDelete}
             onPromoteToSurface={handlePromoteToSurface}
+            onAssignToAccount={(entry) => {
+              setAssignmentEntryId(entry.id);
+              setEditingAssignmentId(null);
+            }}
+            onGenerateAssignmentSuggestion={handleGenerateBabyAssignmentSuggestion}
+            onEditAssignment={(entry, assignment) => {
+              setAssignmentEntryId(entry.id);
+              setEditingAssignmentId(assignment.id);
+            }}
+            onUpdateAssignmentState={handleUpdateAssignmentState}
+          />
+        ) : activeTab === "events" && entries && entries.length > 0 ? (
+          <EventExecutionBoard
+            entries={entries}
+            editingId={editingId}
+            onEdit={(id) => { setShowForm(false); setEditingId(id); }}
+            onDelete={handleDelete}
+            onRunExecutionAction={handleEventExecutionAction}
+            onUpdateReminderPolicy={handleEventReminderPolicyUpdate}
+            actionState={eventActionState}
+            reminderState={eventReminderState}
+            actionErrorMessage={eventActionError}
+            reminderErrorMessage={eventReminderError}
           />
         ) : entries && entries.length > 0 ? (
           <TabTable
@@ -1665,6 +3663,21 @@ export default function LifeLedgerPage() {
             </Button>
           </div>
         ) : null}
+
+        <BabyAssignmentDialog
+          open={assignmentEntryId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAssignmentEntryId(null);
+              setEditingAssignmentId(null);
+            }
+          }}
+          users={adminUsers ?? []}
+          sourceEntry={selectedAssignmentEntry}
+          initialAssignment={editingAssignment}
+          onSubmit={handleSubmitBabyAssignment}
+          isSaving={createBabyKbAssignmentMutation.isPending || updateBabyKbAssignmentMutation.isPending}
+        />
       </div>
     </Layout>
   );

@@ -17,7 +17,7 @@ export default function AccessDeniedPage() {
             This lane is not enabled for your account
           </h1>
           <p className="text-muted-foreground text-sm">
-            You are signed in, but this part of ThetaFrame has not been granted to you. Contact your administrator if you need access.
+            This lane is not included in your current access level. Ask an Admin to grant this module if it belongs in your workspace.
           </p>
           <Button asChild variant="outline" size="sm">
             <Link href={fallbackHref}>{fallbackLabel}</Link>
