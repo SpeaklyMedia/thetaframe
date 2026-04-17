@@ -107,7 +107,7 @@ export function BasicStartGuide({
           </Button>
         </div>
 
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {selectedActionSteps.map((step) => (
             <div key={step.stepNumber} className="flex items-center gap-2.5 rounded-md border bg-card/70 px-2.5 py-2">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
@@ -129,19 +129,18 @@ export function BasicStartGuide({
           return (
             <div
               key={lane}
-              className="rounded-lg border bg-card/80 px-3 py-3 shadow-sm"
+              className="rounded-lg border bg-card/80 px-3 py-2 shadow-sm"
               data-testid={`guide-step-${lane}`}
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold">Step {index + 1}: {step.plainLabel}</span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
                   {isComplete ? <CheckCircle2 className="h-3 w-3" /> : <Route className="h-3 w-3" />}
                   {isComplete ? "Done once" : "Start"}
                 </span>
               </div>
-              <p className="mt-2 text-sm font-medium">{step.headline}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{isComplete ? step.resetStep : step.nextStep}</p>
-              <Button asChild type="button" size="sm" className="mt-3">
+              <p className="mt-1 text-xs text-muted-foreground">{step.headline}</p>
+              <Button asChild type="button" size="sm" variant="outline" className="mt-2 h-8 w-full">
                 <Link href={step.href} onClick={onNavigate}>
                   {step.primaryAction}
                 </Link>
