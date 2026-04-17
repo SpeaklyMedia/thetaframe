@@ -50,6 +50,7 @@ export function useHabitCanvasFocus(): void {
     let focusedCards: HTMLElement[] = [];
     let raf: number | null = null;
     let isListening = false;
+    let startupCheck: number | null = null;
 
     const clearFocusedCards = () => {
       removeFocusClass(focusedCards);
@@ -140,9 +141,13 @@ export function useHabitCanvasFocus(): void {
     };
 
     handlePointerModeChange();
+    startupCheck = window.setTimeout(handlePointerModeChange, 150);
     media.addEventListener("change", handlePointerModeChange);
 
     return () => {
+      if (startupCheck !== null) {
+        window.clearTimeout(startupCheck);
+      }
       stopTouchFocus();
       media.removeEventListener("change", handlePointerModeChange);
       for (const element of document.querySelectorAll<HTMLElement>(CARD_SELECTOR)) {
