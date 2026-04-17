@@ -35,6 +35,10 @@ Status: Current high-signal receipt map
   - Adds signed-in Control Center dashboard, removes the header mode badge, and makes Start Here route-aware with restartable tabs.
   - Proves production browser QA with dashboard/guide coverage and `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C38-production-git-baseline-and-redeploy__2026-04-17__R1.md`
+  - Baselines the Phase 4/C37 production state into git at `fa3127591225c253264aa8a0747c8368cf7d353f`.
+  - Redeploys production from the committed workspace and proves production browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
