@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Layout } from "@/components/layout";
 import { AIDraftReviewPanel } from "@/components/shell/AIDraftReviewPanel";
 import { LaneHero } from "@/components/shell/LaneHero";
-import { PrimaryActionIsland } from "@/components/shell/PrimaryActionIsland";
 import { SupportRail } from "@/components/shell/SupportRail";
 import { BabyHeroConsequencesCard } from "@/components/shell/BabyHeroConsequencesCard";
 import { WorkspaceMoodPicker } from "@/components/shell/WorkspaceMoodPicker";
@@ -38,6 +37,12 @@ import {
   BasicLaneStepOrder,
   BasicMoreSection,
 } from "@/components/basic-guidance";
+import {
+  AIDraftCanvasBlock,
+  HabitCanvasObjectChip,
+  HabitCanvasSection,
+  HabitCanvasSurface,
+} from "@/components/habit-canvas";
 import {
   getVisionAIDraftReviewPanelCopy,
   visionAIDraftListParams,
@@ -318,11 +323,23 @@ export default function VisionPage() {
 
         <BasicLaneStepOrder lane="vision" />
 
-        <PrimaryActionIsland data-testid="vision-goals-island">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
-            <h2 className="text-lg font-semibold">Goals</h2>
-            <p className="text-sm text-muted-foreground">Write one thing you want to build or change.</p>
+        <HabitCanvasSurface
+          title="Goals Canvas"
+          description="Shape bigger goals into visible next steps and keep the support pattern close to the work."
+          testId="goals-canvas"
+          aside={
+            <>
+              <HabitCanvasObjectChip tone="goals">{goals.filter((goal) => goal.text.trim()).length} goals</HabitCanvasObjectChip>
+              <HabitCanvasObjectChip tone="neutral">Support pattern below</HabitCanvasObjectChip>
+            </>
+          }
+        >
+          <HabitCanvasSection
+            stepLabel="Step 1"
+            title="Goals"
+            description="Write one thing you want to build or change."
+            testId="vision-goals-island"
+          >
             <div className="space-y-3">
               {goals.map((goal, i) => (
                 <div key={goal.id} className="flex items-center gap-3">
@@ -341,21 +358,19 @@ export default function VisionPage() {
                 Add goal
               </Button>
             </div>
-          </div>
-        </PrimaryActionIsland>
+          </HabitCanvasSection>
 
-        {isNewFrame && (
-          <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-vision">
-            Start with one goal. It saves as you work.
-          </div>
-        )}
+          {isNewFrame && (
+            <div className="rounded-lg border border-accent bg-accent/40 px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-vision">
+              Start with one goal. It saves as you work.
+            </div>
+          )}
 
-        <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
-            <h2 className="text-xl font-semibold">Next Steps</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">Write the next step you can actually see.</p>
+          <HabitCanvasSection
+            stepLabel="Step 2"
+            title="Next Visible Steps"
+            description="Write the next step you can actually see."
+          >
           <div className="space-y-3">
             {nextSteps.map((step) => (
               <div key={step.id} className="flex items-center gap-3">
@@ -372,13 +387,15 @@ export default function VisionPage() {
               Add next step
             </Button>
           </div>
-        </section>
+          </HabitCanvasSection>
+        </HabitCanvasSurface>
 
         <BasicMoreSection
           title="Review AI drafts"
           description="AI can make a draft. You choose what to save."
           testId="more-ai-drafts-vision"
         >
+          <AIDraftCanvasBlock count={aiDrafts?.length ?? 0} label="Goals draft review" />
           <AIDraftReviewPanel
             title={visionAIDraftReview.title}
             emptyTitle={visionAIDraftReview.emptyTitle}

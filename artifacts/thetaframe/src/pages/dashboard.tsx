@@ -11,6 +11,7 @@ import {
   useUpsertUserMode,
 } from "@workspace/api-client-react";
 import { CalendarDays, CheckCircle2, ClipboardCheck, LayoutDashboard, Smartphone, Sparkles } from "lucide-react";
+import { AIDraftCanvasBlock, HabitCanvasMap, type HabitCanvasMapNode } from "@/components/habit-canvas";
 import { Layout } from "@/components/layout";
 import { LaneHero } from "@/components/shell/LaneHero";
 import { Button } from "@/components/ui/button";
@@ -82,28 +83,6 @@ function DashboardSection({
       </div>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-function StartActionCard({ lane, index }: { lane: BasicLane; index: number }) {
-  const step = BASIC_LANE_STEPS[lane];
-  const firstAction = BASIC_LANE_ACTION_STEPS[lane][0];
-
-  return (
-    <div className="rounded-lg border bg-background/80 p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-          {index + 1}
-        </div>
-        <div className="min-w-0 space-y-2">
-          <p className="text-sm font-semibold">{step.plainLabel}</p>
-          <p className="text-sm text-muted-foreground">{firstAction.description}</p>
-          <Button asChild type="button" size="sm">
-            <Link href={step.href}>{firstAction.actionLabel}</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -180,6 +159,28 @@ export default function DashboardPage() {
     },
   ].filter((item) => item.enabled);
   const totalReviewCount = reviewCounts.reduce((total, item) => total + item.count, 0);
+  const basicLaneAccess: Record<BasicLane, boolean> = {
+    daily: canDaily,
+    weekly: canWeekly,
+    vision: canVision,
+  };
+  const currentColourLabel = currentColour ? currentColour[0].toUpperCase() + currentColour.slice(1) : "Not set";
+  const basicCanvasNodes: HabitCanvasMapNode[] = BASIC_LANE_ORDER
+    .filter((lane) => basicLaneAccess[lane])
+    .map((lane) => {
+      const step = BASIC_LANE_STEPS[lane];
+      const firstAction = BASIC_LANE_ACTION_STEPS[lane][0];
+
+      return {
+        id: lane,
+        title: step.plainLabel,
+        subtitle: firstAction.description,
+        href: step.href,
+        actionLabel: firstAction.actionLabel,
+        status: lane === "daily" ? "Today Canvas" : lane === "weekly" ? "Week Canvas" : "Goals Canvas",
+        testId: `dashboard-canvas-node-${lane}`,
+      };
+    });
 
   const handleModeChange = (mode: UserModeMode) => {
     upsertUserMode.mutate(
@@ -221,13 +222,15 @@ export default function DashboardPage() {
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${getEmotionColorClass(currentColour)}`}
                 >
-                  {currentColour ? currentColour[0].toUpperCase() + currentColour.slice(1) : "Not set"}
+                  {currentColourLabel}
                 </span>
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {BASIC_LANE_ORDER.map((lane, index) => (
-                  <StartActionCard key={lane} lane={lane} index={index} />
-                ))}
+              <div className="mt-4">
+                <HabitCanvasMap
+                  nodes={basicCanvasNodes}
+                  colourLabel={currentColourLabel}
+                  draftCount={totalReviewCount}
+                />
               </div>
             </DashboardSection>
 
@@ -236,7 +239,8 @@ export default function DashboardPage() {
               description="AI can make a draft. You choose what to save."
               testId="dashboard-needs-review"
             >
-              <div className="grid gap-3 md:grid-cols-2">
+              <AIDraftCanvasBlock count={totalReviewCount} />
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {reviewCounts.map((item) => (
                   <div key={item.href} className="rounded-lg border bg-background/80 p-4">
                     <div className="flex items-center justify-between gap-3">

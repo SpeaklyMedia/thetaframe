@@ -48,6 +48,12 @@ import {
   BasicMoreSection,
 } from "@/components/basic-guidance";
 import {
+  AIDraftCanvasBlock,
+  HabitCanvasObjectChip,
+  HabitCanvasSection,
+  HabitCanvasSurface,
+} from "@/components/habit-canvas";
+import {
   dailyAIDraftListParams,
   getDailyAIDraftReviewPanelCopy,
 } from "@/lib/ai-draft-review";
@@ -574,16 +580,24 @@ export default function DailyPage() {
 
         <BasicLaneStepOrder lane="daily" />
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <section className="space-y-4 bg-card p-6 rounded-2xl border shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
-                <h2 className="text-xl font-semibold">Must Do Today</h2>
-              </div>
-              <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-muted rounded-full">{tierA.length}/3</span>
-            </div>
-            <p className="text-sm text-muted-foreground -mt-2">Pick up to 3 tasks that matter most.</p>
+        <HabitCanvasSurface
+          title="Today Canvas"
+          description="Arrange energy, must-do work, can-wait tasks, time shape, and one small win into a visible plan."
+          testId="today-canvas"
+          aside={
+            <>
+              <HabitCanvasObjectChip tone="today">Energy: {colourState}</HabitCanvasObjectChip>
+              <HabitCanvasObjectChip tone="neutral">Small win ready</HabitCanvasObjectChip>
+            </>
+          }
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <HabitCanvasSection
+              stepLabel="Step 1"
+              title="Must Do Today"
+              description="Pick up to 3 tasks that matter most."
+              meta={<HabitCanvasObjectChip tone="today">{tierA.length}/3</HabitCanvasObjectChip>}
+            >
             <div className="space-y-3" data-testid="tier-a-tasks">
               {tierA.map(task => (
                 <div key={task.id} className="flex items-start gap-3 group">
@@ -612,14 +626,13 @@ export default function DailyPage() {
                 </Button>
               )}
             </div>
-          </section>
+            </HabitCanvasSection>
 
-          <section className="space-y-4 bg-card p-6 rounded-2xl border shadow-sm">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
-              <h2 className="text-xl font-semibold">Can Do Later</h2>
-            </div>
-            <p className="text-sm text-muted-foreground -mt-2">Put extra tasks here so they are out of your head.</p>
+            <HabitCanvasSection
+              stepLabel="Step 2"
+              title="Can Wait"
+              description="Put extra tasks here so they are out of your head."
+            >
             <div className="space-y-3" data-testid="tier-b-tasks">
               {tierB.map(task => (
                 <div key={task.id} className="flex items-start gap-3 group">
@@ -646,20 +659,19 @@ export default function DailyPage() {
                 <Plus className="w-4 h-4 mr-2" /> Add later task
               </Button>
             </div>
-          </section>
-        </div>
-
-        <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 3</p>
-              <h2 className="text-xl font-semibold">Simple Time Plan</h2>
-              <p className="text-sm text-muted-foreground mt-1">Add a time only if it helps.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={addTimeBlock} data-testid="button-add-time-block">
-              <Plus className="w-4 h-4 mr-2" /> Add time block
-            </Button>
+            </HabitCanvasSection>
           </div>
+
+          <HabitCanvasSection
+            stepLabel="Step 3"
+            title="Time Shape"
+            description="Add a time only if it helps."
+            meta={
+              <Button variant="outline" size="sm" onClick={addTimeBlock} data-testid="button-add-time-block">
+                <Plus className="w-4 h-4 mr-2" /> Add time block
+              </Button>
+            }
+          >
           <div className="space-y-3" data-testid="time-blocks-list">
             {timeBlocks.length === 0 && (
               <p className="text-sm text-muted-foreground italic">No time blocks yet.</p>
@@ -693,14 +705,13 @@ export default function DailyPage() {
               </div>
             ))}
           </div>
-        </section>
+          </HabitCanvasSection>
 
-        <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 4</p>
-            <h2 className="text-xl font-semibold">Small Win</h2>
-            <p className="text-sm text-muted-foreground">Write one small thing that went right.</p>
-          </div>
+          <HabitCanvasSection
+            stepLabel="Step 4"
+            title="Small Win"
+            description="Write one small thing that went right."
+          >
           <Textarea
             value={microWin}
             onChange={(e) => setMicroWin(e.target.value)}
@@ -709,13 +720,15 @@ export default function DailyPage() {
             className="resize-none h-24"
             data-testid="textarea-micro-win"
           />
-        </section>
+          </HabitCanvasSection>
+        </HabitCanvasSurface>
 
         <BasicMoreSection
           title="Review AI drafts"
           description="AI can make a draft. You choose what to save."
           testId="more-ai-drafts-daily"
         >
+          <AIDraftCanvasBlock count={aiDrafts?.length ?? 0} label="Daily draft review" />
           <AIDraftReviewPanel
             title={dailyAIDraftReview.title}
             emptyTitle={dailyAIDraftReview.emptyTitle}

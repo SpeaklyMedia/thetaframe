@@ -4,7 +4,6 @@ import { AIDraftReviewPanel } from "@/components/shell/AIDraftReviewPanel";
 import { LaneHero } from "@/components/shell/LaneHero";
 import { CalendarLinkStatusCard } from "@/components/shell/CalendarLinkStatusCard";
 import { MobileIntegrationStatusCard } from "@/components/shell/MobileIntegrationStatusCard";
-import { PrimaryActionIsland } from "@/components/shell/PrimaryActionIsland";
 import { SupportRail } from "@/components/shell/SupportRail";
 import { BabyHeroConsequencesCard } from "@/components/shell/BabyHeroConsequencesCard";
 import { WorkspaceMoodPicker } from "@/components/shell/WorkspaceMoodPicker";
@@ -43,6 +42,12 @@ import {
   BasicLaneStepOrder,
   BasicMoreSection,
 } from "@/components/basic-guidance";
+import {
+  AIDraftCanvasBlock,
+  HabitCanvasObjectChip,
+  HabitCanvasSection,
+  HabitCanvasSurface,
+} from "@/components/habit-canvas";
 import {
   getWeeklyAIDraftReviewPanelCopy,
   weeklyAIDraftListParams,
@@ -386,11 +391,23 @@ export default function WeeklyPage() {
 
         <BasicLaneStepOrder lane="weekly" />
 
-        <PrimaryActionIsland data-testid="weekly-theme-island">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
-            <h2 className="text-lg font-semibold">Name this week</h2>
-            <p className="text-sm text-muted-foreground">Use a short name or theme.</p>
+        <HabitCanvasSurface
+          title="Week Canvas"
+          description="Design the week around a theme, protected steps, must-keep supports, and a backup plan."
+          testId="week-canvas"
+          aside={
+            <>
+              <HabitCanvasObjectChip tone="week">{steps.filter((step) => step.text.trim()).length} protected steps</HabitCanvasObjectChip>
+              <HabitCanvasObjectChip tone="neutral">{nonNegotiables.filter((item) => item.text.trim()).length} supports</HabitCanvasObjectChip>
+            </>
+          }
+        >
+          <HabitCanvasSection
+            stepLabel="Step 1"
+            title="Name This Week"
+            description="Use a short name or theme."
+            testId="weekly-theme-island"
+          >
             <Input
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
@@ -398,22 +415,20 @@ export default function WeeklyPage() {
               placeholder="e.g. steady week, school focus, rest..."
               className="max-w-md bg-transparent"
             />
-          </div>
-        </PrimaryActionIsland>
+          </HabitCanvasSection>
 
-        {isNewFrame && (
-          <div className="bg-accent/40 border border-accent rounded-2xl px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-weekly">
-            Start with one weekly name. It saves as you work.
-          </div>
-        )}
-
-        <div className="grid gap-8 md:grid-cols-2">
-          <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
-              <h2 className="text-xl font-semibold">Main Steps</h2>
+          {isNewFrame && (
+            <div className="rounded-lg border border-accent bg-accent/40 px-5 py-4 text-sm text-muted-foreground" data-testid="empty-state-weekly">
+              Start with one weekly name. It saves as you work.
             </div>
-            <p className="text-sm text-muted-foreground">Write one to three steps for this week.</p>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <HabitCanvasSection
+              stepLabel="Step 2"
+              title="Protected Steps"
+              description="Write one to three steps for this week."
+            >
             <div className="space-y-3" data-testid="weekly-steps">
               {steps.map((step, i) => (
                 <div key={step.id} className="flex items-center gap-2">
@@ -436,14 +451,13 @@ export default function WeeklyPage() {
                 Add week step
               </Button>
             </div>
-          </section>
+            </HabitCanvasSection>
 
-          <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 3</p>
-              <h2 className="text-xl font-semibold">Must Keep</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">Write the basics that help you stay okay.</p>
+            <HabitCanvasSection
+              stepLabel="Step 3"
+              title="Must-Keep Supports"
+              description="Write the basics that help you stay okay."
+            >
             <div className="space-y-3">
               {nonNegotiables.map((nn, i) => (
                 <div key={nn.id} className="flex items-center gap-3">
@@ -462,15 +476,14 @@ export default function WeeklyPage() {
                 Add must-keep item
               </Button>
             </div>
-          </section>
-        </div>
-
-        <section className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Step 4</p>
-            <h2 className="text-xl font-semibold">If Things Get Hard</h2>
+            </HabitCanvasSection>
           </div>
-          <p className="text-sm text-muted-foreground">Write the backup plan before you need it.</p>
+
+          <HabitCanvasSection
+            stepLabel="Step 4"
+            title="Backup Plan"
+            description="Write the backup plan before you need it."
+          >
           <Textarea 
             value={recoveryPlan}
             onChange={(e) => setRecoveryPlan(e.target.value)}
@@ -478,13 +491,15 @@ export default function WeeklyPage() {
             placeholder="Drop later tasks, take a break, ask for help..."
             className="resize-none h-24 bg-transparent"
           />
-        </section>
+          </HabitCanvasSection>
+        </HabitCanvasSurface>
 
         <BasicMoreSection
           title="Review AI drafts"
           description="AI can make a draft. You choose what to save."
           testId="more-ai-drafts-weekly"
         >
+          <AIDraftCanvasBlock count={aiDrafts?.length ?? 0} label="Weekly draft review" />
           <AIDraftReviewPanel
             title={weeklyAIDraftReview.title}
             emptyTitle={weeklyAIDraftReview.emptyTitle}
