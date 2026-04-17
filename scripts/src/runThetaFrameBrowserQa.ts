@@ -562,10 +562,10 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
           }
         }
 
+        await page.setViewportSize({ width: 390, height: 844 });
         await page.getByTestId("button-open-guide").click();
         await page.getByTestId("basic-start-guide").waitFor();
         await page.getByTestId("guide-surface-tabs").waitFor();
-        await page.setViewportSize({ width: 390, height: 844 });
         await expectModalViewportFit(page, "Dashboard Start Here mobile");
         await captureEvidence(page, "c37-basic-guide-dashboard-mobile");
         await page.setViewportSize({ width: 1440, height: 960 });

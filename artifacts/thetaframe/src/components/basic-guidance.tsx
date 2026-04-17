@@ -109,13 +109,13 @@ export function BasicStartGuide({
 
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {selectedActionSteps.map((step) => (
-            <div key={step.stepNumber} className="flex gap-2.5 rounded-md border bg-card/70 p-2.5">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            <div key={step.stepNumber} className="flex items-center gap-2.5 rounded-md border bg-card/70 px-2.5 py-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                 {step.stepNumber}
               </div>
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold">{step.title}</p>
-                <p className="text-sm text-muted-foreground">{step.description}</p>
+                <p className="sr-only">{step.description}</p>
               </div>
             </div>
           ))}
