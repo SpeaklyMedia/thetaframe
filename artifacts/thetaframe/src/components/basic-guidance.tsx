@@ -114,8 +114,8 @@ export function BasicStartGuide({
                 {step.stepNumber}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold">{step.title}</p>
-                <p className="sr-only">{step.description}</p>
+                <p className="text-sm font-semibold leading-tight">{step.actionLabel}</p>
+                <p className="sr-only">{step.title}. {step.description}</p>
               </div>
             </div>
           ))}
