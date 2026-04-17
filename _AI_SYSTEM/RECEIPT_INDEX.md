@@ -54,6 +54,11 @@ Status: Current high-signal receipt map
   - Keeps AI trust copy in the intro and shortens visible modal action labels for mobile fit.
   - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C42-habit-canvas-frontend-v1__2026-04-17__R1.md`
+  - Reframes Basic Dashboard, Today, This Week, and Goals as a connected LIFEos Habit Canvas.
+  - Adds frontend-only canvas primitives and browser QA assertions for the new canvas markers.
+  - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
