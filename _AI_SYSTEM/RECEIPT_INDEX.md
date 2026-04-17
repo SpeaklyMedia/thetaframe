@@ -49,6 +49,11 @@ Status: Current high-signal receipt map
   - Adds desktop/mobile modal viewport-fit browser QA assertions.
   - Redeploys production and proves automated plus headed browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C41-start-here-bottom-clip-followup__2026-04-17__R1.md`
+  - Removes the remaining clipped bottom AI note panel from Start Here.
+  - Keeps AI trust copy in the intro and shortens visible modal action labels for mobile fit.
+  - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
