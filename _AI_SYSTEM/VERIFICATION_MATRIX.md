@@ -1,6 +1,6 @@
 # Verification Matrix
 
-Date: 2026-04-15
+Date: 2026-04-17
 
 ## Preferred Proof Order
 
@@ -12,6 +12,7 @@ For UI-facing ThetaFrame work, verification should proceed in this order:
 2. Repo-native browser QA
    - `pnpm run qa:browser`
    - `pnpm run qa:browser:headed` for manual signoff only
+   - expected production browser QA after C43: `passes=16`, `skips=0`
 3. Authenticated API smoke
    - use when browser proof is blocked, incomplete, or inefficient for lifecycle verification
 

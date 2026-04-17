@@ -132,6 +132,8 @@ Signed-out:
 
 Authenticated when storage state is provided:
 
+- `/` redirects to `/dashboard`
+- `/dashboard`
 - `/daily`
 - `/weekly`
 - `/vision`

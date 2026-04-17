@@ -1,11 +1,11 @@
 # ThetaFrame Current Truth
 
 Date: 2026-04-17
-Status: Canonical current-state summary after C37
+Status: Canonical current-state summary after C43
 
 ## What ThetaFrame Does Now
 
-ThetaFrame is a private, authenticated operating system for personal planning and life execution. It has separate user logins, a signed-in Control Center dashboard, module-gated lanes, per-user saved data, review-first AI draft infrastructure, repeatable Basic onboarding, and production browser QA coverage.
+ThetaFrame is a private, authenticated operating system for personal planning and life execution. It has separate user logins, a signed-in Control Center dashboard, module-gated lanes, per-user saved data, review-first AI draft infrastructure, repeatable Basic onboarding, a Basic LIFEos Habit Canvas, and production browser QA coverage.
 
 Current lanes:
 
@@ -71,6 +71,9 @@ Basic onboarding is repeatable, plain-language, and low-friction:
 - Basic lane first screens lead with the core work before AI review, support, linked items, calendar/mobile placeholders, or extra onboarding panels;
 - Basic user labels prefer plain helper names: Today, This Week, Goals, Must Do Today, Can Do Later, Must Keep, If Things Get Hard, Next Steps;
 - the Daily color picker sets the user's signed-in workspace color, and that palette follows the user across allowed lanes;
+- the Basic Dashboard, Daily, Weekly, and Vision surfaces are now framed as connected LIFEos Habit Canvas surfaces;
+- the Habit Canvas has a scoped hover/focus layer: desktop uses CSS hover/focus, touch devices use scroll-focus, and reduced-motion suppresses transform movement;
+- Habit Canvas focus behavior is scoped to `data-habit-focus-group` / `data-habit-focus-card` and must not become a global card/table hover system;
 - the shared layout exposes `data-lane` and `data-workspace-colour` for browser QA;
 - real buttons are styled to read more clearly as controls than cards, step blocks, or disclosure panels;
 - copy should stay calm, concrete, and free of shame or urgency language.
@@ -132,7 +135,7 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:browser
 ```
 
-Expected browser QA result after C37: `passes=16`, `skips=0`.
+Expected browser QA result after C43: `passes=16`, `skips=0`.
 
 Expected isolation proof:
 
