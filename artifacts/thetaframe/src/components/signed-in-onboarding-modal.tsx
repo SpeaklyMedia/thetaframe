@@ -127,7 +127,7 @@ export function SignedInOnboardingModal() {
   return (
     <Dialog open={shouldOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>
       <DialogContent
-        className="max-w-3xl !flex !max-h-[calc(100dvh-2rem)] !gap-0 !overflow-hidden !p-0"
+        className="max-w-3xl !flex !max-h-[calc(100dvh-2rem)] !flex-col !gap-0 !overflow-hidden !p-0"
         data-testid="signed-in-onboarding-modal"
       >
         <DialogHeader className="shrink-0 pb-3 pl-5 pr-12 pt-5 sm:pl-6 sm:pr-14">
