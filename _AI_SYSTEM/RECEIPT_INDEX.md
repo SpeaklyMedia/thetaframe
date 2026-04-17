@@ -39,6 +39,11 @@ Status: Current high-signal receipt map
   - Baselines the Phase 4/C37 production state into git at `fa3127591225c253264aa8a0747c8368cf7d353f`.
   - Redeploys production from the committed workspace and proves production browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C39-frontend-lifeos-qa-sweep__2026-04-17__R1.md`
+  - Runs a production frontend QA sweep through the Basic neurodivergent user lens.
+  - Proves automated production browser QA with `passes=16`, `skips=0`.
+  - Records headed Basic visual evidence, a UX scorecard, P1/P2 findings, and the LIFEos Habit Canvas roadmap.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
