@@ -179,6 +179,7 @@ export default function DashboardPage() {
         actionLabel: firstAction.actionLabel,
         status: lane === "daily" ? "Today Canvas" : lane === "weekly" ? "Week Canvas" : "Goals Canvas",
         testId: `dashboard-canvas-node-${lane}`,
+        focusTestId: `habit-focus-card-dashboard-${lane}`,
       };
     });
 

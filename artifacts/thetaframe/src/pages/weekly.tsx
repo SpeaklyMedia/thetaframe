@@ -395,6 +395,7 @@ export default function WeeklyPage() {
           title="Week Canvas"
           description="Design the week around a theme, protected steps, must-keep supports, and a backup plan."
           testId="week-canvas"
+          focusGroupTestId="habit-focus-group-week"
           aside={
             <>
               <HabitCanvasObjectChip tone="week">{steps.filter((step) => step.text.trim()).length} protected steps</HabitCanvasObjectChip>

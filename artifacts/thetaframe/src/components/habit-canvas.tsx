@@ -14,6 +14,7 @@ export type HabitCanvasMapNode = {
   actionLabel: string;
   status?: string;
   testId?: string;
+  focusTestId?: string;
 };
 
 const toneClasses: Record<HabitCanvasTone, string> = {
@@ -65,8 +66,13 @@ export function HabitCanvasSection({
 }) {
   return (
     <section
-      className={cn("space-y-4 rounded-lg border border-border/70 bg-background/75 p-4 shadow-sm", className)}
+      className={cn(
+        "habit-focus-card habit-focus-card-section space-y-4 rounded-lg border border-border/70 bg-background/75 p-4 shadow-sm",
+        className,
+      )}
       data-testid={testId}
+      data-habit-focus-card=""
+      data-habit-focus-kind="section"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
@@ -89,12 +95,14 @@ export function HabitCanvasSurface({
   testId,
   children,
   aside,
+  focusGroupTestId,
 }: {
   title: string;
   description: string;
   testId: string;
   children: ReactNode;
   aside?: ReactNode;
+  focusGroupTestId?: string;
 }) {
   return (
     <section
@@ -109,7 +117,13 @@ export function HabitCanvasSurface({
         </div>
         {aside ? <div className="flex flex-wrap gap-2">{aside}</div> : null}
       </div>
-      {children}
+      <div
+        className="habit-focus-group space-y-5"
+        data-testid={focusGroupTestId}
+        data-habit-focus-group=""
+      >
+        {children}
+      </div>
     </section>
   );
 }
@@ -132,11 +146,20 @@ export function HabitCanvasMap({
         </HabitCanvasObjectChip>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <div
+        className="habit-focus-group grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)]"
+        data-testid="habit-focus-group-dashboard"
+        data-habit-focus-group=""
+      >
         {nodes.map((node, index) => (
           <div key={node.id} className="contents">
             <Link href={node.href} data-testid={node.testId} className="group block min-w-0">
-              <div className="h-full rounded-lg border border-border/70 bg-background/85 p-4 shadow-sm transition-colors group-hover:border-primary/50 group-hover:bg-accent/40">
+              <div
+                className="habit-focus-card habit-focus-card-map h-full rounded-lg border border-border/70 bg-background/85 p-4 shadow-sm group-hover:border-primary/50 group-hover:bg-accent/40 group-focus-visible:border-primary/60 group-focus-visible:bg-accent/40"
+                data-testid={node.focusTestId}
+                data-habit-focus-card=""
+                data-habit-focus-kind="map"
+              >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
                     {index + 1}
@@ -184,8 +207,10 @@ export function AIDraftCanvasBlock({
 
   return (
     <div
-      className="rounded-lg border border-violet-300/50 bg-violet-50/70 p-4 text-violet-950 dark:border-violet-500/40 dark:bg-violet-950/20 dark:text-violet-100"
+      className="habit-focus-card habit-focus-card-section rounded-lg border border-violet-300/50 bg-violet-50/70 p-4 text-violet-950 dark:border-violet-500/40 dark:bg-violet-950/20 dark:text-violet-100"
       data-testid={testId}
+      data-habit-focus-card=""
+      data-habit-focus-kind="ai"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
 import { ThetaFrameStartup } from "@/components/shell/ThetaFrameStartup";
 import { AuthSessionProvider, useAuthSession } from "@/hooks/use-auth-session";
+import { useHabitCanvasFocus } from "@/hooks/use-habit-canvas-focus";
 import { usePermissions } from "@/hooks/usePermissions";
 import { SignedInOnboardingModal } from "@/components/signed-in-onboarding-modal";
 
@@ -176,6 +177,11 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+function HabitCanvasFocusRuntime() {
+  useHabitCanvasFocus();
+  return null;
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
   const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL?.trim();
@@ -194,6 +200,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <AuthSessionProvider>
           <ClerkQueryClientCacheInvalidator />
+          <HabitCanvasFocusRuntime />
           <TooltipProvider>
             <ClerkLoading>
               <ThetaFrameStartup />

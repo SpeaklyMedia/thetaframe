@@ -327,6 +327,7 @@ export default function VisionPage() {
           title="Goals Canvas"
           description="Shape bigger goals into visible next steps and keep the support pattern close to the work."
           testId="goals-canvas"
+          focusGroupTestId="habit-focus-group-goals"
           aside={
             <>
               <HabitCanvasObjectChip tone="goals">{goals.filter((goal) => goal.text.trim()).length} goals</HabitCanvasObjectChip>

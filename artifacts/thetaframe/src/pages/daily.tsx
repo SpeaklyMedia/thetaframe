@@ -584,6 +584,7 @@ export default function DailyPage() {
           title="Today Canvas"
           description="Arrange energy, must-do work, can-wait tasks, time shape, and one small win into a visible plan."
           testId="today-canvas"
+          focusGroupTestId="habit-focus-group-today"
           aside={
             <>
               <HabitCanvasObjectChip tone="today">Energy: {colourState}</HabitCanvasObjectChip>

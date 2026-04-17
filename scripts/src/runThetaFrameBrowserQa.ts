@@ -340,6 +340,10 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("link-dashboard").waitFor();
         await page.getByTestId("dashboard-start-today").waitFor();
         await page.getByTestId("habit-canvas-map").waitFor();
+        await page.getByTestId("habit-focus-group-dashboard").waitFor();
+        await page.getByTestId("habit-focus-card-dashboard-daily").waitFor();
+        await page.getByTestId("habit-focus-card-dashboard-weekly").waitFor();
+        await page.getByTestId("habit-focus-card-dashboard-vision").waitFor();
         await page.getByTestId("dashboard-needs-review").waitFor();
         await page.getByTestId("ai-draft-canvas-block").waitFor();
         await page.getByTestId("dashboard-calendar-planning").waitFor();
@@ -350,9 +354,14 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
 
         await captureEvidence(page, "c37-dashboard-desktop");
         await captureEvidence(page, "c42-basic-dashboard-habit-canvas-desktop");
+        await page.getByTestId("habit-focus-card-dashboard-daily").hover();
+        await captureEvidence(page, "c43-dashboard-today-hover-focus-desktop");
         await page.setViewportSize({ width: 390, height: 844 });
+        await page.getByTestId("habit-focus-group-dashboard").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(250);
         await captureEvidence(page, "c37-dashboard-mobile");
         await captureEvidence(page, "c42-basic-dashboard-habit-canvas-mobile");
+        await captureEvidence(page, "c43-dashboard-scroll-focus-mobile");
         await page.setViewportSize({ width: 1440, height: 960 });
         return "pass";
       },
@@ -366,6 +375,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("text-daily-title").waitFor();
         await page.getByTestId("today-canvas").waitFor();
+        await page.getByTestId("habit-focus-group-today").waitFor();
         await page.getByTestId("step-order-daily").waitFor();
         await captureEvidence(page, "c42-today-canvas-desktop");
         return "pass";
@@ -379,6 +389,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await ensureAuthenticatedSession(page, "/weekly", "Weekly browser QA");
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("week-canvas").waitFor();
+        await page.getByTestId("habit-focus-group-week").waitFor();
         await page.getByTestId("weekly-theme-island").waitFor();
         await page.getByTestId("step-order-weekly").waitFor();
         await captureEvidence(page, "c42-week-canvas-desktop");
@@ -393,6 +404,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await ensureAuthenticatedSession(page, "/vision", "Vision browser QA");
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("goals-canvas").waitFor();
+        await page.getByTestId("habit-focus-group-goals").waitFor();
         await page.getByTestId("vision-goals-island").waitFor();
         await page.getByTestId("step-order-vision").waitFor();
         await captureEvidence(page, "c42-goals-canvas-desktop");
@@ -564,6 +576,10 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("dashboard-control-center").waitFor();
         await page.getByTestId("dashboard-start-today").waitFor();
         await page.getByTestId("habit-canvas-map").waitFor();
+        await page.getByTestId("habit-focus-group-dashboard").waitFor();
+        await page.getByTestId("habit-focus-card-dashboard-daily").waitFor();
+        await page.getByTestId("habit-focus-card-dashboard-weekly").waitFor();
+        await page.getByTestId("habit-focus-card-dashboard-vision").waitFor();
         await page.getByTestId("dashboard-needs-review").waitFor();
         await page.getByTestId("ai-draft-canvas-block").waitFor();
         await page.getByTestId("dashboard-coming-up").waitFor();
@@ -587,6 +603,7 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await waitForAppReady(page, "/daily");
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("today-canvas").waitFor();
+        await page.getByTestId("habit-focus-group-today").waitFor();
         await page.getByTestId("next-step-daily").waitFor();
         await page.getByTestId("ai-time-saver-daily").waitFor();
         await page.getByTestId("step-order-daily").waitFor();
@@ -598,11 +615,17 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         }
         await captureEvidence(page, "c36-basic-daily-purple-workspace");
         await captureEvidence(page, "c42-today-canvas-purple-workspace");
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.getByTestId("habit-focus-group-today").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(250);
+        await captureEvidence(page, "c43-today-scroll-focus-mobile");
+        await page.setViewportSize({ width: 1440, height: 960 });
 
         await waitForAppReady(page, "/weekly");
         await dismissOnboardingIfVisible(page);
         await expectWorkspaceColour(page, "purple");
         await page.getByTestId("week-canvas").waitFor();
+        await page.getByTestId("habit-focus-group-week").waitFor();
         await page.getByTestId("next-step-weekly").waitFor();
         await page.getByTestId("ai-time-saver-weekly").waitFor();
         await page.getByTestId("step-order-weekly").waitFor();
@@ -610,19 +633,28 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("button-add-weekly-step").waitFor();
         await captureEvidence(page, "c36-basic-weekly-purple-workspace");
         await captureEvidence(page, "c42-week-canvas-purple-workspace");
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.getByTestId("habit-focus-group-week").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(250);
+        await captureEvidence(page, "c43-week-scroll-focus-mobile");
+        await page.setViewportSize({ width: 1440, height: 960 });
 
         await waitForAppReady(page, "/vision");
         await dismissOnboardingIfVisible(page);
         await expectWorkspaceColour(page, "purple");
         await page.getByTestId("goals-canvas").waitFor();
+        await page.getByTestId("habit-focus-group-goals").waitFor();
         await page.getByTestId("next-step-vision").waitFor();
         await page.getByTestId("ai-time-saver-vision").waitFor();
         await page.getByTestId("step-order-vision").waitFor();
         await page.getByTestId("workspace-mood-picker").waitFor();
         await page.getByTestId("button-add-vision-goal").waitFor();
         await page.setViewportSize({ width: 390, height: 844 });
+        await page.getByTestId("habit-focus-group-goals").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(250);
         await captureEvidence(page, "c36-basic-vision-mobile-purple-workspace");
         await captureEvidence(page, "c42-goals-canvas-mobile-purple-workspace");
+        await captureEvidence(page, "c43-goals-scroll-focus-mobile");
         await page.setViewportSize({ width: 1440, height: 960 });
 
         return "pass";
