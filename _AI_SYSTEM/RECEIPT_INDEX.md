@@ -44,6 +44,11 @@ Status: Current high-signal receipt map
   - Proves automated production browser QA with `passes=16`, `skips=0`.
   - Records headed Basic visual evidence, a UX scorecard, P1/P2 findings, and the LIFEos Habit Canvas roadmap.
 
+- `artifacts/receipts/C40-phase-a-start-here-modal-qa-fix__2026-04-17__R1.md`
+  - Fixes the C39 P1 Start Here modal clipping issue for Basic users.
+  - Adds desktop/mobile modal viewport-fit browser QA assertions.
+  - Redeploys production and proves automated plus headed browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
