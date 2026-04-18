@@ -14,7 +14,7 @@ This applies to:
 - Daily frames
 - Weekly frames
 - Vision frames
-- BizDev records
+- FollowUps records, internally stored under the `bizdev` module and `bizdev_brands` table
 - Life Ledger people, events, financial, subscriptions, travel, and non-admin views
 - REACH file records, pending uploads, and private object reads
 - User mode and onboarding state
@@ -26,7 +26,7 @@ This applies to:
 
 Admin is governance access, not unrestricted private-lane browsing.
 
-Admins may manage users, module permissions, presets, environment access, and explicit admin workflows such as Baby KB review/assignment. Admins using ordinary user-lane APIs still operate as their own `userId`. They must not be able to browse, update, or delete arbitrary private Daily, Weekly, Vision, BizDev, Life Ledger, REACH, or AI draft records through normal lane routes.
+Admins may manage users, module permissions, presets, environment access, and explicit admin workflows such as Baby KB review/assignment. Admins using ordinary user-lane APIs still operate as their own `userId`. They must not be able to browse, update, or delete arbitrary private Daily, Weekly, Vision, FollowUps, Life Ledger, REACH, or AI draft records through normal lane routes.
 
 A future support view may intentionally expose cross-user private data only if it is designed as an explicit admin/support route with audit logging, scoped purpose, and visible policy documentation.
 

@@ -21,7 +21,7 @@ const SURFACE_LABELS: Record<ThetaAIDraftKind, string> = {
   vision_alignment_draft: "Vision Tracker",
   life_ledger_classification_draft: "Life Ledger",
   reach_file_summary: "REACH",
-  bizdev_followup_draft: "BizDev",
+  bizdev_followup_draft: "FollowUps",
   baby_kb_promotion_draft: "Baby KB",
   baby_kb_assignment_draft: "Baby KB",
 };

@@ -15,7 +15,7 @@ const DRAFT_KIND_LABELS: Record<AIDraft["draftKind"], string> = {
   vision_alignment_draft: "Vision alignment draft",
   life_ledger_classification_draft: "Life Ledger classification draft",
   reach_file_summary: "REACH file summary",
-  bizdev_followup_draft: "BizDev follow-up draft",
+  bizdev_followup_draft: "FollowUps draft",
   baby_kb_promotion_draft: "Baby KB promotion draft",
   baby_kb_assignment_draft: "Baby KB assignment suggestion",
 };

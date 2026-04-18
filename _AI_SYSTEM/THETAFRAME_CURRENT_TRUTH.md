@@ -1,7 +1,7 @@
 # ThetaFrame Current Truth
 
 Date: 2026-04-18
-Status: Canonical current-state summary after C47
+Status: Canonical current-state summary after C48
 
 ## What ThetaFrame Does Now
 
@@ -12,7 +12,7 @@ Current lanes:
 - Daily: current-day execution, energy state, Tier A/Tier B tasks, time blocks, micro-win, Daily quick capture, Daily AI draft review/apply.
 - Weekly: weekly rhythm, theme, protected steps, non-negotiables, recovery plan, Weekly AI draft review/apply.
 - Vision: long-horizon goals plus next visible steps, Vision AI draft review/apply.
-- BizDev: optional lead/opportunity lane.
+- FollowUps: optional user-facing follow-up lane for people or organizations the user said they would get back to. Internal route/API/module identifiers remain `bizdev` for compatibility.
 - Life Ledger: optional people, events, financial, subscriptions, travel lane; Baby KB is admin-only inside this lane.
 - REACH: optional file/artifact lane with private object ownership.
 - Admin: governance lane for user access, presets, imports, Baby KB admin workflows, and AI review/apply tooling.
@@ -31,7 +31,7 @@ Admin:
 Select Authorized:
 
 - Always receives Basic modules.
-- May receive any assigned optional modules: BizDev, Life Ledger, REACH.
+- May receive any assigned optional modules: FollowUps, Life Ledger, REACH.
 - Cannot access Admin or Baby KB admin tooling unless promoted to Admin.
 - AI scope is limited to allowed modules.
 
@@ -39,7 +39,7 @@ Basic User:
 
 - Default for new non-admin users.
 - Receives Daily, Weekly, Vision.
-- Cannot access BizDev, Life Ledger, REACH, Admin, Baby KB, imports, assignment tools, or admin presets.
+- Cannot access FollowUps, Life Ledger, REACH, Admin, Baby KB, imports, assignment tools, or admin presets.
 - AI scope is Daily, Weekly, and Vision only.
 
 ## Privacy And Data Ownership

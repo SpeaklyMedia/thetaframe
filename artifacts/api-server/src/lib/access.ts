@@ -19,7 +19,7 @@ export type PermissionEntry = {
 
 export const STANDARD_ACCESS_PRESETS = [
   { name: "Basic User", modules: BASIC_MODULES },
-  { name: "Select Authorized: Core + BizDev", modules: [...BASIC_MODULES, "bizdev"] as const },
+  { name: "Select Authorized: Core + FollowUps", modules: [...BASIC_MODULES, "bizdev"] as const },
   { name: "Select Authorized: Core + Life Ledger", modules: [...BASIC_MODULES, "life-ledger"] as const },
   { name: "Select Authorized: Core + REACH", modules: [...BASIC_MODULES, "reach"] as const },
   { name: "Select Authorized: Full Non-Admin", modules: ALL_MODULES },

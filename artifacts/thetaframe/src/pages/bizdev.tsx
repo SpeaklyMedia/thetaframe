@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { LaneHero } from "@/components/shell/LaneHero";
 import { SupportRail } from "@/components/shell/SupportRail";
@@ -10,7 +11,6 @@ import {
   useDeleteBizdevBrand,
   getListBizdevBrandsQueryKey,
   getGetBizdevSummaryQueryKey,
-  BizdevBrand,
   BizdevBrandBody,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,18 +30,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, X, ChevronDown, Pencil, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { CalendarDays, Plus, X, ChevronDown, Pencil, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Phase = "COLD" | "WARM" | "HOT";
 type SortField = "brand" | "nextTouchDate" | "phase" | "moneyOpen";
 type SortDir = "asc" | "desc";
 
 const PHASE_LABELS: Record<Phase, string> = {
-  COLD: "Cold",
-  WARM: "Warm",
-  HOT: "Hot",
+  COLD: "Later",
+  WARM: "Soon",
+  HOT: "Needs attention",
 };
 
 const PHASE_COLORS: Record<Phase, string> = {
@@ -91,11 +92,11 @@ function BrandForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Brand *</label>
+          <label className="text-sm font-medium">Person or organization *</label>
           <Input
             value={form.brand}
             onChange={(e) => set("brand", e.target.value)}
-            placeholder="Brand or client name"
+            placeholder="Who do you need to get back to?"
             required
             data-testid="input-brand-name"
           />
@@ -123,47 +124,47 @@ function BrandForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Owner</label>
+          <label className="text-sm font-medium">Responsible person</label>
           <Input
             value={form.owner ?? ""}
             onChange={(e) => set("owner", e.target.value || null)}
-            placeholder="Who owns this lead?"
+            placeholder="Who is responsible for this follow-up?"
             data-testid="input-owner"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Human Status</label>
+          <label className="text-sm font-medium">Where things stand</label>
           <Input
             value={form.humanStatus ?? ""}
             onChange={(e) => set("humanStatus", e.target.value || null)}
-            placeholder="e.g. Intro call done, waiting..."
+            placeholder="e.g. They asked for details, waiting on me..."
             data-testid="input-human-status"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Next Action</label>
+          <label className="text-sm font-medium">What you said you'd do next</label>
           <Input
             value={form.nextAction ?? ""}
             onChange={(e) => set("nextAction", e.target.value || null)}
-            placeholder="What's the next concrete step?"
+            placeholder="What should you send, decide, or ask?"
             data-testid="input-next-action"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Blocker</label>
+          <label className="text-sm font-medium">What might get in the way</label>
           <Input
             value={form.blocker ?? ""}
             onChange={(e) => set("blocker", e.target.value || null)}
-            placeholder="What's in the way?"
+            placeholder="What's making this hard to finish?"
             data-testid="input-blocker"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Next Touch Date</label>
+          <label className="text-sm font-medium">Reminder date</label>
           <Input
             type="date"
             value={form.nextTouchDate ?? ""}
@@ -173,7 +174,7 @@ function BrandForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Next Touch Channel</label>
+          <label className="text-sm font-medium">Follow-up channel</label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-between" data-testid="select-next-touch-channel">
@@ -195,7 +196,7 @@ function BrandForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Money Open (USD)</label>
+          <label className="text-sm font-medium">Open value (USD)</label>
           <Input
             type="number"
             min={0}
@@ -209,11 +210,11 @@ function BrandForm({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Money Notes</label>
+        <label className="text-sm font-medium">Value notes</label>
         <Textarea
           value={form.moneyNotes ?? ""}
           onChange={(e) => set("moneyNotes", e.target.value || null)}
-          placeholder="Rate card, retainer details, custom deals..."
+          placeholder="Context, value, scope, or relationship notes..."
           className="resize-none h-20"
           data-testid="textarea-money-notes"
         />
@@ -221,7 +222,7 @@ function BrandForm({
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={isSaving || !form.brand.trim()} data-testid="button-save-brand">
-          {isSaving ? "Saving..." : "Save Lead"}
+          {isSaving ? "Saving..." : "Save FollowUp"}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} data-testid="button-cancel-brand">
           Cancel
@@ -240,6 +241,7 @@ function SortIcon({ field, active, dir }: { field: string; active: boolean; dir:
 
 export default function BizdevPage() {
   const queryClient = useQueryClient();
+  const { hasModule, isAdmin } = usePermissions();
   const { data: brands, isLoading } = useListBizdevBrands({
     query: { queryKey: getListBizdevBrandsQueryKey() },
   });
@@ -250,6 +252,7 @@ export default function BizdevPage() {
   const updateMutation = useUpdateBizdevBrand();
   const deleteMutation = useDeleteBizdevBrand();
   const { isSurfaceComplete } = useOnboardingProgress();
+  const canLifeLedger = isAdmin || hasModule("life-ledger");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -344,21 +347,45 @@ export default function BizdevPage() {
       <div className="container mx-auto p-4 md:p-8 max-w-7xl space-y-6">
         <div className="flex items-start justify-between gap-4">
           <LaneHero
-            label="BizDev"
-            title="Brand and client lead tracker"
-            subtitle="Track pipeline motion, next actions, blockers, and open money across your current opportunities."
+            label="FollowUps"
+            title="People to get back to"
+            subtitle="Track who you promised to follow up with, what you owe them, and when to bring it back into your week."
             headingTestId="text-bizdev-title"
           />
           <Button onClick={() => { setEditingId(null); setModalOpen(true); }} data-testid="button-new-lead">
-            <Plus className="w-4 h-4 mr-2" /> New Lead
+            <Plus className="w-4 h-4 mr-2" /> Add FollowUp
           </Button>
         </div>
 
         <SupportRail direction="row">
-          <span className="text-xs text-muted-foreground">Pipeline · Next Touch · Blockers · Money Open</span>
+          <span className="text-xs text-muted-foreground">People · Next promise · Reminder date · Calendar planning</span>
         </SupportRail>
 
         {!isSurfaceComplete("bizdev") && <SurfaceOnboardingCard surface="bizdev" />}
+
+        <section className="rounded-lg border bg-card/90 p-4 shadow-sm" data-testid="followups-reminder-guidance">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div>
+                <h2 className="text-sm font-semibold">Reminder dates help you choose what comes back into view.</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Calendar sync is not active yet. Use the reminder date here, then move the next step into Today or This Week when it is time.
+                </p>
+              </div>
+            </div>
+            {canLifeLedger ? (
+              <Button asChild type="button" variant="outline" size="sm" className="shrink-0">
+                <Link href="/life-ledger?tab=events">Open reminders</Link>
+              </Button>
+            ) : null}
+          </div>
+          {canLifeLedger ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Use Life Ledger for dated reminders and appointments when a follow-up needs a durable reminder record.
+            </p>
+          ) : null}
+        </section>
 
         {summary && (
           <div className="grid grid-cols-3 gap-4" data-testid="bizdev-summary">
@@ -383,7 +410,7 @@ export default function BizdevPage() {
         <div className="flex flex-wrap items-center gap-3" data-testid="filter-bar">
           {filterPhase !== "ALL" && (
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${PHASE_COLORS[filterPhase]}`}>
-              Phase: {PHASE_LABELS[filterPhase]}
+              When: {PHASE_LABELS[filterPhase]}
               <button onClick={() => setFilterPhase("ALL")} aria-label="Clear phase filter" data-testid="clear-phase-filter">
                 <X className="w-3 h-3" />
               </button>
@@ -394,12 +421,12 @@ export default function BizdevPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" data-testid="filter-owner-trigger">
-                  {filterOwner ? `Owner: ${filterOwner}` : "Filter by owner"}
+                  {filterOwner ? `Responsible: ${filterOwner}` : "Filter by responsible person"}
                   <ChevronDown className="w-3 h-3 ml-1.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setFilterOwner("")} data-testid="filter-owner-all">All owners</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterOwner("")} data-testid="filter-owner-all">All responsible people</DropdownMenuItem>
                 {uniqueOwners.map((o) => (
                   <DropdownMenuItem key={o} onClick={() => setFilterOwner(o)} data-testid={`filter-owner-${o}`}>
                     {o}
@@ -415,7 +442,7 @@ export default function BizdevPage() {
               onClick={() => setFilterOwner("")}
               data-testid="clear-owner-filter"
             >
-              Clear owner
+              Clear responsible person
             </button>
           )}
         </div>
@@ -423,7 +450,7 @@ export default function BizdevPage() {
         <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="brand-form-modal">
             <DialogHeader>
-              <DialogTitle>{editingId !== null ? "Edit Lead" : "New Lead"}</DialogTitle>
+              <DialogTitle>{editingId !== null ? "Edit FollowUp" : "New FollowUp"}</DialogTitle>
             </DialogHeader>
             <BrandForm
               initial={
@@ -461,16 +488,16 @@ export default function BizdevPage() {
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/40">
                 <tr>
-                  <ColHeader field="brand" label="Brand" />
-                  <ColHeader field="phase" label="Phase" />
+                  <ColHeader field="brand" label="Person / Org" />
+                  <ColHeader field="phase" label="When" />
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Status</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Next Action</th>
-                  <ColHeader field="nextTouchDate" label="Touch Date" />
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Next Promise</th>
+                  <ColHeader field="nextTouchDate" label="Reminder Date" />
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Channel</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Owner</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Responsible</th>
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Blocker</th>
                   <ColHeader field="moneyOpen" label="$ Open" />
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Money Notes</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Value Notes</th>
                   <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
@@ -524,12 +551,12 @@ export default function BizdevPage() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-muted-foreground">
               {filterPhase !== "ALL" || filterOwner
-                ? "No leads match the current filters."
-                : "No leads yet."}
+                ? "No follow-ups match the current filters."
+                : "No follow-ups yet."}
             </p>
             {filterPhase === "ALL" && !filterOwner && (
               <Button variant="outline" className="mt-4" onClick={() => { setEditingId(null); setModalOpen(true); }} data-testid="button-empty-new-lead">
-                <Plus className="w-4 h-4 mr-2" /> Add your first lead
+                <Plus className="w-4 h-4 mr-2" /> Add your first FollowUp
               </Button>
             )}
           </div>

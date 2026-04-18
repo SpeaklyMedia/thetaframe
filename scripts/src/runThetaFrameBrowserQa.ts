@@ -224,7 +224,7 @@ async function expectBasicApiAccess(page: Page) {
   await expectApiNotUnauthorizedOrForbidden(page, "/api/daily-frames", "Basic daily API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/weekly-frames", "Basic weekly API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/vision-frames", "Basic vision API");
-  await expectApiStatus(page, "/api/bizdev/brands", [403], "Basic BizDev API");
+  await expectApiStatus(page, "/api/bizdev/brands", [403], "Basic FollowUps API");
   await expectApiStatus(page, "/api/life-ledger/events", [403], "Basic Life Ledger API");
   await expectApiStatus(page, "/api/reach/files", [403], "Basic REACH API");
   await expectApiStatus(page, "/api/admin/users", [403], "Basic Admin API");
@@ -234,7 +234,7 @@ async function expectBasicApiAccess(page: Page) {
 async function expectSelectAuthorizedApiAccess(page: Page) {
   await expectPermissions(page, ["daily", "weekly", "vision", "life-ledger"], false, "Select Authorized API matrix");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/life-ledger/events", "Select Authorized Life Ledger API");
-  await expectApiStatus(page, "/api/bizdev/brands", [403], "Select Authorized BizDev API");
+  await expectApiStatus(page, "/api/bizdev/brands", [403], "Select Authorized FollowUps API");
   await expectApiStatus(page, "/api/reach/files", [403], "Select Authorized REACH API");
   await expectApiStatus(page, "/api/admin/users", [403], "Select Authorized Admin API");
   await expectApiStatus(page, "/api/life-ledger/baby", [403], "Select Authorized Baby KB API");
@@ -441,14 +441,15 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
       },
     },
     {
-      label: "bizdev lane mounts with lead tracker surface",
+      label: "followups lane mounts with people follow-up surface",
       run: async (page) => {
         if (!storageState) return "skip";
         await waitForAppReady(page, "/bizdev");
-        await ensureAuthenticatedSession(page, "/bizdev", "BizDev browser QA");
+        await ensureAuthenticatedSession(page, "/bizdev", "FollowUps browser QA");
         await dismissOnboardingIfVisible(page);
-        await page.getByRole("heading", { name: "Brand and client lead tracker" }).waitFor();
-        await page.getByText("Pipeline · Next Touch · Blockers · Money Open", { exact: true }).waitFor();
+        await page.getByRole("heading", { name: "People to get back to" }).waitFor();
+        await page.getByText("People · Next promise · Reminder date · Calendar planning", { exact: true }).waitFor();
+        await page.getByTestId("followups-reminder-guidance").waitFor();
         return "pass";
       },
     },
@@ -514,7 +515,7 @@ function basicRouteMatrixChecks(storageState: string | undefined): Check[] {
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("vision-goals-island").waitFor();
 
-        await expectAccessDenied(page, "/bizdev", "Basic BizDev route-matrix QA");
+        await expectAccessDenied(page, "/bizdev", "Basic FollowUps route-matrix QA");
         await expectAccessDenied(page, "/life-ledger?tab=events", "Basic Life Ledger route-matrix QA");
         await expectAccessDenied(page, "/reach", "Basic REACH route-matrix QA");
         await expectAccessDenied(page, "/admin", "Basic Admin route-matrix QA");
@@ -557,7 +558,7 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("guide-step-weekly").getByText("Step 2: This Week").waitFor();
         await page.getByTestId("guide-step-vision").getByText("Step 3: Goals").waitFor();
 
-        for (const hiddenLabel of ["BizDev", "Life Ledger", "REACH", "Admin", "Baby KB"]) {
+        for (const hiddenLabel of ["FollowUps", "BizDev", "Life Ledger", "REACH", "Admin", "Baby KB"]) {
           if (await page.getByTestId("basic-start-guide").getByText(hiddenLabel, { exact: false }).isVisible().catch(() => false)) {
             throw new Error(`Basic guide exposed ${hiddenLabel}.`);
           }
@@ -593,7 +594,7 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("ai-draft-canvas-block").waitFor();
         await page.getByTestId("dashboard-coming-up").waitFor();
         await page.getByTestId("dashboard-calendar-planning").waitFor();
-        for (const hiddenLabel of ["BizDev", "Life Ledger", "REACH", "Admin", "Baby KB"]) {
+        for (const hiddenLabel of ["FollowUps", "BizDev", "Life Ledger", "REACH", "Admin", "Baby KB"]) {
           if (await page.getByTestId("dashboard-control-center").getByText(hiddenLabel, { exact: false }).isVisible().catch(() => false)) {
             throw new Error(`Basic dashboard exposed ${hiddenLabel}.`);
           }
@@ -717,6 +718,9 @@ function selectAuthorizedRouteMatrixChecks(storageState: string | undefined): Ch
         await page.getByTestId("dashboard-start-today").waitFor();
         await page.getByTestId("dashboard-needs-review").waitFor();
         await page.getByTestId("dashboard-calendar-planning").waitFor();
+        if (optionalModules.has("bizdev")) {
+          await page.getByText("Open FollowUps", { exact: true }).waitFor();
+        }
         if (optionalModules.has("life-ledger")) {
           await page.getByTestId("dashboard-coming-up").getByText("Life Ledger events", { exact: true }).waitFor();
           await page.getByTestId("dashboard-mobile-returns").waitFor();
@@ -739,11 +743,12 @@ function selectAuthorizedRouteMatrixChecks(storageState: string | undefined): Ch
 
         if (optionalModules.has("bizdev")) {
           await waitForAppReady(page, "/bizdev");
-          await ensureAuthenticatedSession(page, "/bizdev", "Select Authorized BizDev route-matrix QA");
+          await ensureAuthenticatedSession(page, "/bizdev", "Select Authorized FollowUps route-matrix QA");
           await dismissOnboardingIfVisible(page);
-          await page.getByRole("heading", { name: "Brand and client lead tracker" }).waitFor();
+          await page.getByRole("heading", { name: "People to get back to" }).waitFor();
+          await page.getByTestId("followups-reminder-guidance").waitFor();
         } else {
-          await expectAccessDenied(page, "/bizdev", "Select Authorized BizDev route-matrix QA");
+          await expectAccessDenied(page, "/bizdev", "Select Authorized FollowUps route-matrix QA");
         }
 
         if (optionalModules.has("life-ledger")) {

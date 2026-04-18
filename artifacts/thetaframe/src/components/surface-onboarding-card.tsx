@@ -28,10 +28,10 @@ export const SURFACE_ONBOARDING_COPY: Record<
     firstStep: "Write one goal and one next step.",
   },
   bizdev: {
-    label: "BizDev",
-    intro: "You are looking at your lead and opportunity tracker.",
-    purpose: "It keeps brands, next touches, blockers, and money in view so outreach does not disappear into memory.",
-    firstStep: "Create your first lead with a brand name and the next action you want to take.",
+    label: "FollowUps",
+    intro: "You are looking at the people and organizations you said you would get back to.",
+    purpose: "It keeps next promises, reminder dates, blockers, and context in view so follow-ups do not have to live in memory.",
+    firstStep: "Add one FollowUp with the person or organization and what you said you would do next.",
   },
   "life-ledger": {
     label: "Life Ledger",

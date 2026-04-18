@@ -7,7 +7,7 @@ ThetaFrame is a unified personal daily OS designed for neurodivergent brains, bu
 ## Product Modules
 
 - **ThetaFrame Core** — Daily/Weekly/Vision frames, Emotional Color Model, Skip Protocol, Mode separation (Explore/Build/Release)
-- **BizDev** — Brand/client lead CRM with phase tracking (COLD/WARM/HOT), touch dates, blocker tracking, money pipeline
+- **FollowUps** — User-facing follow-up lane for people or organizations the user said they would get back to; internally remains the `bizdev` module with COLD/WARM/HOT phase storage, reminder-date copy, blocker tracking, and optional value notes
 - **Life Ledger** — Personal obligations tracker with 5 tabs (people/events/financial/subscriptions/travel), next-90-days view, subscription audit
 - **REACH** — File bundle manager with presigned URL uploads to GCS object storage, file deletion
 - **Admin Panel** — Per-user, per-module, per-environment access control (Task #3, upcoming)
@@ -100,7 +100,7 @@ All routes prefixed with `/api`:
 - `/daily` — Daily Frame (protected)
 - `/weekly` — Weekly Rhythm (protected)
 - `/vision` — Vision Tracker (protected)
-- `/bizdev` — BizDev CRM (protected)
+- `/bizdev` — FollowUps lane (protected; internal module key remains `bizdev`)
 - `/life-ledger` — Life Ledger (protected)
 - `/reach` — REACH File Manager (protected)
 

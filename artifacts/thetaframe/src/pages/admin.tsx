@@ -30,13 +30,13 @@ const MODULE_LABELS: Record<string, string> = {
   daily: "Daily Frame",
   weekly: "Weekly Rhythm",
   vision: "Vision Tracker",
-  bizdev: "BizDev",
+  bizdev: "FollowUps",
   "life-ledger": "Life Ledger",
   reach: "REACH",
 };
 const STANDARD_PRESET_NAMES = new Set([
   "Basic User",
-  "Select Authorized: Core + BizDev",
+  "Select Authorized: Core + FollowUps",
   "Select Authorized: Core + Life Ledger",
   "Select Authorized: Core + REACH",
   "Select Authorized: Full Non-Admin",

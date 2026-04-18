@@ -389,7 +389,7 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   {canBizDev ? (
                     <Button asChild type="button" variant="outline" className="w-full justify-start">
-                      <Link href="/bizdev">Open BizDev</Link>
+                      <Link href="/bizdev">Open FollowUps</Link>
                     </Button>
                   ) : null}
                   {isAdmin ? (

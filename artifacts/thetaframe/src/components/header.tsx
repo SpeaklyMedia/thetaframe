@@ -15,7 +15,7 @@ const MODULE_NAV = [
   { module: "daily", href: "/daily", label: "Today", testId: "link-daily" },
   { module: "weekly", href: "/weekly", label: "This Week", testId: "link-weekly" },
   { module: "vision", href: "/vision", label: "Goals", testId: "link-vision" },
-  { module: "bizdev", href: "/bizdev", label: "BizDev", testId: "link-bizdev" },
+  { module: "bizdev", href: "/bizdev", label: "FollowUps", testId: "link-bizdev" },
   { module: "life-ledger", href: "/life-ledger", label: "Life Ledger", testId: "link-life-ledger" },
   { module: "reach", href: "/reach", label: "REACH", testId: "link-reach" },
 ];
