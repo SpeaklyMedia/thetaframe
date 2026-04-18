@@ -38,30 +38,58 @@ export const basicBrainDumpBodySchema = z.object({
 
 export type BasicBrainDumpBody = z.infer<typeof basicBrainDumpBodySchema>;
 
-const providerTimeBlockSchema = z.object({
-  startTime: z.string().trim().min(1).max(20),
-  action: z.string().trim().min(1).max(180),
+const providerTextItemSchema = z.union([
+  z.string(),
+  z.object({
+    text: z.string().optional(),
+    title: z.string().optional(),
+    action: z.string().optional(),
+    name: z.string().optional(),
+  }),
+]).transform((value) => {
+  if (typeof value === "string") return value.trim();
+  return (value.text ?? value.title ?? value.action ?? value.name ?? "").trim();
+});
+
+const providerTimeBlockSchema = z.union([
+  z.string(),
+  z.object({
+    startTime: z.string().optional(),
+    time: z.string().optional(),
+    action: z.string().optional(),
+    text: z.string().optional(),
+    title: z.string().optional(),
+  }),
+]).transform((value) => {
+  if (typeof value === "string") {
+    return { startTime: "09:00", action: value.trim() };
+  }
+
+  return {
+    startTime: (value.startTime ?? value.time ?? "09:00").trim(),
+    action: (value.action ?? value.text ?? value.title ?? "").trim(),
+  };
 });
 
 const providerResponseSchema = z.object({
   daily: z.object({
     colourState: z.enum(["green", "yellow", "red", "blue", "purple"]).optional(),
-    tierA: z.array(z.string().trim().min(1).max(180)).max(3).default([]),
-    tierB: z.array(z.string().trim().min(1).max(180)).max(12).default([]),
-    timeBlocks: z.array(providerTimeBlockSchema).max(8).default([]),
+    tierA: z.array(providerTextItemSchema).default([]),
+    tierB: z.array(providerTextItemSchema).default([]),
+    timeBlocks: z.array(providerTimeBlockSchema).default([]),
     microWin: z.string().trim().max(500).nullable().optional(),
     rationale: z.string().trim().max(1000).nullable().optional(),
   }),
   weekly: z.object({
     theme: z.string().trim().max(500).nullable().optional(),
-    steps: z.array(z.string().trim().min(1).max(180)).max(3).default([]),
-    nonNegotiables: z.array(z.string().trim().min(1).max(180)).max(5).default([]),
+    steps: z.array(providerTextItemSchema).default([]),
+    nonNegotiables: z.array(providerTextItemSchema).default([]),
     recoveryPlan: z.string().trim().max(1000).nullable().optional(),
     rationale: z.string().trim().max(1000).nullable().optional(),
   }),
   vision: z.object({
-    goals: z.array(z.string().trim().min(1).max(180)).max(3).default([]),
-    nextSteps: z.array(z.string().trim().min(1).max(180)).max(3).default([]),
+    goals: z.array(providerTextItemSchema).default([]),
+    nextSteps: z.array(providerTextItemSchema).default([]),
     rationale: z.string().trim().max(1000).nullable().optional(),
   }),
   overallRationale: z.string().trim().max(1500).nullable().optional(),
@@ -95,7 +123,7 @@ function existingTextItems(
 }
 
 function generatedTasks(items: string[], max: number) {
-  return items.slice(0, max).map((text) => ({
+  return items.filter((text) => text.trim().length > 0).slice(0, max).map((text) => ({
     id: randomUUID(),
     text,
     completed: false,
@@ -103,7 +131,7 @@ function generatedTasks(items: string[], max: number) {
 }
 
 function generatedSteps(items: string[], max: number) {
-  return items.slice(0, max).map((text) => ({
+  return items.filter((text) => text.trim().length > 0).slice(0, max).map((text) => ({
     id: randomUUID(),
     text,
     emoji: null,
@@ -111,15 +139,33 @@ function generatedSteps(items: string[], max: number) {
 }
 
 function generatedTimeBlocks(items: BrainDumpProviderResponse["daily"]["timeBlocks"]) {
-  return items.map((item) => ({
-    id: randomUUID(),
-    startTime: item.startTime,
-    action: item.action,
-  }));
+  return items
+    .filter((item) => item.action.trim().length > 0)
+    .slice(0, 8)
+    .map((item) => ({
+      id: randomUUID(),
+      startTime: item.startTime,
+      action: item.action,
+    }));
 }
 
 function compactJson(value: unknown): unknown {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeProviderOutputShape(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const daily = record.daily ?? record.today ?? record.todayCanvas ?? {};
+  const weekly = record.weekly ?? record.week ?? record.thisWeek ?? record.weekCanvas ?? {};
+  const vision = record.vision ?? record.goals ?? record.goalsCanvas ?? {};
+
+  return {
+    daily,
+    weekly,
+    vision,
+    overallRationale: record.overallRationale ?? record.rationale ?? record.summary ?? null,
+  };
 }
 
 async function getExistingContext(userId: string, date: string, weekStart: string) {
@@ -282,7 +328,7 @@ async function callProvider(args: {
     return {
       provider: "openai",
       model: config.model,
-      output: providerResponseSchema.parse(parsedJson),
+      output: providerResponseSchema.parse(normalizeProviderOutputShape(parsedJson)),
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
