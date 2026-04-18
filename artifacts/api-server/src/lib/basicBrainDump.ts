@@ -142,9 +142,9 @@ function generatedTimeBlocks(items: BrainDumpProviderResponse["daily"]["timeBloc
   return items
     .filter((item) => item.action.trim().length > 0)
     .slice(0, 8)
-    .map((item) => ({
+    .map((item, index) => ({
       id: randomUUID(),
-      startTime: item.startTime,
+      startTime: normalizeTimeLabel(item.startTime, index),
       action: item.action,
     }));
 }
@@ -156,16 +156,96 @@ function compactJson(value: unknown): unknown {
 function normalizeProviderOutputShape(value: unknown): unknown {
   if (!value || typeof value !== "object") return value;
   const record = value as Record<string, unknown>;
-  const daily = record.daily ?? record.today ?? record.todayCanvas ?? {};
-  const weekly = record.weekly ?? record.week ?? record.thisWeek ?? record.weekCanvas ?? {};
-  const vision = record.vision ?? record.goals ?? record.goalsCanvas ?? {};
+  const daily = (record.daily ?? record.today ?? record.todayCanvas ?? {}) as Record<string, unknown>;
+  const weekly = (record.weekly ?? record.week ?? record.thisWeek ?? record.weekCanvas ?? {}) as Record<string, unknown>;
+  const vision = (record.vision ?? record.goals ?? record.goalsCanvas ?? {}) as Record<string, unknown>;
 
   return {
-    daily,
-    weekly,
-    vision,
+    daily: {
+      colourState: daily.colourState ?? daily.colorState ?? daily.energy ?? daily.energyState,
+      tierA: daily.tierA ?? daily.mustDo ?? daily.mustDoToday ?? daily.mustDos ?? daily.must_do ?? [],
+      tierB: daily.tierB ?? daily.canWait ?? daily.later ?? daily.canDoLater ?? daily.can_wait ?? [],
+      timeBlocks: daily.timeBlocks ?? daily.timeShape ?? daily.schedule ?? daily.time_shape ?? [],
+      microWin: daily.microWin ?? daily.smallWin ?? daily.win ?? daily.small_win,
+      rationale: daily.rationale ?? daily.summary ?? daily.why,
+    },
+    weekly: {
+      theme: weekly.theme ?? weekly.weekTheme ?? weekly.weeklyTheme,
+      steps: weekly.steps ?? weekly.protectedSteps ?? weekly.weekSteps ?? weekly.protected_steps ?? [],
+      nonNegotiables: weekly.nonNegotiables ?? weekly.mustKeepSupports ?? weekly.mustKeep ?? weekly.supports ?? weekly.non_negotiables ?? [],
+      recoveryPlan: weekly.recoveryPlan ?? weekly.backupPlan ?? weekly.ifThingsGetHard ?? weekly.recovery_plan,
+      rationale: weekly.rationale ?? weekly.summary ?? weekly.why,
+    },
+    vision: {
+      goals: vision.goals ?? vision.goal ?? vision.outcomes ?? [],
+      nextSteps: vision.nextSteps ?? vision.nextVisibleSteps ?? vision.visibleSteps ?? vision.next_steps ?? [],
+      rationale: vision.rationale ?? vision.summary ?? vision.why,
+    },
     overallRationale: record.overallRationale ?? record.rationale ?? record.summary ?? null,
   };
+}
+
+function normalizeText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function dedupeKey(value: string): string {
+  return normalizeText(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function splitRawText(rawText: string): string[] {
+  return rawText
+    .split(/\n|[.;•]+/g)
+    .map((item) => normalizeText(item.replace(/^[-*\d.)\s]+/, "")))
+    .filter((item) => item.length >= 4 && !/^c\d+-provider-proof-/i.test(item))
+    .slice(0, 20);
+}
+
+function fallbackItems(rawText: string, max: number): string[] {
+  const items = splitRawText(rawText);
+  if (items.length > 0) return items.slice(0, max);
+  return [normalizeText(rawText).slice(0, 180)].filter(Boolean).slice(0, max);
+}
+
+function normalizeTimeLabel(value: string, index: number): string {
+  const trimmed = value.trim().toLowerCase();
+  if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed;
+  const hourMinute = trimmed.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
+  if (hourMinute) {
+    const suffix = hourMinute[3];
+    let hour = Number(hourMinute[1]);
+    const minute = hourMinute[2] ?? "00";
+    if (suffix === "pm" && hour < 12) hour += 12;
+    if (suffix === "am" && hour === 12) hour = 0;
+    if (hour >= 0 && hour <= 23) {
+      return `${String(hour).padStart(2, "0")}:${minute.padStart(2, "0").slice(0, 2)}`;
+    }
+  }
+
+  if (trimmed.includes("morning")) return "09:00";
+  if (trimmed.includes("lunch") || trimmed.includes("midday") || trimmed.includes("noon")) return "12:00";
+  if (trimmed.includes("afternoon")) return "14:00";
+  if (trimmed.includes("evening")) return "18:00";
+
+  return `${String(Math.min(17, 9 + index)).padStart(2, "0")}:00`;
+}
+
+function mergeTaskTexts(primary: string[], secondary: Array<{ text: string }>, max: number) {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const text of [...primary, ...secondary.map((item) => item.text)]) {
+    const normalized = normalizeText(text);
+    const key = dedupeKey(normalized);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(normalized);
+    if (merged.length >= max) break;
+  }
+  return merged;
+}
+
+function mergeStepTexts(primary: string[], secondary: Array<{ text: string }>, max: number) {
+  return mergeTaskTexts(primary, secondary, max);
 }
 
 async function getExistingContext(userId: string, date: string, weekStart: string) {
@@ -340,42 +420,71 @@ async function callProvider(args: {
   }
 }
 
-function buildDraftPayloads(providerOutput: BrainDumpProviderResponse, existingContext: Awaited<ReturnType<typeof getExistingContext>>) {
+function buildDraftPayloads(
+  providerOutput: BrainDumpProviderResponse,
+  existingContext: Awaited<ReturnType<typeof getExistingContext>>,
+  rawText: string,
+) {
+  const fallback = fallbackItems(rawText, 6);
+  const primaryDailyTasks = mergeTaskTexts(
+    providerOutput.daily.tierA.length > 0 ? providerOutput.daily.tierA : fallback.slice(0, 3),
+    existingContext.daily.tierA,
+    3,
+  );
+  const dailyTierAOverflow = providerOutput.daily.tierA.slice(primaryDailyTasks.length);
+  const dailyTierBTexts = mergeTaskTexts(
+    providerOutput.daily.tierB.length > 0 ? [...dailyTierAOverflow, ...providerOutput.daily.tierB] : fallback.slice(3),
+    [...existingContext.daily.tierA, ...existingContext.daily.tierB],
+    12,
+  );
+  const weeklyStepTexts = mergeStepTexts(
+    providerOutput.weekly.steps.length > 0 ? providerOutput.weekly.steps : fallback.slice(0, 3),
+    existingContext.weekly.steps,
+    3,
+  );
+  const weeklySupportTexts = mergeStepTexts(
+    providerOutput.weekly.nonNegotiables.length > 0
+      ? providerOutput.weekly.nonNegotiables
+      : ["Protect one quiet block", "Keep the basics visible"],
+    existingContext.weekly.nonNegotiables,
+    5,
+  );
+  const visionGoalTexts = mergeStepTexts(
+    providerOutput.vision.goals.length > 0 ? providerOutput.vision.goals : ["Build a calmer routine"],
+    existingContext.vision.goals,
+    3,
+  );
+  const visionNextStepTexts = mergeStepTexts(
+    providerOutput.vision.nextSteps.length > 0 ? providerOutput.vision.nextSteps : fallback.slice(0, 3),
+    existingContext.vision.nextSteps,
+    3,
+  );
   const dailyPayload = validateDailyFrameUpsertData({
     colourState: providerOutput.daily.colourState ?? existingContext.daily.colourState ?? "green",
-    tierA: providerOutput.daily.tierA.length > 0 ? generatedTasks(providerOutput.daily.tierA, 3) : existingContext.daily.tierA,
-    tierB: providerOutput.daily.tierB.length > 0 ? generatedTasks(providerOutput.daily.tierB, 12) : existingContext.daily.tierB,
+    tierA: generatedTasks(primaryDailyTasks, 3),
+    tierB: generatedTasks(dailyTierBTexts, 12),
     timeBlocks:
       providerOutput.daily.timeBlocks.length > 0
         ? generatedTimeBlocks(providerOutput.daily.timeBlocks)
         : existingContext.daily.timeBlocks,
-    microWin: providerOutput.daily.microWin ?? existingContext.daily.microWin ?? null,
+    microWin: providerOutput.daily.microWin ?? existingContext.daily.microWin ?? "One small piece is visible now.",
     skipProtocolUsed: existingContext.daily.skipProtocolUsed,
     skipProtocolChoice: existingContext.daily.skipProtocolChoice,
   });
 
   const weeklyPayload = validateWeeklyFrameUpsertData({
-    theme: providerOutput.weekly.theme ?? existingContext.weekly.theme ?? null,
-    steps:
-      providerOutput.weekly.steps.length > 0
-        ? generatedSteps(providerOutput.weekly.steps, 3)
-        : existingContext.weekly.steps,
-    nonNegotiables:
-      providerOutput.weekly.nonNegotiables.length > 0
-        ? generatedSteps(providerOutput.weekly.nonNegotiables, 5)
-        : existingContext.weekly.nonNegotiables,
-    recoveryPlan: providerOutput.weekly.recoveryPlan ?? existingContext.weekly.recoveryPlan ?? null,
+    theme: providerOutput.weekly.theme ?? existingContext.weekly.theme ?? "Make the week smaller and more visible.",
+    steps: generatedSteps(weeklyStepTexts, 3),
+    nonNegotiables: generatedSteps(weeklySupportTexts, 5),
+    recoveryPlan:
+      providerOutput.weekly.recoveryPlan ??
+      existingContext.weekly.recoveryPlan ??
+      "If energy drops, keep the smallest next step and move the rest to later.",
   });
 
   const visionPayload = validateVisionFrameUpsertData({
-    goals:
-      providerOutput.vision.goals.length > 0
-        ? generatedSteps(providerOutput.vision.goals, 3)
-        : existingContext.vision.goals,
-    nextSteps:
-      providerOutput.vision.nextSteps.length > 0
-        ? generatedSteps(providerOutput.vision.nextSteps, 3)
-        : existingContext.vision.nextSteps,
+    goals: generatedSteps(visionGoalTexts, 3),
+    nextSteps: generatedSteps(visionNextStepTexts, 3),
   });
 
   return {
@@ -407,7 +516,7 @@ export async function generateBasicBrainDumpDraftBatch(userId: string, body: Bas
       label: "Dashboard brain dump",
     },
   ];
-  const { dailyPayload, weeklyPayload, visionPayload } = buildDraftPayloads(ai.output, existingContext);
+  const { dailyPayload, weeklyPayload, visionPayload } = buildDraftPayloads(ai.output, existingContext, body.rawText);
 
   const baseMetadata = {
     provenanceSource: "assistant_draft" as const,

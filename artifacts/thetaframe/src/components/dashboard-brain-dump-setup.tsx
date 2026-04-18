@@ -73,6 +73,7 @@ function latestBrainDumpBatch(drafts: AIDraft[]): BrainDumpBatch | null {
 
   let latest: BrainDumpBatch | null = null;
   for (const [batchId, batchDrafts] of groups) {
+    if (batchDrafts.every((draft) => draft.reviewState === "rejected")) continue;
     const createdAt = batchDrafts
       .map((draft) => draft.createdAt)
       .sort()
@@ -100,6 +101,81 @@ function DraftStateIcon({ draft }: { draft: AIDraft }) {
   return <Circle className="h-4 w-4 text-muted-foreground" />;
 }
 
+function textFromItem(item: unknown): string | null {
+  if (!item || typeof item !== "object") return null;
+  const text = (item as Record<string, unknown>).text;
+  return typeof text === "string" && text.trim() ? text.trim() : null;
+}
+
+function actionFromItem(item: unknown): string | null {
+  if (!item || typeof item !== "object") return null;
+  const record = item as Record<string, unknown>;
+  const action = typeof record.action === "string" ? record.action.trim() : "";
+  const startTime = typeof record.startTime === "string" ? record.startTime.trim() : "";
+  if (action && startTime) return `${startTime} ${action}`;
+  return action || null;
+}
+
+function previewRows(draft: AIDraft): Array<{ label: string; value: string }> {
+  const payload = draft.proposedPayload as Record<string, unknown>;
+  if (draft.draftKind === "daily_frame_draft") {
+    return [
+      {
+        label: "Must do",
+        value: Array.isArray(payload.tierA) ? payload.tierA.map(textFromItem).filter(Boolean).join("; ") : "",
+      },
+      {
+        label: "Can wait",
+        value: Array.isArray(payload.tierB) ? payload.tierB.map(textFromItem).filter(Boolean).join("; ") : "",
+      },
+      {
+        label: "Time shape",
+        value: Array.isArray(payload.timeBlocks) ? payload.timeBlocks.map(actionFromItem).filter(Boolean).join("; ") : "",
+      },
+      {
+        label: "Small win",
+        value: typeof payload.microWin === "string" ? payload.microWin : "",
+      },
+    ].filter((row) => row.value.trim().length > 0);
+  }
+
+  if (draft.draftKind === "weekly_frame_draft") {
+    return [
+      {
+        label: "Theme",
+        value: typeof payload.theme === "string" ? payload.theme : "",
+      },
+      {
+        label: "Protected steps",
+        value: Array.isArray(payload.steps) ? payload.steps.map(textFromItem).filter(Boolean).join("; ") : "",
+      },
+      {
+        label: "Must keep",
+        value: Array.isArray(payload.nonNegotiables) ? payload.nonNegotiables.map(textFromItem).filter(Boolean).join("; ") : "",
+      },
+      {
+        label: "Backup",
+        value: typeof payload.recoveryPlan === "string" ? payload.recoveryPlan : "",
+      },
+    ].filter((row) => row.value.trim().length > 0);
+  }
+
+  if (draft.draftKind === "vision_alignment_draft") {
+    return [
+      {
+        label: "Goals",
+        value: Array.isArray(payload.goals) ? payload.goals.map(textFromItem).filter(Boolean).join("; ") : "",
+      },
+      {
+        label: "Next steps",
+        value: Array.isArray(payload.nextSteps) ? payload.nextSteps.map(textFromItem).filter(Boolean).join("; ") : "",
+      },
+    ].filter((row) => row.value.trim().length > 0);
+  }
+
+  return [];
+}
+
 export function DashboardBrainDumpSetup({
   dailyDrafts,
   weeklyDrafts,
@@ -124,6 +200,7 @@ export function DashboardBrainDumpSetup({
   const [localBatch, setLocalBatch] = useState<BrainDumpBatch | null>(null);
   const [busyDraftId, setBusyDraftId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const queryBatch = useMemo(
     () => latestBrainDumpBatch([...(dailyDrafts ?? []), ...(weeklyDrafts ?? []), ...(visionDrafts ?? [])]),
@@ -142,6 +219,9 @@ export function DashboardBrainDumpSetup({
   const rawTextReady = rawText.trim().length >= 20;
   const isGenerating = createBrainDump.isPending;
   const isBusy = isGenerating || updateReviewState.isPending || applyDraft.isPending;
+  const approvableDrafts = activeDrafts.filter((draft) => draft.reviewState !== "approved" && draft.reviewState !== "applied" && draft.reviewState !== "rejected");
+  const approvedDrafts = activeDrafts.filter((draft) => draft.reviewState === "approved");
+  const appliedCount = activeDrafts.filter((draft) => draft.reviewState === "applied").length;
 
   const invalidateDraftQueries = async () => {
     await Promise.all(listQueryKeys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
@@ -165,6 +245,7 @@ export function DashboardBrainDumpSetup({
 
   const generate = async () => {
     setErrorMessage(null);
+    setStatusMessage(null);
     try {
       const batch = await createBrainDump.mutateAsync({
         data: {
@@ -182,6 +263,7 @@ export function DashboardBrainDumpSetup({
   const refine = async () => {
     if (!activeBatch) return;
     setErrorMessage(null);
+    setStatusMessage(null);
     try {
       const batch = await createBrainDump.mutateAsync({
         data: {
@@ -201,6 +283,7 @@ export function DashboardBrainDumpSetup({
   const review = async (draft: AIDraft, reviewState: "approved" | "rejected") => {
     setBusyDraftId(draft.id);
     setErrorMessage(null);
+    setStatusMessage(null);
     try {
       const updatedDraft = await updateReviewState.mutateAsync({
         id: draft.id,
@@ -220,6 +303,7 @@ export function DashboardBrainDumpSetup({
     if (!lane || draft.reviewState !== "approved") return;
     setBusyDraftId(draft.id);
     setErrorMessage(null);
+    setStatusMessage(null);
     try {
       const response = await applyDraft.mutateAsync({
         id: draft.id,
@@ -232,6 +316,43 @@ export function DashboardBrainDumpSetup({
         queryClient.invalidateQueries({ queryKey: getGetWeeklyFrameQueryKey(weekStart) }),
         queryClient.invalidateQueries({ queryKey: getGetVisionFrameQueryKey() }),
       ]);
+      setStatusMessage(`Saved ${laneCopy[lane].label}.`);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setBusyDraftId(null);
+    }
+  };
+
+  const approveAll = async () => {
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      for (const draft of approvableDrafts) {
+        setBusyDraftId(draft.id);
+        const updatedDraft = await updateReviewState.mutateAsync({
+          id: draft.id,
+          data: { reviewState: "approved" },
+        });
+        updateLocalDraft(updatedDraft);
+      }
+      await invalidateDraftQueries();
+      setStatusMessage("Approved the setup drafts. Review them once more, then save the ones you want.");
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setBusyDraftId(null);
+    }
+  };
+
+  const applyApproved = async () => {
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      for (const draft of approvedDrafts) {
+        await apply(draft);
+      }
+      setStatusMessage("Saved approved drafts into their lanes.");
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -290,6 +411,12 @@ export function DashboardBrainDumpSetup({
         </div>
       ) : null}
 
+      {statusMessage ? (
+        <div className="mt-4 rounded-lg border border-emerald-300/50 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/20 dark:text-emerald-100" data-testid="dashboard-brain-dump-status">
+          {statusMessage}
+        </div>
+      ) : null}
+
       {!canUse ? (
         <div className="mt-4 rounded-lg border bg-background/70 px-3 py-2 text-sm text-muted-foreground">
           This setup lane needs Today, This Week, and Goals access.
@@ -301,9 +428,28 @@ export function DashboardBrainDumpSetup({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Latest setup draft batch</p>
-              <p className="text-xs text-muted-foreground">Batch {activeBatch.batchId.slice(0, 8)} · {new Date(activeBatch.createdAt).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">
+                Batch {activeBatch.batchId.slice(0, 8)} · {new Date(activeBatch.createdAt).toLocaleString()} · {appliedCount}/3 saved
+              </p>
             </div>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2" data-testid="dashboard-brain-dump-batch-actions">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void approveAll()}
+                disabled={isBusy || approvableDrafts.length === 0}
+                data-testid="button-dashboard-approve-all-brain-dump"
+              >
+                Approve all
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void applyApproved()}
+                disabled={isBusy || approvedDrafts.length === 0}
+                data-testid="button-dashboard-apply-approved-brain-dump"
+              >
+                Save approved
+              </Button>
               <Textarea
                 value={refinementInstruction}
                 onChange={(event) => setRefinementInstruction(event.target.value)}
@@ -348,6 +494,16 @@ export function DashboardBrainDumpSetup({
                   </p>
                   {draft?.metadata.summary && typeof draft.metadata.summary === "string" ? (
                     <p className="mt-2 text-xs text-muted-foreground">{draft.metadata.summary}</p>
+                  ) : null}
+                  {draft ? (
+                    <div className="mt-3 space-y-2 rounded-md border bg-muted/20 p-3" data-testid={`dashboard-brain-dump-preview-${lane}`}>
+                      {previewRows(draft).map((row) => (
+                        <div key={row.label} className="space-y-0.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{row.label}</p>
+                          <p className="text-xs text-foreground">{row.value}</p>
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
                   <div className="mt-4 flex flex-wrap gap-2">
                     {draft ? (
