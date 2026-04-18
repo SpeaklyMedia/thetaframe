@@ -1,6 +1,6 @@
 # ThetaFrame Receipt Index
 
-Date: 2026-04-17
+Date: 2026-04-18
 Status: Current high-signal receipt map
 
 ## Current Production Baseline
@@ -83,6 +83,11 @@ Status: Current high-signal receipt map
   - Hardens Dashboard brain-dump generation with better provider normalization, dedupe, context merge, time normalization, and sparse-output fallback.
   - Adds richer lane previews plus batch-level `Approve all` and `Save approved` actions.
   - Redeploys production, proves all three Basic drafts can be approved/applied, restores proof state, and proves browser QA with `passes=16`, `skips=0`.
+
+- `artifacts/receipts/C48-followups-rename-and-reminder-messaging__2026-04-18__R1.md`
+  - Renames the user-facing BizDev lane to FollowUps while keeping internal `bizdev` route/API/schema/module identifiers stable.
+  - Adds reminder/calendar-oriented FollowUps messaging without creating Life Ledger reminders, calendar links, or new persisted fields.
+  - Redeploys production and proves browser QA with `passes=16`, `skips=0`.
 
 ## AI Draft And Apply Foundation
 
