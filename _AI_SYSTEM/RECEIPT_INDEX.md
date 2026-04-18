@@ -74,6 +74,11 @@ Status: Current high-signal receipt map
   - Points social/text/embed crawlers at the committed `1280x720` `/opengraph.jpg`.
   - Redeploys production and verifies the image is served as `image/jpeg`.
 
+- `artifacts/receipts/C46-dashboard-brain-dump-ai-setup-lane__2026-04-18__R1.md`
+  - Adds the Dashboard Brain Dump Setup lane for provider-backed Basic draft batches.
+  - Generates review-first Daily, Weekly, and Vision draft rows from typed messy input.
+  - Redeploys production, proves browser QA with `passes=16`, `skips=0`, and records real-provider generation/refinement proof.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
