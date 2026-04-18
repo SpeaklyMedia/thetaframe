@@ -1,7 +1,7 @@
 # ThetaFrame Current Truth
 
 Date: 2026-04-18
-Status: Canonical current-state summary after C46
+Status: Canonical current-state summary after C47
 
 ## What ThetaFrame Does Now
 
@@ -103,6 +103,7 @@ Current implemented foundation:
 - explicit approve/reject/apply controls across supported draft kinds;
 - Baby KB assignment suggestion generation with provider config;
 - Dashboard Basic brain-dump generation that creates one reviewable Daily draft, one Weekly draft, and one Vision draft from typed messy input;
+- Dashboard brain-dump review now shows richer lane previews, can approve all drafts, can save approved drafts, and skips fully rejected batches when selecting the active setup batch;
 - UI groundwork for remaining Basic AI time-saver use cases.
 
 AI must not silently write user data. AI outputs should become drafts that the user or admin reviews before apply, especially for high-risk data.
@@ -114,7 +115,7 @@ Basic AI time-saver map:
 - Weekly: scattered notes -> theme, protected steps, non-negotiables, recovery plan draft.
 - Vision: vague long-term ideas -> goals plus next visible steps draft.
 
-Future AI work should build on this map one workflow at a time. Do not add silent writes; Dashboard brain-dump drafts still require explicit approval and apply before lane data changes.
+Future AI work should build on this map one workflow at a time. Do not add silent writes; Dashboard brain-dump drafts still require explicit approval and apply before lane data changes. Brain-dump generation should preserve useful existing context, dedupe suggestions, normalize vague time labels, and produce a complete useful draft even when provider output is sparse.
 
 ## Production QA Truth
 
@@ -138,7 +139,7 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:browser
 ```
 
-Expected browser QA result after C46: `passes=16`, `skips=0`.
+Expected browser QA result after C47: `passes=16`, `skips=0`.
 
 Expected isolation proof:
 

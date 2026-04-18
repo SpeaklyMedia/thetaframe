@@ -79,6 +79,11 @@ Status: Current high-signal receipt map
   - Generates review-first Daily, Weekly, and Vision draft rows from typed messy input.
   - Redeploys production, proves browser QA with `passes=16`, `skips=0`, and records real-provider generation/refinement proof.
 
+- `artifacts/receipts/C47-brain-dump-apply-hardening__2026-04-18__R1.md`
+  - Hardens Dashboard brain-dump generation with better provider normalization, dedupe, context merge, time normalization, and sparse-output fallback.
+  - Adds richer lane previews plus batch-level `Approve all` and `Save approved` actions.
+  - Redeploys production, proves all three Basic drafts can be approved/applied, restores proof state, and proves browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
