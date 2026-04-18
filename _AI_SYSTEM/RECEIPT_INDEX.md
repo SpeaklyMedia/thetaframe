@@ -89,6 +89,11 @@ Status: Current high-signal receipt map
   - Adds reminder/calendar-oriented FollowUps messaging without creating Life Ledger reminders, calendar links, or new persisted fields.
   - Redeploys production and proves browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C49-marketing-theta-hero-and-task-color-scaffold__2026-04-18__R1.md`
+  - Adds the public stress-to-calm screamer image hero, theta-state positioning on Home/Auth, and a clean theta favicon.
+  - Adds frontend-only Daily task feeling color scaffolding without task schema/API persistence.
+  - Redeploys production and proves browser QA with `passes=16`, `skips=0`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
