@@ -295,6 +295,11 @@ function signedOutChecks(): Check[] {
       run: async (page) => {
         await waitForAppReady(page, "/");
         await page.getByRole("heading", { name: "A quiet place for your mind." }).waitFor();
+        await page.getByTestId("marketing-screamer-hero").waitFor();
+        await page.getByTestId("marketing-screamer-stress").waitFor();
+        await page.getByTestId("marketing-screamer-calm").waitFor();
+        await page.getByTestId("theta-positioning").waitFor();
+        await page.getByTestId("theta-example-cycle").waitFor();
         await page.getByTestId("link-sign-in").waitFor();
         await expectWorkspaceColour(page, "neutral");
         return "pass";
@@ -306,6 +311,7 @@ function signedOutChecks(): Check[] {
         await waitForAppReady(page, "/sign-in");
         await page.getByText("Drop In · Rewire · Rise", { exact: true }).waitFor();
         await page.getByText("Sign in with your preferred method.", { exact: true }).waitFor();
+        await page.getByTestId("theta-positioning").waitFor();
         return "pass";
       },
     },

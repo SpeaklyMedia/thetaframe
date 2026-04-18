@@ -1,5 +1,6 @@
 import { SignIn } from "@clerk/react";
 import { Layout } from "@/components/layout";
+import { MarketingThetaPositioning } from "@/components/marketing-theta-positioning";
 
 export default function SignInPage() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -24,6 +25,7 @@ export default function SignInPage() {
             Continue with Google, or use your ThetaFrame email and account credentials.
           </p>
         </div>
+        <MarketingThetaPositioning compact className="w-full max-w-md" />
         <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={homeRedirectUrl} />
       </div>
     </Layout>

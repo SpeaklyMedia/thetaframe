@@ -54,6 +54,11 @@ import {
   HabitCanvasSurface,
 } from "@/components/habit-canvas";
 import {
+  TaskFeelingColorControl,
+  TaskFeelingRelaxationRow,
+  type TaskFeelingColour,
+} from "@/components/task-feeling-color";
+import {
   dailyAIDraftListParams,
   getDailyAIDraftReviewPanelCopy,
 } from "@/lib/ai-draft-review";
@@ -220,6 +225,7 @@ export default function DailyPage() {
   const [tierB, setTierB] = useState<TierTask[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
   const [microWin, setMicroWin] = useState("");
+  const [taskFeelingColours, setTaskFeelingColours] = useState<Record<string, TaskFeelingColour>>({});
   const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
   const [reviewingDraftId, setReviewingDraftId] = useState<number | null>(null);
   const [draftActionError, setDraftActionError] = useState<string | null>(null);
@@ -504,6 +510,12 @@ export default function DailyPage() {
     }
   };
 
+  const getTaskFeelingColour = (id: string): TaskFeelingColour => taskFeelingColours[id] ?? "green";
+
+  const setTaskFeelingColour = (id: string, colour: TaskFeelingColour) => {
+    setTaskFeelingColours((current) => ({ ...current, [id]: colour }));
+  };
+
   const removeTierTask = (tier: "A" | "B", id: string) => {
     if (tier === "A") {
       const updated = tierA.filter(t => t.id !== id);
@@ -514,6 +526,11 @@ export default function DailyPage() {
       setTierB(updated);
       save({ tierB: updated });
     }
+    setTaskFeelingColours((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   };
 
   const addTimeBlock = () => {
@@ -601,25 +618,39 @@ export default function DailyPage() {
             >
             <div className="space-y-3" data-testid="tier-a-tasks">
               {tierA.map(task => (
-                <div key={task.id} className="flex items-start gap-3 group">
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={(c) => toggleTierTask("A", task.id, !!c)}
-                    className="mt-1"
-                    data-testid={`checkbox-tier-a-${task.id}`}
-                  />
-                  <Input
-                    value={task.text}
-                    onChange={(e) => updateTierTaskText("A", task.id, e.target.value)}
-                    onBlur={() => save({ tierA })}
-                    placeholder="One must-do..."
-                    className={`flex-1 border-transparent focus-visible:border-input bg-transparent ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                    data-testid={`input-tier-a-${task.id}`}
-                  />
-                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeTierTask("A", task.id)} data-testid={`button-remove-tier-a-${task.id}`}>
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </div>
+                <TaskFeelingRelaxationRow
+                  key={task.id}
+                  colour={getTaskFeelingColour(task.id)}
+                  testId={`task-feeling-row-tier-a-${task.id}`}
+                >
+                  <div className="flex items-start gap-3 group">
+                    <Checkbox
+                      checked={task.completed}
+                      onCheckedChange={(c) => toggleTierTask("A", task.id, !!c)}
+                      className="mt-1"
+                      data-testid={`checkbox-tier-a-${task.id}`}
+                    />
+                    <Input
+                      value={task.text}
+                      onChange={(e) => updateTierTaskText("A", task.id, e.target.value)}
+                      onBlur={() => save({ tierA })}
+                      placeholder="One must-do..."
+                      className={`flex-1 border-transparent focus-visible:border-input bg-transparent ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                      data-testid={`input-tier-a-${task.id}`}
+                    />
+                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeTierTask("A", task.id)} data-testid={`button-remove-tier-a-${task.id}`}>
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 pl-8">
+                    <span className="text-xs font-medium text-muted-foreground">Task feeling</span>
+                    <TaskFeelingColorControl
+                      value={getTaskFeelingColour(task.id)}
+                      onChange={(colour) => setTaskFeelingColour(task.id, colour)}
+                      testIdPrefix={`button-task-feeling-tier-a-${task.id}`}
+                    />
+                  </div>
+                </TaskFeelingRelaxationRow>
               ))}
               {tierA.length < 3 && (
                 <Button variant="outline" size="sm" onClick={() => addTierTask("A")} data-testid="button-add-daily-must-do">
@@ -636,25 +667,39 @@ export default function DailyPage() {
             >
             <div className="space-y-3" data-testid="tier-b-tasks">
               {tierB.map(task => (
-                <div key={task.id} className="flex items-start gap-3 group">
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={(c) => toggleTierTask("B", task.id, !!c)}
-                    className="mt-1"
-                    data-testid={`checkbox-tier-b-${task.id}`}
-                  />
-                  <Input
-                    value={task.text}
-                    onChange={(e) => updateTierTaskText("B", task.id, e.target.value)}
-                    onBlur={() => save({ tierB })}
-                    placeholder="One later task..."
-                    className={`flex-1 border-transparent focus-visible:border-input bg-transparent ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                    data-testid={`input-tier-b-${task.id}`}
-                  />
-                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeTierTask("B", task.id)} data-testid={`button-remove-tier-b-${task.id}`}>
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </div>
+                <TaskFeelingRelaxationRow
+                  key={task.id}
+                  colour={getTaskFeelingColour(task.id)}
+                  testId={`task-feeling-row-tier-b-${task.id}`}
+                >
+                  <div className="flex items-start gap-3 group">
+                    <Checkbox
+                      checked={task.completed}
+                      onCheckedChange={(c) => toggleTierTask("B", task.id, !!c)}
+                      className="mt-1"
+                      data-testid={`checkbox-tier-b-${task.id}`}
+                    />
+                    <Input
+                      value={task.text}
+                      onChange={(e) => updateTierTaskText("B", task.id, e.target.value)}
+                      onBlur={() => save({ tierB })}
+                      placeholder="One later task..."
+                      className={`flex-1 border-transparent focus-visible:border-input bg-transparent ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                      data-testid={`input-tier-b-${task.id}`}
+                    />
+                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeTierTask("B", task.id)} data-testid={`button-remove-tier-b-${task.id}`}>
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 pl-8">
+                    <span className="text-xs font-medium text-muted-foreground">Task feeling</span>
+                    <TaskFeelingColorControl
+                      value={getTaskFeelingColour(task.id)}
+                      onChange={(colour) => setTaskFeelingColour(task.id, colour)}
+                      testIdPrefix={`button-task-feeling-tier-b-${task.id}`}
+                    />
+                  </div>
+                </TaskFeelingRelaxationRow>
               ))}
               <Button variant="outline" size="sm" onClick={() => addTierTask("B")} data-testid="button-add-tier-b">
                 <Plus className="w-4 h-4 mr-2" /> Add later task

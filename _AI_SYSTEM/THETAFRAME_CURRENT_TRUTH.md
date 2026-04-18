@@ -1,11 +1,13 @@
 # ThetaFrame Current Truth
 
 Date: 2026-04-18
-Status: Canonical current-state summary after C48
+Status: Canonical current-state summary after C49
 
 ## What ThetaFrame Does Now
 
 ThetaFrame is a private, authenticated operating system for personal planning and life execution. It has separate user logins, a signed-in Control Center dashboard, module-gated lanes, per-user saved data, review-first AI draft infrastructure, repeatable Basic onboarding, a Basic LIFEos Habit Canvas, a Dashboard brain-dump AI setup lane, and production browser QA coverage.
+
+The signed-out marketing surface now presents ThetaFrame as a stress-to-calm habit-design workspace. The public Home hero uses the C49 screamer artwork crossfade, and Home/Auth surfaces include careful evidence-forward theta-state positioning with source links. The copy must not make medical, hypnosis, sleep-manipulation, or guaranteed habit-change claims.
 
 Current lanes:
 
@@ -71,6 +73,7 @@ Basic onboarding is repeatable, plain-language, and low-friction:
 - Basic lane first screens lead with the core work before AI review, support, linked items, calendar/mobile placeholders, or extra onboarding panels;
 - Basic user labels prefer plain helper names: Today, This Week, Goals, Must Do Today, Can Do Later, Must Keep, If Things Get Hard, Next Steps;
 - the Daily color picker sets the user's signed-in workspace color, and that palette follows the user across allowed lanes;
+- Daily Tier A and Tier B rows have a frontend-only task feeling color scaffold that can visually transition a selected task feeling color back toward calm green; this does not persist to task JSON yet;
 - the Basic Dashboard, Daily, Weekly, and Vision surfaces are now framed as connected LIFEos Habit Canvas surfaces;
 - the Habit Canvas has a scoped hover/focus layer: desktop uses CSS hover/focus, touch devices use scroll-focus, and reduced-motion suppresses transform movement;
 - Habit Canvas focus behavior is scoped to `data-habit-focus-group` / `data-habit-focus-card` and must not become a global card/table hover system;
@@ -164,6 +167,7 @@ Do not treat these as already implemented:
 - Admin onboarding beyond current governance surfaces;
 - compact/spacious/reduced-stimulation preference settings;
 - production-grade AI generation for every Basic time-saver use case beyond the Dashboard brain-dump batch.
+- persisted per-task feeling color fields or task-level color API/schema changes.
 
 ## Current High-Value Next Work
 

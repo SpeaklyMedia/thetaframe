@@ -1,5 +1,6 @@
 import { SignUp } from "@clerk/react";
 import { Layout } from "@/components/layout";
+import { MarketingThetaPositioning } from "@/components/marketing-theta-positioning";
 
 export default function SignUpPage() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -14,6 +15,7 @@ export default function SignUpPage() {
             Continue with Google, or start with your email address to create or continue your workspace access.
           </p>
         </div>
+        <MarketingThetaPositioning compact className="w-full max-w-md" />
         <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={homeRedirectUrl} />
       </div>
     </Layout>

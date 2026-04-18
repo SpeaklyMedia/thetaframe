@@ -177,6 +177,37 @@
 }
 
 @layer components {
+  .marketing-hero-image {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .marketing-hero-image-calm {
+    opacity: 1;
+  }
+
+  .marketing-hero-image-stress {
+    opacity: 1;
+    animation: marketing-screamer-stress-fade 6s linear infinite;
+  }
+
+  @keyframes marketing-screamer-stress-fade {
+    0%,
+    25% {
+      opacity: 1;
+    }
+
+    33.333%,
+    100% {
+      opacity: 0;
+    }
+  }
+
   .workspace-shell[data-workspace-colour]:not([data-workspace-colour="neutral"]) [data-testid="app-header"] {
     background:
       linear-gradient(0deg, rgb(var(--workspace-colour-rgb) / 0.08), rgb(var(--workspace-colour-rgb) / 0.08)),
@@ -270,6 +301,21 @@
     transform: none;
   }
 
+  .task-feeling-row {
+    background-color: rgb(var(--task-feeling-rgb) / 0.12);
+    border-color: rgb(var(--task-feeling-rgb) / 0.28);
+    transition:
+      background-color 18s ease-out,
+      border-color 18s ease-out,
+      box-shadow 220ms ease;
+  }
+
+  .task-feeling-row:focus-within {
+    box-shadow:
+      0 8px 18px rgb(0 0 0 / 0.08),
+      0 0 0 1px rgb(var(--task-feeling-rgb) / 0.18);
+  }
+
   .habit-focus-group {
     isolation: isolate;
   }
@@ -348,6 +394,18 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .marketing-hero-image-stress {
+      animation: none;
+      opacity: 0;
+    }
+
+    .task-feeling-row {
+      transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        box-shadow 120ms ease;
+    }
+
     .habit-focus-card {
       transition:
         border-color 120ms ease,
