@@ -1643,6 +1643,19 @@ export const ListAiDraftsResponseItem = zod.object({
         source: zod.enum(["user_mode", "daily_frame", "fallback"]),
       })
       .optional(),
+    title: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    sourcePayloadRef: zod.string().nullish(),
+    sourceExcerpt: zod.string().nullish(),
+    rationale: zod.string().nullish(),
+    brainDumpBatchId: zod.string().optional(),
+    brainDumpSource: zod.enum(["dashboard_setup_lane"]).optional(),
+    rawInputExcerpt: zod.string().optional(),
+    refinementInstruction: zod.string().nullish(),
+    refineFromDraftIds: zod.array(zod.number()).optional(),
+    provider: zod.string().optional(),
+    model: zod.string().optional(),
+    generatedAt: zod.string().optional(),
   }),
   draftKind: zod.enum([
     "daily_frame_draft",
@@ -1773,6 +1786,19 @@ export const CreateAiDraftBody = zod.object({
         source: zod.enum(["user_mode", "daily_frame", "fallback"]),
       })
       .optional(),
+    title: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    sourcePayloadRef: zod.string().nullish(),
+    sourceExcerpt: zod.string().nullish(),
+    rationale: zod.string().nullish(),
+    brainDumpBatchId: zod.string().optional(),
+    brainDumpSource: zod.enum(["dashboard_setup_lane"]).optional(),
+    rawInputExcerpt: zod.string().optional(),
+    refinementInstruction: zod.string().nullish(),
+    refineFromDraftIds: zod.array(zod.number()).optional(),
+    provider: zod.string().optional(),
+    model: zod.string().optional(),
+    generatedAt: zod.string().optional(),
   }),
   draftKind: zod.enum([
     "daily_frame_draft",
@@ -1827,6 +1853,33 @@ export const CreateAiDraftBody = zod.object({
     }),
   ),
   reviewNotes: zod.string().nullish(),
+});
+
+/**
+ * @summary Generate Daily, Weekly, and Vision drafts from a Dashboard brain dump
+ */
+export const createBasicBrainDumpDraftsBodyRawTextMin = 20;
+export const createBasicBrainDumpDraftsBodyRawTextMax = 6000;
+
+export const createBasicBrainDumpDraftsBodyRefinementInstructionMax = 1000;
+
+export const createBasicBrainDumpDraftsBodyRefineFromDraftIdsMax = 12;
+
+export const CreateBasicBrainDumpDraftsBody = zod.object({
+  rawText: zod
+    .string()
+    .min(createBasicBrainDumpDraftsBodyRawTextMin)
+    .max(createBasicBrainDumpDraftsBodyRawTextMax),
+  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  weekStart: zod.string().describe("Week start in YYYY-MM-DD format"),
+  refinementInstruction: zod
+    .string()
+    .max(createBasicBrainDumpDraftsBodyRefinementInstructionMax)
+    .optional(),
+  refineFromDraftIds: zod
+    .array(zod.number())
+    .max(createBasicBrainDumpDraftsBodyRefineFromDraftIdsMax)
+    .optional(),
 });
 
 /**
@@ -1888,6 +1941,19 @@ export const GetAiDraftResponse = zod.object({
         source: zod.enum(["user_mode", "daily_frame", "fallback"]),
       })
       .optional(),
+    title: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    sourcePayloadRef: zod.string().nullish(),
+    sourceExcerpt: zod.string().nullish(),
+    rationale: zod.string().nullish(),
+    brainDumpBatchId: zod.string().optional(),
+    brainDumpSource: zod.enum(["dashboard_setup_lane"]).optional(),
+    rawInputExcerpt: zod.string().optional(),
+    refinementInstruction: zod.string().nullish(),
+    refineFromDraftIds: zod.array(zod.number()).optional(),
+    provider: zod.string().optional(),
+    model: zod.string().optional(),
+    generatedAt: zod.string().optional(),
   }),
   draftKind: zod.enum([
     "daily_frame_draft",
@@ -2036,6 +2102,19 @@ export const UpdateAiDraftReviewStateResponse = zod.object({
         source: zod.enum(["user_mode", "daily_frame", "fallback"]),
       })
       .optional(),
+    title: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    sourcePayloadRef: zod.string().nullish(),
+    sourceExcerpt: zod.string().nullish(),
+    rationale: zod.string().nullish(),
+    brainDumpBatchId: zod.string().optional(),
+    brainDumpSource: zod.enum(["dashboard_setup_lane"]).optional(),
+    rawInputExcerpt: zod.string().optional(),
+    refinementInstruction: zod.string().nullish(),
+    refineFromDraftIds: zod.array(zod.number()).optional(),
+    provider: zod.string().optional(),
+    model: zod.string().optional(),
+    generatedAt: zod.string().optional(),
   }),
   draftKind: zod.enum([
     "daily_frame_draft",
@@ -2185,6 +2264,19 @@ export const ApplyAiDraftResponse = zod.object({
           source: zod.enum(["user_mode", "daily_frame", "fallback"]),
         })
         .optional(),
+      title: zod.string().nullish(),
+      summary: zod.string().nullish(),
+      sourcePayloadRef: zod.string().nullish(),
+      sourceExcerpt: zod.string().nullish(),
+      rationale: zod.string().nullish(),
+      brainDumpBatchId: zod.string().optional(),
+      brainDumpSource: zod.enum(["dashboard_setup_lane"]).optional(),
+      rawInputExcerpt: zod.string().optional(),
+      refinementInstruction: zod.string().nullish(),
+      refineFromDraftIds: zod.array(zod.number()).optional(),
+      provider: zod.string().optional(),
+      model: zod.string().optional(),
+      generatedAt: zod.string().optional(),
     }),
     draftKind: zod.enum([
       "daily_frame_draft",

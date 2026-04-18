@@ -27,6 +27,8 @@ import type {
   BizdevSummary,
   CreateAIDraftBody,
   CreateBabyKbAssignmentSuggestionBody,
+  CreateBasicBrainDumpDraftsBody,
+  CreateBasicBrainDumpDraftsResponse,
   CreateDailyFrameBody,
   CreateParentPacketImportBody,
   CreatePresetBody,
@@ -4172,6 +4174,96 @@ export const useCreateAiDraft = <
   TContext
 > => {
   return useMutation(getCreateAiDraftMutationOptions(options));
+};
+
+/**
+ * @summary Generate Daily, Weekly, and Vision drafts from a Dashboard brain dump
+ */
+export const getCreateBasicBrainDumpDraftsUrl = () => {
+  return `/api/ai-drafts/basic-brain-dump`;
+};
+
+export const createBasicBrainDumpDrafts = async (
+  createBasicBrainDumpDraftsBody: CreateBasicBrainDumpDraftsBody,
+  options?: RequestInit,
+): Promise<CreateBasicBrainDumpDraftsResponse> => {
+  return customFetch<CreateBasicBrainDumpDraftsResponse>(
+    getCreateBasicBrainDumpDraftsUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createBasicBrainDumpDraftsBody),
+    },
+  );
+};
+
+export const getCreateBasicBrainDumpDraftsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBasicBrainDumpDrafts>>,
+    TError,
+    { data: BodyType<CreateBasicBrainDumpDraftsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBasicBrainDumpDrafts>>,
+  TError,
+  { data: BodyType<CreateBasicBrainDumpDraftsBody> },
+  TContext
+> => {
+  const mutationKey = ["createBasicBrainDumpDrafts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBasicBrainDumpDrafts>>,
+    { data: BodyType<CreateBasicBrainDumpDraftsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBasicBrainDumpDrafts(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBasicBrainDumpDraftsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBasicBrainDumpDrafts>>
+>;
+export type CreateBasicBrainDumpDraftsMutationBody =
+  BodyType<CreateBasicBrainDumpDraftsBody>;
+export type CreateBasicBrainDumpDraftsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate Daily, Weekly, and Vision drafts from a Dashboard brain dump
+ */
+export const useCreateBasicBrainDumpDrafts = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBasicBrainDumpDrafts>>,
+    TError,
+    { data: BodyType<CreateBasicBrainDumpDraftsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBasicBrainDumpDrafts>>,
+  TError,
+  { data: BodyType<CreateBasicBrainDumpDraftsBody> },
+  TContext
+> => {
+  return useMutation(getCreateBasicBrainDumpDraftsMutationOptions(options));
 };
 
 /**

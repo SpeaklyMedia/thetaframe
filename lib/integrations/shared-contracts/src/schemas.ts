@@ -87,7 +87,7 @@ export const thetaCoreIntegrationMetadataSchema = z.object({
   updatedAt: z.string().datetime(),
   createdBy: z.string().nullable().optional(),
   updatedBy: z.string().nullable().optional(),
-});
+}).passthrough();
 
 export const thetaApprovalPolicyRuleSchema = z.object({
   risk: z.enum(["low", "medium", "high", "critical"]),

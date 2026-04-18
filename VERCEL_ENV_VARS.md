@@ -29,8 +29,8 @@ All variables should be set for the **Production** environment. Adjust staging/p
 | --- | --- |
 | `ALLOWED_ORIGINS` | Comma-separated list of additional CORS origins. Set to your production domain if using a custom domain, e.g. `https://thetaframe.app`. `*.vercel.app` origins are allowed automatically. |
 | `LOG_LEVEL` | Logging verbosity for the API server. Defaults to `info`. |
-| `OPENAI_API_KEY` | Required for `C28` Baby-4 assignment suggestion generation. Server-side API key used for the Baby suggestion draft runtime. |
-| `OPENAI_MODEL` | Optional model override for `C28` Baby-4 suggestions. Defaults to `gpt-4o-mini`. |
+| `OPENAI_API_KEY` | Required for provider-backed AI drafting, including `C28` Baby-4 assignment suggestions and `C46` Dashboard brain-dump setup drafts. |
+| `OPENAI_MODEL` | Optional model override for provider-backed AI drafting. Defaults to `gpt-4o-mini`. |
 | `OPENAI_BASE_URL` | Optional base URL override for compatible provider routing. Defaults to `https://api.openai.com/v1`. |
 
 ## Notes

@@ -1020,6 +1020,55 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /ai-drafts/basic-brain-dump:
+    post:
+      operationId: createBasicBrainDumpDrafts
+      tags: [ai-drafts]
+      summary: Generate Daily, Weekly, and Vision drafts from a Dashboard brain dump
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBasicBrainDumpDraftsBody"
+      responses:
+        "201":
+          description: Created Basic brain-dump draft batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateBasicBrainDumpDraftsResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Prior refinement draft not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AI provider unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /ai-drafts/{id}:
     get:
       operationId: getAiDraft
@@ -2309,6 +2358,7 @@ components:
 
     AIDraftMetadata:
       type: object
+      additionalProperties: true
       properties:
         lane:
           type: string
@@ -2337,6 +2387,35 @@ components:
           type: ["string", "null"]
         workspaceMoodContext:
           $ref: "#/components/schemas/WorkspaceMoodContext"
+        title:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        sourcePayloadRef:
+          type: ["string", "null"]
+        sourceExcerpt:
+          type: ["string", "null"]
+        rationale:
+          type: ["string", "null"]
+        brainDumpBatchId:
+          type: string
+        brainDumpSource:
+          type: string
+          enum: [dashboard_setup_lane]
+        rawInputExcerpt:
+          type: string
+        refinementInstruction:
+          type: ["string", "null"]
+        refineFromDraftIds:
+          type: array
+          items:
+            type: integer
+        provider:
+          type: string
+        model:
+          type: string
+        generatedAt:
+          type: string
       required:
         - lane
         - objectType
@@ -2511,6 +2590,48 @@ components:
         - inputChannels
         - proposedPayload
         - sourceRefs
+
+    CreateBasicBrainDumpDraftsBody:
+      type: object
+      properties:
+        rawText:
+          type: string
+          minLength: 20
+          maxLength: 6000
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        weekStart:
+          type: string
+          description: Week start in YYYY-MM-DD format
+        refinementInstruction:
+          type: string
+          maxLength: 1000
+        refineFromDraftIds:
+          type: array
+          maxItems: 12
+          items:
+            type: integer
+      required:
+        - rawText
+        - date
+        - weekStart
+
+    CreateBasicBrainDumpDraftsResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+        drafts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIDraft"
+        createdAt:
+          type: string
+      required:
+        - batchId
+        - drafts
+        - createdAt
 
     UpdateAIDraftReviewStateBody:
       type: object

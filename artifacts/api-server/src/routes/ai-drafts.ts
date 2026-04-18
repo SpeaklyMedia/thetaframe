@@ -60,6 +60,13 @@ import { serializeLifeLedgerEntry } from "../lib/lifeLedgerEventReminders.js";
 import { createStoredAIDraft, hydrateDraftMetadata, hydrateDraftRecord } from "../lib/aiDrafts.js";
 import { assertBabyAssignmentSuggestionStillEligible } from "../lib/babyKbAssignmentSuggestions.js";
 import { createBabyKbAssignment, validateBabyKbAssignmentDraftCreateData } from "../lib/babyKbAssignments.js";
+import {
+  basicBrainDumpBodySchema,
+  BasicBrainDumpGenerationError,
+  BasicBrainDumpProviderUnavailableError,
+  BasicBrainDumpRefinementError,
+  generateBasicBrainDumpDraftBatch,
+} from "../lib/basicBrainDump.js";
 
 const router: IRouter = Router();
 router.use("/ai-drafts", requireAuth);
@@ -189,6 +196,47 @@ router.get("/ai-drafts", async (req: Request, res: Response): Promise<void> => {
     .limit(query.data.limit ?? 10);
 
   res.json(rows.map((row) => hydrateDraftRecord(row)));
+});
+
+router.post("/ai-drafts/basic-brain-dump", async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).userId;
+  const body = basicBrainDumpBodySchema.safeParse(req.body);
+
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const access = await getDraftAccessContext(userId, req);
+  const requiredLanes: ThetaLane[] = ["daily", "weekly", "vision"];
+  const missingLane = requiredLanes.find((lane) => !canAccessLane(lane, access.modules, access.isAdmin));
+
+  if (missingLane) {
+    res.status(403).json({ error: "Forbidden", lane: missingLane });
+    return;
+  }
+
+  try {
+    const result = await generateBasicBrainDumpDraftBatch(userId, body.data);
+    res.status(201).json(result);
+  } catch (error) {
+    if (error instanceof BasicBrainDumpRefinementError) {
+      res.status(404).json({ error: error.message });
+      return;
+    }
+
+    if (error instanceof BasicBrainDumpProviderUnavailableError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+
+    if (error instanceof BasicBrainDumpGenerationError) {
+      res.status(502).json({ error: error.message });
+      return;
+    }
+
+    throw error;
+  }
 });
 
 router.get("/ai-drafts/:id", async (req: Request, res: Response): Promise<void> => {

@@ -60,7 +60,7 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
 
 ## Current Notes
 
-- `THETAFRAME_CURRENT_TRUTH.md` is the fastest current-state entrypoint after C43. Start there before broad product, access, onboarding, AI, or QA work.
+- `THETAFRAME_CURRENT_TRUTH.md` is the fastest current-state entrypoint after C46. Start there before broad product, access, onboarding, AI, or QA work.
 - Primary project truth is concentrated in `replit.md`.
 - `RECEIPT_INDEX.md` maps high-signal receipts and should be used before reading the full `artifacts/receipts/` tree.
 - `VERCEL_ENV_VARS.md` is the current deployment environment reference.

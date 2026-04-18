@@ -15,6 +15,8 @@ import {
 } from "@workspace/integration-contracts";
 import { serializeDates } from "./serialize.js";
 
+type AIDraftInsertClient = Pick<typeof db, "insert">;
+
 type DraftRecordShape = {
   thetaObjectId: string;
   targetLane: string;
@@ -79,6 +81,20 @@ export async function createStoredAIDraft(args: {
   reviewNotes?: string | null;
   metadata?: unknown;
 }) {
+  return createStoredAIDraftWithClient(db, args);
+}
+
+export async function createStoredAIDraftWithClient(client: AIDraftInsertClient, args: {
+  userId: string;
+  draftKind: ThetaAIDraftKind;
+  confidenceMode: ThetaAIConfidenceMode;
+  inputChannels: ThetaAIIntakeChannel[];
+  proposedPayload: Record<string, unknown>;
+  sourceRefs: ThetaAIDraftSourceRef[];
+  targetSurfaceKey?: string | null;
+  reviewNotes?: string | null;
+  metadata?: unknown;
+}) {
   const definition = thetaAIActionDefinitions[args.draftKind];
   const approvalRequired = thetaAIDraftApprovalRequirements[args.draftKind];
   const reviewState = getInitialAIDraftReviewState(args.draftKind);
@@ -100,7 +116,7 @@ export async function createStoredAIDraft(args: {
     args.metadata,
   );
 
-  const [created] = await db
+  const [created] = await client
     .insert(aiDraftsTable)
     .values({
       thetaObjectId,

@@ -1,11 +1,11 @@
 # ThetaFrame Current Truth
 
-Date: 2026-04-17
-Status: Canonical current-state summary after C43
+Date: 2026-04-18
+Status: Canonical current-state summary after C46
 
 ## What ThetaFrame Does Now
 
-ThetaFrame is a private, authenticated operating system for personal planning and life execution. It has separate user logins, a signed-in Control Center dashboard, module-gated lanes, per-user saved data, review-first AI draft infrastructure, repeatable Basic onboarding, a Basic LIFEos Habit Canvas, and production browser QA coverage.
+ThetaFrame is a private, authenticated operating system for personal planning and life execution. It has separate user logins, a signed-in Control Center dashboard, module-gated lanes, per-user saved data, review-first AI draft infrastructure, repeatable Basic onboarding, a Basic LIFEos Habit Canvas, a Dashboard brain-dump AI setup lane, and production browser QA coverage.
 
 Current lanes:
 
@@ -17,7 +17,7 @@ Current lanes:
 - REACH: optional file/artifact lane with private object ownership.
 - Admin: governance lane for user access, presets, imports, Baby KB admin workflows, and AI review/apply tooling.
 
-Signed-in `/` redirects to `/dashboard`. The dashboard is a navigation and summary surface, not a new analytics database. It shows allowed-lane next actions, review-first AI draft status, calendar-planning truth, and Life Ledger mobile/reminder links only when the user has Life Ledger.
+Signed-in `/` redirects to `/dashboard`. The dashboard is a navigation and summary surface, not a new analytics database. It shows a Basic brain-dump setup lane, allowed-lane next actions, review-first AI draft status, calendar-planning truth, and Life Ledger mobile/reminder links only when the user has Life Ledger.
 
 ## Access Levels
 
@@ -82,6 +82,7 @@ Do not turn onboarding into a blocking tutorial or dense dashboard. The goal is 
 
 The Control Center should stay calm and cross-lane:
 
+- Brain Dump Setup;
 - Start here today;
 - Needs review;
 - Coming up;
@@ -101,17 +102,19 @@ Current implemented foundation:
 - provenance and review state;
 - explicit approve/reject/apply controls across supported draft kinds;
 - Baby KB assignment suggestion generation with provider config;
-- UI groundwork for Basic AI time-saver use cases.
+- Dashboard Basic brain-dump generation that creates one reviewable Daily draft, one Weekly draft, and one Vision draft from typed messy input;
+- UI groundwork for remaining Basic AI time-saver use cases.
 
 AI must not silently write user data. AI outputs should become drafts that the user or admin reviews before apply, especially for high-risk data.
 
 Basic AI time-saver map:
 
+- Dashboard Brain Dump Setup: typed messy input -> Daily, Weekly, and Vision draft batch.
 - Daily: messy current-work input -> Tier A, Tier B, time blocks, micro-win draft.
 - Weekly: scattered notes -> theme, protected steps, non-negotiables, recovery plan draft.
 - Vision: vague long-term ideas -> goals plus next visible steps draft.
 
-Future AI work should build on this map one workflow at a time.
+Future AI work should build on this map one workflow at a time. Do not add silent writes; Dashboard brain-dump drafts still require explicit approval and apply before lane data changes.
 
 ## Production QA Truth
 
@@ -135,7 +138,7 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:browser
 ```
 
-Expected browser QA result after C43: `passes=16`, `skips=0`.
+Expected browser QA result after C46: `passes=16`, `skips=0`.
 
 Expected isolation proof:
 
@@ -159,13 +162,13 @@ Do not treat these as already implemented:
 - full Select Authorized onboarding for every optional lane;
 - Admin onboarding beyond current governance surfaces;
 - compact/spacious/reduced-stimulation preference settings;
-- production-grade AI generation for every Basic time-saver use case.
+- production-grade AI generation for every Basic time-saver use case beyond the Dashboard brain-dump batch.
 
 ## Current High-Value Next Work
 
 Recommended next slices:
 
-1. Define the first Basic provider-backed AI workflow, preferably Daily messy input -> Daily draft.
+1. Harden and observe the Dashboard brain-dump setup lane in production.
 2. Add user preference controls for reduced stimulation, density, and reminder tone.
 3. Extend Control Center summaries and repeatable onboarding to Select Authorized optional lanes.
 4. Design explicit audited support/admin views only if cross-user support becomes necessary.

@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { CalendarDays, CheckCircle2, ClipboardCheck, LayoutDashboard, Smartphone, Sparkles } from "lucide-react";
 import { AIDraftCanvasBlock, HabitCanvasMap, type HabitCanvasMapNode } from "@/components/habit-canvas";
+import { DashboardBrainDumpSetup } from "@/components/dashboard-brain-dump-setup";
 import { Layout } from "@/components/layout";
 import { LaneHero } from "@/components/shell/LaneHero";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import {
   weeklyAIDraftListParams,
 } from "@/lib/ai-draft-review";
 import { getEmotionColorClass, type WorkspaceColourState } from "@/lib/colors";
+import { getMondayOfCurrentWeek, getTodayDateString } from "@/lib/dates";
 
 const DASHBOARD_MODE_OPTIONS: readonly {
   label: string;
@@ -89,6 +91,8 @@ function DashboardSection({
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { status } = useAuthSession();
+  const todayDate = getTodayDateString();
+  const weekStart = getMondayOfCurrentWeek();
   const { modules, isAdmin, isError: permissionsError } = usePermissions();
   const hasAllowedModule = (module: string) => isAdmin || (!permissionsError && modules.includes(module));
   const canDaily = hasAllowedModule("daily");
@@ -213,6 +217,15 @@ export default function DashboardPage() {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
           <div className="space-y-6">
+            <DashboardBrainDumpSetup
+              dailyDrafts={dailyDrafts.data}
+              weeklyDrafts={weeklyDrafts.data}
+              visionDrafts={visionDrafts.data}
+              date={todayDate}
+              weekStart={weekStart}
+              canUse={canDaily && canWeekly && canVision}
+            />
+
             <DashboardSection
               title="Start here today"
               description="Pick one small action. You can switch lanes later."

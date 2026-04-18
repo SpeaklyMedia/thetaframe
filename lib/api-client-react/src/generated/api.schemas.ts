@@ -811,6 +811,13 @@ export const AIDraftMetadataConfidence = {
   high: "high",
 } as const;
 
+export type AIDraftMetadataBrainDumpSource =
+  (typeof AIDraftMetadataBrainDumpSource)[keyof typeof AIDraftMetadataBrainDumpSource];
+
+export const AIDraftMetadataBrainDumpSource = {
+  dashboard_setup_lane: "dashboard_setup_lane",
+} as const;
+
 export type WorkspaceMoodContextColourState =
   (typeof WorkspaceMoodContextColourState)[keyof typeof WorkspaceMoodContextColourState];
 
@@ -879,6 +886,26 @@ export interface AIDraftMetadata {
   /** @nullable */
   notes?: string | null;
   workspaceMoodContext?: WorkspaceMoodContext;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  /** @nullable */
+  sourcePayloadRef?: string | null;
+  /** @nullable */
+  sourceExcerpt?: string | null;
+  /** @nullable */
+  rationale?: string | null;
+  brainDumpBatchId?: string;
+  brainDumpSource?: AIDraftMetadataBrainDumpSource;
+  rawInputExcerpt?: string;
+  /** @nullable */
+  refinementInstruction?: string | null;
+  refineFromDraftIds?: number[];
+  provider?: string;
+  model?: string;
+  generatedAt?: string;
+  [key: string]: unknown;
 }
 
 export type AIDraftSourceRefSourceType =
@@ -1096,6 +1123,28 @@ export interface CreateAIDraftBody {
   sourceRefs: AIDraftSourceRef[];
   /** @nullable */
   reviewNotes?: string | null;
+}
+
+export interface CreateBasicBrainDumpDraftsBody {
+  /**
+   * @minLength 20
+   * @maxLength 6000
+   */
+  rawText: string;
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  /** Week start in YYYY-MM-DD format */
+  weekStart: string;
+  /** @maxLength 1000 */
+  refinementInstruction?: string;
+  /** @maxItems 12 */
+  refineFromDraftIds?: number[];
+}
+
+export interface CreateBasicBrainDumpDraftsResponse {
+  batchId: string;
+  drafts: AIDraft[];
+  createdAt: string;
 }
 
 export type UpdateAIDraftReviewStateBodyReviewState =

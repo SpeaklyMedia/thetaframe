@@ -44,6 +44,7 @@ const selectAuthorizedStorageStatePath = resolveStorageStatePath(
   defaultSelectAuthorizedStorageStatePath,
 );
 const outputDir = process.env.THETAFRAME_BROWSER_OUTPUT_DIR ?? qaOutputDir;
+const enableAIGenerationQa = process.env.THETAFRAME_BROWSER_ENABLE_AI_GENERATION_QA === "1";
 
 function sanitizeLabel(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -338,6 +339,9 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("dashboard-control-center").waitFor();
         await page.getByTestId("link-dashboard").waitFor();
+        await page.getByTestId("dashboard-brain-dump-setup").waitFor();
+        await page.getByTestId("textarea-dashboard-brain-dump").waitFor();
+        await page.getByTestId("button-generate-brain-dump").waitFor();
         await page.getByTestId("dashboard-start-today").waitFor();
         await page.getByTestId("habit-canvas-map").waitFor();
         await page.getByTestId("habit-focus-group-dashboard").waitFor();
@@ -353,6 +357,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         }
 
         await captureEvidence(page, "c37-dashboard-desktop");
+        await captureEvidence(page, "c46-dashboard-brain-dump-setup-desktop");
         await captureEvidence(page, "c42-basic-dashboard-habit-canvas-desktop");
         await page.getByTestId("habit-focus-card-dashboard-daily").hover();
         await captureEvidence(page, "c43-dashboard-today-hover-focus-desktop");
@@ -360,6 +365,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("habit-focus-group-dashboard").scrollIntoViewIfNeeded();
         await page.waitForTimeout(250);
         await captureEvidence(page, "c37-dashboard-mobile");
+        await captureEvidence(page, "c46-dashboard-brain-dump-setup-mobile");
         await captureEvidence(page, "c42-basic-dashboard-habit-canvas-mobile");
         await captureEvidence(page, "c43-dashboard-scroll-focus-mobile");
         await page.setViewportSize({ width: 1440, height: 960 });
@@ -574,6 +580,9 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await ensureAuthenticatedSession(page, "/dashboard", "Basic dashboard QA");
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("dashboard-control-center").waitFor();
+        await page.getByTestId("dashboard-brain-dump-setup").waitFor();
+        await page.getByTestId("textarea-dashboard-brain-dump").waitFor();
+        await page.getByTestId("button-generate-brain-dump").waitFor();
         await page.getByTestId("dashboard-start-today").waitFor();
         await page.getByTestId("habit-canvas-map").waitFor();
         await page.getByTestId("habit-focus-group-dashboard").waitFor();
@@ -660,6 +669,36 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         return "pass";
       },
     },
+    ...(enableAIGenerationQa
+      ? [
+          {
+            label: "basic dashboard brain dump can generate a review batch",
+            run: async (page) => {
+              if (!storageState) return "skip";
+              const marker = `C46 browser QA ${new Date().toISOString()}`;
+              await waitForAppReady(page, "/dashboard");
+              await ensureAuthenticatedSession(page, "/dashboard", "Basic brain dump AI QA");
+              await dismissOnboardingIfVisible(page);
+              await page.getByTestId("dashboard-brain-dump-setup").waitFor();
+              await page.getByTestId("textarea-dashboard-brain-dump").fill(
+                [
+                  marker,
+                  "Today I need to answer the school email, pick one work task, and keep dinner simple.",
+                  "This week I need protected quiet time and a backup plan if I get overloaded.",
+                  "Longer term I want a calmer home routine with visible next steps.",
+                ].join(" "),
+              );
+              await page.getByTestId("button-generate-brain-dump").click();
+              await page.getByTestId("dashboard-brain-dump-batch").waitFor({ timeout: 45000 });
+              await page.getByTestId("dashboard-brain-dump-draft-daily").waitFor();
+              await page.getByTestId("dashboard-brain-dump-draft-weekly").waitFor();
+              await page.getByTestId("dashboard-brain-dump-draft-vision").waitFor();
+              await captureEvidence(page, "c46-dashboard-brain-dump-generated-batch");
+              return "pass";
+            },
+          } satisfies Check,
+        ]
+      : []),
   ];
 }
 

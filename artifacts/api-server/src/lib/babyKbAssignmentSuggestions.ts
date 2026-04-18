@@ -9,6 +9,12 @@ import {
   validateBabyKbAssignmentDraftCreateData,
 } from "./babyKbAssignments.js";
 import { isValidDateString } from "./serialize.js";
+import {
+  getOpenAIConfig,
+  OpenAIGenerationError,
+  OpenAIProviderUnavailableError,
+  requestOpenAIJson,
+} from "./openAiProvider.js";
 
 const aiSuggestionResponseSchema = z.object({
   assigneeUserId: z.string().min(1),
@@ -27,74 +33,12 @@ type EligibleAssignee = {
 };
 
 export class BabyAssignmentSuggestionEligibilityError extends Error {}
-export class BabyAssignmentSuggestionProviderUnavailableError extends Error {}
-export class BabyAssignmentSuggestionGenerationError extends Error {}
-
-function getOpenAIConfig() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new BabyAssignmentSuggestionProviderUnavailableError(
-      "OPENAI_API_KEY is not configured for Baby assignment suggestions.",
-    );
-  }
-
-  return {
-    apiKey,
-    model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-    baseUrl: process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1",
-  };
-}
+export class BabyAssignmentSuggestionProviderUnavailableError extends OpenAIProviderUnavailableError {}
+export class BabyAssignmentSuggestionGenerationError extends OpenAIGenerationError {}
 
 function hasVerificationConflict(tags: unknown) {
   const list = Array.isArray(tags) ? tags.map((value) => String(value)) : [];
   return list.includes("Needs verification") || !list.includes("Verified personal truth");
-}
-
-function extractOutputText(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const record = payload as Record<string, unknown>;
-
-  if (typeof record.output_text === "string" && record.output_text.trim()) {
-    return record.output_text.trim();
-  }
-
-  if (Array.isArray(record.output)) {
-    const parts: string[] = [];
-    for (const item of record.output) {
-      if (!item || typeof item !== "object") continue;
-      const content = (item as Record<string, unknown>).content;
-      if (!Array.isArray(content)) continue;
-      for (const part of content) {
-        if (!part || typeof part !== "object") continue;
-        const text = (part as Record<string, unknown>).text;
-        if (typeof text === "string" && text.trim()) {
-          parts.push(text.trim());
-        }
-      }
-    }
-    if (parts.length > 0) {
-      return parts.join("\n").trim();
-    }
-  }
-
-  return null;
-}
-
-function parseProviderJsonOutput(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  const candidate = fenced?.[1]?.trim() ?? trimmed;
-
-  try {
-    return JSON.parse(candidate);
-  } catch (error) {
-    const firstBrace = candidate.indexOf("{");
-    const lastBrace = candidate.lastIndexOf("}");
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      return JSON.parse(candidate.slice(firstBrace, lastBrace + 1));
-    }
-    throw error;
-  }
 }
 
 async function listEligibleAssignees(): Promise<EligibleAssignee[]> {
@@ -234,7 +178,15 @@ async function callOpenAIForSuggestion(input: {
   promotions: Array<{ targetSurface: string; targetContainerKey: string }>;
   assignees: EligibleAssignee[];
 }) {
-  const config = getOpenAIConfig();
+  let config;
+  try {
+    config = getOpenAIConfig("Baby assignment suggestions");
+  } catch (error) {
+    if (error instanceof OpenAIProviderUnavailableError) {
+      throw new BabyAssignmentSuggestionProviderUnavailableError(error.message);
+    }
+    throw error;
+  }
   const today = new Date().toISOString().slice(0, 10);
   const system = [
     "You are generating one Baby KB assignment suggestion for ThetaFrame.",
@@ -272,50 +224,22 @@ async function callOpenAIForSuggestion(input: {
     },
   });
 
-  const response = await fetch(`${config.baseUrl}/responses`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      input: [
-        {
-          role: "system",
-          content: [{ type: "input_text", text: system }],
-        },
-        {
-          role: "user",
-          content: [{ type: "input_text", text: user }],
-        },
-      ],
-    }),
-  });
-
-  if (response.status === 401 || response.status === 403 || response.status === 429 || response.status >= 500) {
-    throw new BabyAssignmentSuggestionProviderUnavailableError(
-      `OpenAI suggestion request failed with HTTP ${response.status}.`,
-    );
-  }
-
-  if (!response.ok) {
-    throw new BabyAssignmentSuggestionGenerationError(
-      `OpenAI suggestion request failed with HTTP ${response.status}.`,
-    );
-  }
-
-  const payload = await response.json();
-  const text = extractOutputText(payload);
-  if (!text) {
-    throw new BabyAssignmentSuggestionGenerationError("The AI provider returned no usable text output.");
-  }
-
   let parsedJson: unknown;
   try {
-    parsedJson = parseProviderJsonOutput(text);
-  } catch {
-    throw new BabyAssignmentSuggestionGenerationError("The AI provider returned non-JSON output.");
+    parsedJson = await requestOpenAIJson({
+      config,
+      system,
+      user,
+      featureLabel: "Baby assignment suggestion",
+    });
+  } catch (error) {
+    if (error instanceof OpenAIProviderUnavailableError) {
+      throw new BabyAssignmentSuggestionProviderUnavailableError(error.message);
+    }
+    if (error instanceof OpenAIGenerationError) {
+      throw new BabyAssignmentSuggestionGenerationError(error.message);
+    }
+    throw error;
   }
 
   try {
