@@ -94,6 +94,11 @@ Status: Current high-signal receipt map
   - Adds frontend-only Daily task feeling color scaffolding without task schema/API persistence.
   - Redeploys production and proves browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C50-production-qa-hardening-and-ssot-refresh__2026-04-18__R1.md`
+  - Runs static/build, production browser, isolation, static asset, and focused frontend QA over the C49 state.
+  - Redeploys the hardened C49 application commit to production and proves health/root/static assets.
+  - Proves post-deploy browser QA with `passes=16`, `skips=0` and focused frontend QA with `17` checks passing.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`

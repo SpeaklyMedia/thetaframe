@@ -1,7 +1,7 @@
 # ThetaFrame Current Truth
 
 Date: 2026-04-18
-Status: Canonical current-state summary after C49
+Status: Canonical current-state summary after C50
 
 ## What ThetaFrame Does Now
 
@@ -142,7 +142,7 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:browser
 ```
 
-Expected browser QA result after C47: `passes=16`, `skips=0`.
+Expected browser QA result after C50: `passes=16`, `skips=0`.
 
 Expected isolation proof:
 
@@ -151,6 +151,18 @@ THETAFRAME_BROWSER_BASE_URL=https://thetaframe.mrksylvstr.com \
 THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:isolation
 ```
+
+Latest isolation result after C50: `[c33-isolation] PASS checks=47`.
+
+Recent focused frontend QA after C50 also verifies:
+
+- public Home desktop/mobile marketing hero and reduced-motion calm state;
+- Sign In and Sign Up theta-positioning blocks;
+- C49 static assets and Open Graph image content types;
+- Dashboard Brain Dump Setup idle render without invoking AI;
+- Daily frontend-only task feeling controls;
+- FollowUps allowed/denied behavior;
+- Start Here modal fit from Dashboard, Daily, Weekly, and Vision.
 
 If authenticated browser state is stale and `$DISPLAY` exists, use PTY-backed Chrome capture. Do not mark auth capture blocked just because a non-TTY command fails.
 
