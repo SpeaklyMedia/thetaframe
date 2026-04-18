@@ -69,6 +69,11 @@ Status: Current high-signal receipt map
   - Updates durable AI-facing docs to the after-C43 current truth.
   - Redeploys production and proves automated browser QA with `passes=16`, `skips=0`.
 
+- `artifacts/receipts/C45-social-link-preview-image__2026-04-18__R1.md`
+  - Adds static Open Graph and Twitter Card metadata for production link previews.
+  - Points social/text/embed crawlers at the committed `1280x720` `/opengraph.jpg`.
+  - Redeploys production and verifies the image is served as `image/jpeg`.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`
