@@ -85,6 +85,8 @@ Basic onboarding is repeatable, plain-language, and low-friction:
 
 Do not turn onboarding into a blocking tutorial or dense dashboard. The goal is to reduce decisions, not add another task system.
 
+The canonical UX surface contract lives in `_AI_SYSTEM/NEURODIVERGENT_INTERFACE_GUIDE.md`. Future UI-facing work should read that guide before changing first-screen order, support panels, AI draft placement, or onboarding/help surfaces.
+
 The Control Center should stay calm and cross-lane:
 
 - Brain Dump Setup;

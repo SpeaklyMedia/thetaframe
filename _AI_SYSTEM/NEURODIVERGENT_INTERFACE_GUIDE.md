@@ -1,7 +1,7 @@
 # ThetaFrame Neurodivergent Interface Guide
 
-Date: 2026-04-17
-Status: Canonical AI-agent guardrail for Basic onboarding and AI usefulness work
+Date: 2026-04-20
+Status: Canonical AI-agent UX surface contract after C52
 
 ## Product Rule
 
@@ -11,6 +11,38 @@ ThetaFrame should reduce decisions before it adds features. Basic users should a
 - What is the smallest useful next step?
 - What can wait?
 - Will AI change anything without my review?
+
+## UX Surface Contract
+
+Every signed-in work surface should follow this order:
+
+1. Where am I?
+2. What do I do next?
+3. What is saved or waiting?
+4. What can I call on?
+
+Always-visible content:
+
+- current location;
+- one primary action;
+- active saved data;
+- saved/error state;
+- urgent review count;
+- destructive or safety warnings;
+- role/access state.
+
+Callable support content:
+
+- tutorials;
+- full step order;
+- repeated AI explanations;
+- support rails;
+- non-urgent placeholders;
+- onboarding education;
+- evidence links;
+- calendar/mobile status unless directly actionable.
+
+Actionable AI drafts may appear early because they represent waiting work. Non-actionable AI education should be callable. AI must never silently write user data.
 
 ## Basic Onboarding Pass Definition
 
@@ -88,7 +120,18 @@ Vision first screen order:
 2. Add one next step.
 3. Review goals.
 
-Secondary panels should come after the core flow. AI draft review, support rails, linked Baby items, calendar/mobile placeholders, and extra onboarding help belong under clear "More" sections unless the user is in that specific workflow.
+The Habit Canvas should appear before the full step order. Basic step order belongs in each lane's `More help` section, and Basic AI time-saver education belongs in each lane's `Review AI drafts` section.
+
+Secondary panels should come after the core flow. AI draft review, support rails, linked Baby items, calendar/mobile placeholders, and extra onboarding help belong under clear "More" sections unless the user is in that specific workflow or actionable drafts are waiting.
+
+## Optional Lane Content Order
+
+Optional lanes should follow the same surface contract without hiding their primary tools:
+
+- REACH upload/search/file work comes before non-urgent AI/mobile support.
+- Life Ledger Events execution-board work comes before non-urgent calendar/mobile support.
+- FollowUps list controls come before reminder guidance and onboarding support.
+- Actionable drafts in `needs_review`, `approval_gated`, or `approved` may appear above primary work because they are waiting for review or apply.
 
 ## Workspace Color And Controls
 

@@ -109,6 +109,11 @@ Status: Current high-signal receipt map
   - Keeps Basic step order and AI time-saver education callable through existing `More help` and `Review AI drafts` sections.
   - Redeploys production and proves browser QA with `passes=16`, `skips=0` plus focused C52 ordering screenshots.
 
+- `artifacts/receipts/C53-documentation-hardening-ux-surface-contract__2026-04-20__R1.md`
+  - Hardens `_AI_SYSTEM/NEURODIVERGENT_INTERFACE_GUIDE.md` as the canonical UX surface contract.
+  - Documents the core-action-first, callable-support-second rule for future UI-facing work.
+  - Records that C53 is documentation-only and keeps the latest C52 production/browser QA baseline.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`

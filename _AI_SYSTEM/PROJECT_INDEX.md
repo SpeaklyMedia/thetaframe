@@ -27,7 +27,7 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
     - `./INTEGRATION_CONTRACT_AUTHORITY_BINDING.md`
   - User data isolation continuation note:
     - `./USER_DATA_ISOLATION_POLICY.md`
-  - Neurodivergent-friendly interface and AI usefulness note:
+  - Neurodivergent-friendly UX surface contract and AI usefulness note:
     - `./NEURODIVERGENT_INTERFACE_GUIDE.md`
 
 - `RISK_REGISTER.md`
@@ -60,13 +60,13 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
 
 ## Current Notes
 
-- `THETAFRAME_CURRENT_TRUTH.md` is the fastest current-state entrypoint after C47. Start there before broad product, access, onboarding, AI, or QA work.
+- `THETAFRAME_CURRENT_TRUTH.md` is the fastest current-state entrypoint after C52. Start there before broad product, access, onboarding, AI, or QA work.
 - Primary project truth is concentrated in `replit.md`.
 - `RECEIPT_INDEX.md` maps high-signal receipts and should be used before reading the full `artifacts/receipts/` tree.
 - `VERCEL_ENV_VARS.md` is the current deployment environment reference.
 - `INTEGRATION_CONTRACT_AUTHORITY_BINDING.md` is the current AI-agent entry for the returned ARCH-1 PM Phase 4 contract slice.
 - `USER_DATA_ISOLATION_POLICY.md` is the current AI-agent guardrail for per-user private data ownership, admin governance boundaries, and Baby assignment exceptions.
-- `NEURODIVERGENT_INTERFACE_GUIDE.md` is the current AI-agent guardrail for repeatable Basic onboarding, low-friction lane guidance, and review-first AI usefulness.
+- `NEURODIVERGENT_INTERFACE_GUIDE.md` is the current AI-agent UX surface contract for core-action-first layout, callable support, repeatable Basic onboarding, low-friction lane guidance, and review-first AI usefulness. Read it before UI-facing changes.
 - `RUNBOOKS.md` now records the canonical browser QA standard and local browser harness commands.
 - `BROWSER_AUTH_RUNBOOK.md` records the Linux workspace PTY + Chrome auth-capture rule for AI agents.
 - `VERIFICATION_MATRIX.md` now records the preferred proof order and receipt structure for UI-facing work.
