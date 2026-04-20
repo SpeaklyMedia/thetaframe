@@ -104,6 +104,11 @@ Status: Current high-signal receipt map
   - Classifies always-visible vs callable support content and produces a three-phase simplification roadmap.
   - Proves production browser QA with `passes=16`, `skips=0`, isolation with `47` checks, and captures `20` focused surface screenshots.
 
+- `artifacts/receipts/C52-phase-a-ux-content-triage__2026-04-20__R1.md`
+  - Implements the C51 Phase A content-order pass so Basic canvases and optional-lane primary work appear before repeated guidance/support panels.
+  - Keeps Basic step order and AI time-saver education callable through existing `More help` and `Review AI drafts` sections.
+  - Redeploys production and proves browser QA with `passes=16`, `skips=0` plus focused C52 ordering screenshots.
+
 ## AI Draft And Apply Foundation
 
 - `artifacts/receipts/C5-ai-draft-provenance-approval-foundation__2026-04-14__R1.md`

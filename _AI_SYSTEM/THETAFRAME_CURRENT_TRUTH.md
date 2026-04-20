@@ -1,7 +1,7 @@
 # ThetaFrame Current Truth
 
-Date: 2026-04-18
-Status: Canonical current-state summary after C50
+Date: 2026-04-20
+Status: Canonical current-state summary after C52
 
 ## What ThetaFrame Does Now
 
@@ -69,8 +69,10 @@ Basic onboarding is repeatable, plain-language, and low-friction:
 - Basic Guide shows Daily, Weekly, Vision only;
 - dismissing the Guide does not remove the ability to reopen it;
 - existing `onboarding_progress` completion semantics still derive from real saved data;
-- Daily, Weekly, and Vision each show a compact next-step surface plus a clear step order near the top of the lane;
-- Basic lane first screens lead with the core work before AI review, support, linked items, calendar/mobile placeholders, or extra onboarding panels;
+- Daily, Weekly, and Vision each show a compact next-step surface and the Habit Canvas before repeated guidance;
+- Basic full step-order guidance remains available in each lane's `More help` section instead of occupying the first work surface;
+- Basic AI time-saver education remains available in each lane's `Review AI drafts` section before the detailed draft review panel;
+- Basic lane first screens lead with the core work before AI review, support, linked items, calendar/mobile placeholders, repeated step order, or extra onboarding panels;
 - Basic user labels prefer plain helper names: Today, This Week, Goals, Must Do Today, Can Do Later, Must Keep, If Things Get Hard, Next Steps;
 - the Daily color picker sets the user's signed-in workspace color, and that palette follows the user across allowed lanes;
 - Daily Tier A and Tier B rows have a frontend-only task feeling color scaffold that can visually transition a selected task feeling color back toward calm green; this does not persist to task JSON yet;
@@ -92,6 +94,12 @@ The Control Center should stay calm and cross-lane:
 - Plan calendar;
 - Phone reminders only for Life Ledger-enabled users;
 - Admin governance only for Admin users.
+
+Optional lanes should also put primary work first:
+
+- FollowUps keeps Add FollowUp, summary/filter/list work before reminder/calendar guidance and onboarding support;
+- REACH keeps upload/search/file work before non-urgent AI/mobile support unless actionable drafts are waiting;
+- Life Ledger Events keeps the event execution board before non-urgent calendar/import/mobile status unless actionable drafts are waiting.
 
 The old `userMode.mode` values remain in the data model for compatibility. User-facing mode language should be plain helper states: Look Around, Do The Work, Wrap Up.
 
@@ -142,7 +150,7 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:browser
 ```
 
-Expected browser QA result after C50: `passes=16`, `skips=0`.
+Expected browser QA result after C52: `passes=16`, `skips=0`.
 
 Expected isolation proof:
 
@@ -152,9 +160,9 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:isolation
 ```
 
-Latest isolation result after C50: `[c33-isolation] PASS checks=47`.
+Latest isolation result after C51: `[c33-isolation] PASS checks=47`.
 
-Recent focused frontend QA after C50 also verifies:
+Recent focused frontend QA after C52 also verifies:
 
 - public Home desktop/mobile marketing hero and reduced-motion calm state;
 - Sign In and Sign Up theta-positioning blocks;
@@ -163,6 +171,10 @@ Recent focused frontend QA after C50 also verifies:
 - Daily frontend-only task feeling controls;
 - FollowUps allowed/denied behavior;
 - Start Here modal fit from Dashboard, Daily, Weekly, and Vision.
+- Basic Daily/Weekly/Vision canvas-first order before full step guidance;
+- REACH upload-first order before non-urgent support;
+- Life Ledger Events execution-board-first order before calendar/mobile support;
+- FollowUps primary list controls before reminder guidance.
 
 If authenticated browser state is stale and `$DISPLAY` exists, use PTY-backed Chrome capture. Do not mark auth capture blocked just because a non-TTY command fails.
 
@@ -185,7 +197,7 @@ Do not treat these as already implemented:
 
 Recommended next slices:
 
-1. Harden and observe the Dashboard brain-dump setup lane in production.
-2. Add user preference controls for reduced stimulation, density, and reminder tone.
-3. Extend Control Center summaries and repeatable onboarding to Select Authorized optional lanes.
+1. Implement the C51 Phase B shared surface contract: "Where am I?", "What do I do next?", "What is saved or waiting?", then callable support.
+2. Harden and observe the Dashboard brain-dump setup lane in production.
+3. Add user preference controls for reduced stimulation, density, and reminder tone.
 4. Design explicit audited support/admin views only if cross-user support becomes necessary.
