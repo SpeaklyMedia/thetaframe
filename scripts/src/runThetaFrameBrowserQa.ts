@@ -150,6 +150,34 @@ async function expectAuthPanelBeforeTheta(
   }
 }
 
+async function expectElementBefore(page: Page, firstTestId: string, secondTestId: string, label: string) {
+  const first = page.getByTestId(firstTestId);
+  const second = page.getByTestId(secondTestId);
+  await first.waitFor();
+  await second.waitFor();
+
+  const firstBox = await first.boundingBox();
+  const secondBox = await second.boundingBox();
+  if (!firstBox || !secondBox) {
+    throw new Error(`${label} could not read element bounds.`);
+  }
+  if (firstBox.y >= secondBox.y) {
+    throw new Error(
+      `${label} expected ${firstTestId} above ${secondTestId}. ` +
+      `first=${JSON.stringify(firstBox)} second=${JSON.stringify(secondBox)}`,
+    );
+  }
+}
+
+async function openDetailsSection(page: Page, testId: string) {
+  const section = page.getByTestId(testId);
+  await section.waitFor();
+  const isOpen = (await section.getAttribute("open")) !== null;
+  if (!isOpen) {
+    await section.locator("summary").click();
+  }
+}
+
 function parseSelectAuthorizedModules(): Set<string> {
   const raw = process.env.THETAFRAME_BROWSER_SELECT_AUTHORIZED_MODULES ?? "life-ledger";
   return new Set(
@@ -426,6 +454,8 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("text-daily-title").waitFor();
         await page.getByTestId("today-canvas").waitFor();
         await page.getByTestId("habit-focus-group-today").waitFor();
+        await expectElementBefore(page, "today-canvas", "more-help-daily", "Daily content triage order");
+        await openDetailsSection(page, "more-help-daily");
         await page.getByTestId("step-order-daily").waitFor();
         await captureEvidence(page, "c42-today-canvas-desktop");
         return "pass";
@@ -441,6 +471,8 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("week-canvas").waitFor();
         await page.getByTestId("habit-focus-group-week").waitFor();
         await page.getByTestId("weekly-theme-island").waitFor();
+        await expectElementBefore(page, "week-canvas", "more-help-weekly", "Weekly content triage order");
+        await openDetailsSection(page, "more-help-weekly");
         await page.getByTestId("step-order-weekly").waitFor();
         await captureEvidence(page, "c42-week-canvas-desktop");
         return "pass";
@@ -456,6 +488,8 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("goals-canvas").waitFor();
         await page.getByTestId("habit-focus-group-goals").waitFor();
         await page.getByTestId("vision-goals-island").waitFor();
+        await expectElementBefore(page, "goals-canvas", "more-help-vision", "Vision content triage order");
+        await openDetailsSection(page, "more-help-vision");
         await page.getByTestId("step-order-vision").waitFor();
         await captureEvidence(page, "c42-goals-canvas-desktop");
         return "pass";
@@ -469,6 +503,14 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await ensureAuthenticatedSession(page, "/life-ledger?tab=events", "Life Ledger events browser QA");
         await dismissOnboardingIfVisible(page);
         await expectLifeLedgerEventsSurface(page);
+        if (await page.getByTestId("events-execution-board").isVisible().catch(() => false)) {
+          await expectElementBefore(
+            page,
+            "events-execution-board",
+            "calendar-placeholder-life-ledger-events",
+            "Life Ledger Events content triage order",
+          );
+        }
         return "pass";
       },
     },
@@ -481,6 +523,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("text-reach-title").waitFor();
         await page.getByTestId("upload-panel").waitFor();
+        await expectElementBefore(page, "upload-panel", "mobile-placeholder-reach", "REACH content triage order");
         return "pass";
       },
     },
@@ -494,6 +537,8 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByRole("heading", { name: "People to get back to" }).waitFor();
         await page.getByText("People · Next promise · Reminder date · Calendar planning", { exact: true }).waitFor();
         await page.getByTestId("followups-reminder-guidance").waitFor();
+        await page.getByTestId("filter-bar").waitFor();
+        await expectElementBefore(page, "filter-bar", "followups-reminder-guidance", "FollowUps content triage order");
         return "pass";
       },
     },

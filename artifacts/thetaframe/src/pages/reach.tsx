@@ -413,6 +413,86 @@ export default function ReachPage() {
     }
   };
 
+  const hasActionableReachDrafts = (aiDrafts ?? []).some(
+    (draft) =>
+      draft.reviewState === "needs_review" ||
+      draft.reviewState === "approval_gated" ||
+      draft.reviewState === "approved",
+  );
+
+  const reachAIDraftReviewPanel = (
+    <AIDraftReviewPanel
+      title={reachAIDraftReview.title}
+      emptyTitle={reachAIDraftReview.emptyTitle}
+      emptyDescription={reachAIDraftReview.emptyDescription}
+      drafts={aiDrafts}
+      isLoading={isAIDraftsLoading}
+      errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
+      actionErrorMessage={draftActionError}
+      modeBadgeLabel="Review + metadata apply enabled"
+      footerNote="Stored REACH drafts can be reviewed here, and metadata-only drafts may be approved, rejected, or applied back to their source file notes. No storage-object mutation or file replacement exists in this slice."
+      renderDraftActions={(draft) => {
+        if (draft.reviewState === "applied") {
+          return (
+            <Button variant="outline" size="sm" disabled>
+              Applied
+            </Button>
+          );
+        }
+
+        const targetFile = resolveReachDraftTargetFile(draft, files);
+        const isBusy = applyingDraftId !== null || reviewingDraftId !== null;
+
+        if (draft.reviewState === "rejected") {
+          return (
+            <Button variant="outline" size="sm" disabled>
+              Rejected
+            </Button>
+          );
+        }
+
+        if (draft.reviewState === "needs_review" || draft.reviewState === "approved") {
+          return (
+            <div className="flex flex-wrap justify-end gap-2">
+              {draft.reviewState === "needs_review" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleReviewStateChange(draft.id, "approved")}
+                  disabled={isBusy}
+                  data-testid={`button-approve-draft-${draft.id}`}
+                >
+                  {reviewingDraftId === draft.id ? "Saving..." : "Approve"}
+                </Button>
+              ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                disabled={isBusy}
+                data-testid={`button-reject-draft-${draft.id}`}
+              >
+                {reviewingDraftId === draft.id ? "Saving..." : "Reject"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => void handleApplyDraft(draft)}
+                disabled={isBusy || !targetFile}
+                data-testid={`button-apply-draft-${draft.id}`}
+                title={targetFile ? `Apply metadata to ${targetFile.name}` : "Resolve the source REACH file before applying"}
+              >
+                {applyingDraftId === draft.id ? "Applying..." : targetFile ? "Apply to source file" : "Source file unavailable"}
+              </Button>
+            </div>
+          );
+        }
+
+        return null;
+      }}
+      data-testid="ai-draft-placeholder-reach"
+    />
+  );
+
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
@@ -427,87 +507,7 @@ export default function ReachPage() {
           <span className="text-xs text-muted-foreground">Upload · Search · Reuse · Packet import</span>
         </SupportRail>
 
-        <AIDraftReviewPanel
-          title={reachAIDraftReview.title}
-          emptyTitle={reachAIDraftReview.emptyTitle}
-          emptyDescription={reachAIDraftReview.emptyDescription}
-          drafts={aiDrafts}
-          isLoading={isAIDraftsLoading}
-          errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
-          actionErrorMessage={draftActionError}
-          modeBadgeLabel="Review + metadata apply enabled"
-          footerNote="Stored REACH drafts can be reviewed here, and metadata-only drafts may be approved, rejected, or applied back to their source file notes. No storage-object mutation or file replacement exists in this slice."
-          renderDraftActions={(draft) => {
-            if (draft.reviewState === "applied") {
-              return (
-                <Button variant="outline" size="sm" disabled>
-                  Applied
-                </Button>
-              );
-            }
-
-            const targetFile = resolveReachDraftTargetFile(draft, files);
-            const isBusy = applyingDraftId !== null || reviewingDraftId !== null;
-
-            if (draft.reviewState === "rejected") {
-              return (
-                <Button variant="outline" size="sm" disabled>
-                  Rejected
-                </Button>
-              );
-            }
-
-            if (draft.reviewState === "needs_review" || draft.reviewState === "approved") {
-              return (
-                <div className="flex flex-wrap justify-end gap-2">
-                  {draft.reviewState === "needs_review" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleReviewStateChange(draft.id, "approved")}
-                      disabled={isBusy}
-                      data-testid={`button-approve-draft-${draft.id}`}
-                    >
-                      {reviewingDraftId === draft.id ? "Saving..." : "Approve"}
-                    </Button>
-                  ) : null}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleReviewStateChange(draft.id, "rejected")}
-                    disabled={isBusy}
-                    data-testid={`button-reject-draft-${draft.id}`}
-                  >
-                    {reviewingDraftId === draft.id ? "Saving..." : "Reject"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void handleApplyDraft(draft)}
-                    disabled={isBusy || !targetFile}
-                    data-testid={`button-apply-draft-${draft.id}`}
-                    title={targetFile ? `Apply metadata to ${targetFile.name}` : "Resolve the source REACH file before applying"}
-                  >
-                    {applyingDraftId === draft.id ? "Applying..." : targetFile ? "Apply to source file" : "Source file unavailable"}
-                  </Button>
-                </div>
-              );
-            }
-
-            return null;
-          }}
-          data-testid="ai-draft-placeholder-reach"
-        />
-
-        <MobileIntegrationStatusCard
-          mode={reachMobilePlaceholder.mode}
-          title={reachMobilePlaceholder.title}
-          description={reachMobilePlaceholder.description}
-          chips={reachMobilePlaceholder.chips}
-          note={reachMobilePlaceholder.note}
-          data-testid="mobile-placeholder-reach"
-        />
-
-        {!isSurfaceComplete("reach") && <SurfaceOnboardingCard surface="reach" />}
+        {hasActionableReachDrafts ? reachAIDraftReviewPanel : null}
 
         <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-5" data-testid="upload-panel">
           <h2 className="text-base font-semibold">Upload Files</h2>
@@ -653,6 +653,19 @@ export default function ReachPage() {
             <p className="text-muted-foreground">No files uploaded yet.</p>
           </div>
         )}
+
+        {!hasActionableReachDrafts ? reachAIDraftReviewPanel : null}
+
+        <MobileIntegrationStatusCard
+          mode={reachMobilePlaceholder.mode}
+          title={reachMobilePlaceholder.title}
+          description={reachMobilePlaceholder.description}
+          chips={reachMobilePlaceholder.chips}
+          note={reachMobilePlaceholder.note}
+          data-testid="mobile-placeholder-reach"
+        />
+
+        {!isSurfaceComplete("reach") && <SurfaceOnboardingCard surface="reach" />}
       </div>
     </Layout>
   );

@@ -590,12 +590,7 @@ export default function DailyPage() {
           isSaving={upsertUserMode.isPending}
         />
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <BasicLaneNextStep lane="daily" isComplete={isSurfaceComplete("daily")} />
-          <BasicAITimeSaver lane="daily" />
-        </div>
-
-        <BasicLaneStepOrder lane="daily" />
+        <BasicLaneNextStep lane="daily" isComplete={isSurfaceComplete("daily")} />
 
         <HabitCanvasSurface
           title="Today Canvas"
@@ -774,6 +769,7 @@ export default function DailyPage() {
           description="AI can make a draft. You choose what to save."
           testId="more-ai-drafts-daily"
         >
+          <BasicAITimeSaver lane="daily" />
           <AIDraftCanvasBlock count={aiDrafts?.length ?? 0} label="Daily draft review" />
           <AIDraftReviewPanel
             title={dailyAIDraftReview.title}
@@ -850,6 +846,8 @@ export default function DailyPage() {
           description="Use these when the day needs extra support."
           testId="more-help-daily"
         >
+          <BasicLaneStepOrder lane="daily" />
+
           {!isSurfaceComplete("daily") && <SurfaceOnboardingCard surface="daily" />}
 
           {isFirstRunDaily ? (

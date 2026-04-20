@@ -357,36 +357,6 @@ export default function BizdevPage() {
           </Button>
         </div>
 
-        <SupportRail direction="row">
-          <span className="text-xs text-muted-foreground">People · Next promise · Reminder date · Calendar planning</span>
-        </SupportRail>
-
-        {!isSurfaceComplete("bizdev") && <SurfaceOnboardingCard surface="bizdev" />}
-
-        <section className="rounded-lg border bg-card/90 p-4 shadow-sm" data-testid="followups-reminder-guidance">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div>
-                <h2 className="text-sm font-semibold">Reminder dates help you choose what comes back into view.</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Calendar sync is not active yet. Use the reminder date here, then move the next step into Today or This Week when it is time.
-                </p>
-              </div>
-            </div>
-            {canLifeLedger ? (
-              <Button asChild type="button" variant="outline" size="sm" className="shrink-0">
-                <Link href="/life-ledger?tab=events">Open reminders</Link>
-              </Button>
-            ) : null}
-          </div>
-          {canLifeLedger ? (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Use Life Ledger for dated reminders and appointments when a follow-up needs a durable reminder record.
-            </p>
-          ) : null}
-        </section>
-
         {summary && (
           <div className="grid grid-cols-3 gap-4" data-testid="bizdev-summary">
             {(["COLD", "WARM", "HOT"] as Phase[]).map((p) => (
@@ -561,6 +531,36 @@ export default function BizdevPage() {
             )}
           </div>
         )}
+
+        <SupportRail direction="row">
+          <span className="text-xs text-muted-foreground">People · Next promise · Reminder date · Calendar planning</span>
+        </SupportRail>
+
+        {!isSurfaceComplete("bizdev") && <SurfaceOnboardingCard surface="bizdev" />}
+
+        <section className="rounded-lg border bg-card/90 p-4 shadow-sm" data-testid="followups-reminder-guidance">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div>
+                <h2 className="text-sm font-semibold">Reminder dates help you choose what comes back into view.</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Calendar sync is not active yet. Use the reminder date here, then move the next step into Today or This Week when it is time.
+                </p>
+              </div>
+            </div>
+            {canLifeLedger ? (
+              <Button asChild type="button" variant="outline" size="sm" className="shrink-0">
+                <Link href="/life-ledger?tab=events">Open reminders</Link>
+              </Button>
+            ) : null}
+          </div>
+          {canLifeLedger ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Use Life Ledger for dated reminders and appointments when a follow-up needs a durable reminder record.
+            </p>
+          ) : null}
+        </section>
       </div>
     </Layout>
   );

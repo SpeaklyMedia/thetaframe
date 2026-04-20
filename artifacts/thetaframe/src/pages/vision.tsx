@@ -316,12 +316,7 @@ export default function VisionPage() {
           isSaving={upsertUserMode.isPending}
         />
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <BasicLaneNextStep lane="vision" isComplete={isSurfaceComplete("vision")} />
-          <BasicAITimeSaver lane="vision" />
-        </div>
-
-        <BasicLaneStepOrder lane="vision" />
+        <BasicLaneNextStep lane="vision" isComplete={isSurfaceComplete("vision")} />
 
         <HabitCanvasSurface
           title="Goals Canvas"
@@ -396,6 +391,7 @@ export default function VisionPage() {
           description="AI can make a draft. You choose what to save."
           testId="more-ai-drafts-vision"
         >
+          <BasicAITimeSaver lane="vision" />
           <AIDraftCanvasBlock count={aiDrafts?.length ?? 0} label="Goals draft review" />
           <AIDraftReviewPanel
             title={visionAIDraftReview.title}
@@ -486,6 +482,8 @@ export default function VisionPage() {
           description="Use these when goals need extra support."
           testId="more-help-vision"
         >
+          <BasicLaneStepOrder lane="vision" />
+
           <SkipProtocol />
           {!isSurfaceComplete("vision") && <SurfaceOnboardingCard surface="vision" />}
           <SupportRail direction="row">

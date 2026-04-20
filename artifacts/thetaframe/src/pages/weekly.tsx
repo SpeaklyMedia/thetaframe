@@ -384,12 +384,7 @@ export default function WeeklyPage() {
           isSaving={upsertUserMode.isPending}
         />
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <BasicLaneNextStep lane="weekly" isComplete={isSurfaceComplete("weekly")} />
-          <BasicAITimeSaver lane="weekly" />
-        </div>
-
-        <BasicLaneStepOrder lane="weekly" />
+        <BasicLaneNextStep lane="weekly" isComplete={isSurfaceComplete("weekly")} />
 
         <HabitCanvasSurface
           title="Week Canvas"
@@ -500,6 +495,7 @@ export default function WeeklyPage() {
           description="AI can make a draft. You choose what to save."
           testId="more-ai-drafts-weekly"
         >
+          <BasicAITimeSaver lane="weekly" />
           <AIDraftCanvasBlock count={aiDrafts?.length ?? 0} label="Weekly draft review" />
           <AIDraftReviewPanel
             title={weeklyAIDraftReview.title}
@@ -576,6 +572,8 @@ export default function WeeklyPage() {
           description="Use these when the week needs extra support."
           testId="more-help-weekly"
         >
+          <BasicLaneStepOrder lane="weekly" />
+
           <SkipProtocol />
           {!isSurfaceComplete("weekly") && <SurfaceOnboardingCard surface="weekly" />}
           <SupportRail direction="row">

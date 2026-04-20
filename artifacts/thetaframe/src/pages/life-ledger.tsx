@@ -3278,6 +3278,117 @@ export default function LifeLedgerPage() {
     );
   };
 
+  const hasActionableLifeLedgerDrafts = (aiDrafts ?? []).some(
+    (draft) =>
+      draft.reviewState === "needs_review" ||
+      draft.reviewState === "approval_gated" ||
+      draft.reviewState === "approved",
+  );
+  const showAIDraftReviewBeforeLifeLedgerWork = activeTab !== "events" || hasActionableLifeLedgerDrafts;
+  const lifeLedgerAIDraftReviewPanel = lifeLedgerAIDraftReview ? (
+    <AIDraftReviewPanel
+      title={lifeLedgerAIDraftReview.title}
+      emptyTitle={lifeLedgerAIDraftReview.emptyTitle}
+      emptyDescription={lifeLedgerAIDraftReview.emptyDescription}
+      drafts={aiDrafts}
+      isLoading={isAIDraftsLoading}
+      errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
+      actionErrorMessage={draftActionError}
+      modeBadgeLabel={
+        activeTab === "baby"
+        || activeTab === "events"
+        || activeTab === "people"
+        || activeTab === "financial"
+        || activeTab === "subscriptions"
+        || activeTab === "travel"
+          ? "Apply enabled"
+          : "Read only"
+      }
+      footerNote={
+        activeTab === "baby"
+          ? "Stored Baby assignment suggestions can be approved, rejected, and explicitly applied into the admin-only Baby assignment flow. No silent account assignment exists in this slice."
+          : activeTab === "events"
+          ? "Stored event drafts can be approved, rejected, and applied into Life Ledger events. Other Life Ledger tabs remain review-only in this slice."
+          : activeTab === "people"
+            ? "Stored people drafts can be approved, rejected, and applied into new Life Ledger people entries. Other Life Ledger tabs remain review-only in this slice."
+            : activeTab === "financial"
+              ? "Stored financial drafts can be approved, rejected, and applied into new Life Ledger financial entries. Other Life Ledger tabs remain review-only in this slice."
+              : activeTab === "subscriptions"
+                ? "Stored subscription drafts can be approved, rejected, and applied into new Life Ledger subscription entries. Other Life Ledger tabs remain review-only in this slice."
+                : activeTab === "travel"
+                  ? "Stored travel drafts can be approved, rejected, and applied into new Life Ledger travel entries. Baby remains non-applicable in this slice."
+            : "Stored drafts are visible here for review only. Apply actions are not enabled for this Life Ledger tab in this slice."
+      }
+      renderDraftActions={
+        activeTab === "baby"
+        || activeTab === "events"
+        || activeTab === "people"
+        || activeTab === "financial"
+        || activeTab === "subscriptions"
+        || activeTab === "travel"
+          ? (draft) => {
+              const canReview =
+                draft.reviewState === "needs_review" || draft.reviewState === "approval_gated";
+              const canApply =
+                draft.reviewState === "needs_review" || draft.reviewState === "approved";
+              const isApplying = applyingDraftId === draft.id;
+              const isReviewing = reviewingDraftId === draft.id;
+
+              return (
+                <div className="flex flex-wrap justify-end gap-2">
+                  {canReview ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isApplying || isReviewing}
+                      onClick={() => void handleReviewStateChange(draft.id, "approved")}
+                      data-testid={`button-approve-ai-draft-${draft.id}`}
+                    >
+                      {isReviewing ? "Saving..." : "Approve"}
+                    </Button>
+                  ) : null}
+                  {draft.reviewState !== "rejected" && draft.reviewState !== "applied" ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isApplying || isReviewing}
+                      onClick={() => void handleReviewStateChange(draft.id, "rejected")}
+                      data-testid={`button-reject-ai-draft-${draft.id}`}
+                    >
+                      {isReviewing ? "Saving..." : "Reject"}
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    disabled={!canApply || isApplying || isReviewing}
+                    onClick={() => void handleApplyDraft(draft.id)}
+                    data-testid={`button-apply-ai-draft-${draft.id}`}
+                  >
+                    {draft.reviewState === "applied"
+                      ? "Applied"
+                      : isApplying
+                        ? "Applying..."
+                        : activeTab === "people"
+                          ? "Apply to people"
+                          : activeTab === "financial"
+                            ? "Apply to financial"
+                            : activeTab === "subscriptions"
+                              ? "Apply to subscriptions"
+                              : activeTab === "travel"
+                                ? "Apply to travel"
+                                : activeTab === "baby"
+                                  ? "Apply suggested assignment"
+                                  : "Apply to events"}
+                  </Button>
+                </div>
+              );
+            }
+          : undefined
+      }
+      data-testid={`ai-draft-placeholder-life-ledger-${activeTab}`}
+    />
+  ) : null;
+
   return (
     <Layout>
       <div className="container mx-auto p-4 md:p-8 max-w-5xl space-y-8">
@@ -3301,112 +3412,17 @@ export default function LifeLedgerPage() {
           </span>
         </SupportRail>
 
-        {lifeLedgerAIDraftReview && (
-          <AIDraftReviewPanel
-            title={lifeLedgerAIDraftReview.title}
-            emptyTitle={lifeLedgerAIDraftReview.emptyTitle}
-            emptyDescription={lifeLedgerAIDraftReview.emptyDescription}
-            drafts={aiDrafts}
-            isLoading={isAIDraftsLoading}
-            errorMessage={aiDraftsError instanceof Error ? aiDraftsError.message : null}
-            actionErrorMessage={draftActionError}
-            modeBadgeLabel={
-              activeTab === "baby"
-              || activeTab === "events"
-              || activeTab === "people"
-              || activeTab === "financial"
-              || activeTab === "subscriptions"
-              || activeTab === "travel"
-                ? "Apply enabled"
-                : "Read only"
-            }
-            footerNote={
-              activeTab === "baby"
-                ? "Stored Baby assignment suggestions can be approved, rejected, and explicitly applied into the admin-only Baby assignment flow. No silent account assignment exists in this slice."
-                : activeTab === "events"
-                ? "Stored event drafts can be approved, rejected, and applied into Life Ledger events. Other Life Ledger tabs remain review-only in this slice."
-                : activeTab === "people"
-                  ? "Stored people drafts can be approved, rejected, and applied into new Life Ledger people entries. Other Life Ledger tabs remain review-only in this slice."
-                  : activeTab === "financial"
-                    ? "Stored financial drafts can be approved, rejected, and applied into new Life Ledger financial entries. Other Life Ledger tabs remain review-only in this slice."
-                    : activeTab === "subscriptions"
-                      ? "Stored subscription drafts can be approved, rejected, and applied into new Life Ledger subscription entries. Other Life Ledger tabs remain review-only in this slice."
-                      : activeTab === "travel"
-                        ? "Stored travel drafts can be approved, rejected, and applied into new Life Ledger travel entries. Baby remains non-applicable in this slice."
-                  : "Stored drafts are visible here for review only. Apply actions are not enabled for this Life Ledger tab in this slice."
-            }
-            renderDraftActions={
-              activeTab === "baby"
-              || activeTab === "events"
-              || activeTab === "people"
-              || activeTab === "financial"
-              || activeTab === "subscriptions"
-              || activeTab === "travel"
-                ? (draft) => {
-                    const canReview =
-                      draft.reviewState === "needs_review" || draft.reviewState === "approval_gated";
-                    const canApply =
-                      draft.reviewState === "needs_review" || draft.reviewState === "approved";
-                    const isApplying = applyingDraftId === draft.id;
-                    const isReviewing = reviewingDraftId === draft.id;
-
-                    return (
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {canReview ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isApplying || isReviewing}
-                            onClick={() => void handleReviewStateChange(draft.id, "approved")}
-                            data-testid={`button-approve-ai-draft-${draft.id}`}
-                          >
-                            {isReviewing ? "Saving..." : "Approve"}
-                          </Button>
-                        ) : null}
-                        {draft.reviewState !== "rejected" && draft.reviewState !== "applied" ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={isApplying || isReviewing}
-                            onClick={() => void handleReviewStateChange(draft.id, "rejected")}
-                            data-testid={`button-reject-ai-draft-${draft.id}`}
-                          >
-                            {isReviewing ? "Saving..." : "Reject"}
-                          </Button>
-                        ) : null}
-                        <Button
-                          size="sm"
-                          disabled={!canApply || isApplying || isReviewing}
-                          onClick={() => void handleApplyDraft(draft.id)}
-                          data-testid={`button-apply-ai-draft-${draft.id}`}
-                        >
-                          {draft.reviewState === "applied"
-                            ? "Applied"
-                            : isApplying
-                              ? "Applying..."
-                              : activeTab === "people"
-                                ? "Apply to people"
-                                : activeTab === "financial"
-                                  ? "Apply to financial"
-                                  : activeTab === "subscriptions"
-                                    ? "Apply to subscriptions"
-                                    : activeTab === "travel"
-                                      ? "Apply to travel"
-                                      : activeTab === "baby"
-                                        ? "Apply suggested assignment"
-                                        : "Apply to events"}
-                        </Button>
-                      </div>
-                    );
-                  }
-                : undefined
-            }
-            data-testid={`ai-draft-placeholder-life-ledger-${activeTab}`}
-          />
-        )}
+        {showAIDraftReviewBeforeLifeLedgerWork ? lifeLedgerAIDraftReviewPanel : null}
 
         {activeTab === "events" && (
           <>
+            <EventReminderReturnCard
+              items={eventReminderQueue?.items ?? []}
+              entries={entries ?? []}
+              onRunExecutionAction={handleEventExecutionAction}
+              actionState={eventActionState}
+            />
+            {!showAIDraftReviewBeforeLifeLedgerWork ? lifeLedgerAIDraftReviewPanel : null}
             <CalendarLinkStatusCard
               state={lifeLedgerEventsCalendarPlaceholder.state}
               title={lifeLedgerEventsCalendarPlaceholder.title}
@@ -3426,12 +3442,6 @@ export default function LifeLedgerPage() {
               deactivatingDeviceId={mobileSimulatorState.deactivatingDeviceId}
               dispatchingOutboxId={mobileSimulatorState.dispatchingOutboxId}
               errorMessage={mobileSimulatorError}
-            />
-            <EventReminderReturnCard
-              items={eventReminderQueue?.items ?? []}
-              entries={entries ?? []}
-              onRunExecutionAction={handleEventExecutionAction}
-              actionState={eventActionState}
             />
           </>
         )}
