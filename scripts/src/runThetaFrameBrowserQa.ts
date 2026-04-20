@@ -126,6 +126,30 @@ async function expectModalViewportFit(page: Page, label: string) {
   }
 }
 
+async function expectAuthPanelBeforeTheta(
+  page: Page,
+  panelTestId: string,
+  thetaWrapperTestId: string,
+  label: string,
+) {
+  const panel = page.getByTestId(panelTestId);
+  const thetaWrapper = page.getByTestId(thetaWrapperTestId);
+  await panel.waitFor();
+  await thetaWrapper.waitFor();
+  await thetaWrapper.getByTestId("theta-positioning").waitFor();
+
+  const panelBox = await panel.boundingBox();
+  const thetaBox = await thetaWrapper.boundingBox();
+  if (!panelBox || !thetaBox) {
+    throw new Error(`${label} could not read Clerk panel or theta positioning bounds.`);
+  }
+  if (panelBox.y >= thetaBox.y) {
+    throw new Error(
+      `${label} expected Clerk panel above theta positioning. panel=${JSON.stringify(panelBox)} theta=${JSON.stringify(thetaBox)}`,
+    );
+  }
+}
+
 function parseSelectAuthorizedModules(): Set<string> {
   const raw = process.env.THETAFRAME_BROWSER_SELECT_AUTHORIZED_MODULES ?? "life-ledger";
   return new Set(
@@ -306,12 +330,26 @@ function signedOutChecks(): Check[] {
       },
     },
     {
-      label: "sign-in lane renders the auth shell copy",
+      label: "auth lanes render Clerk before theta positioning",
       run: async (page) => {
         await waitForAppReady(page, "/sign-in");
         await page.getByText("Drop In · Rewire · Rise", { exact: true }).waitFor();
         await page.getByText("Sign in with your preferred method.", { exact: true }).waitFor();
-        await page.getByTestId("theta-positioning").waitFor();
+        await expectAuthPanelBeforeTheta(
+          page,
+          "auth-clerk-panel-sign-in",
+          "auth-theta-positioning-sign-in",
+          "Sign In auth order",
+        );
+
+        await waitForAppReady(page, "/sign-up");
+        await page.getByText("Create access with your preferred method.", { exact: true }).waitFor();
+        await expectAuthPanelBeforeTheta(
+          page,
+          "auth-clerk-panel-sign-up",
+          "auth-theta-positioning-sign-up",
+          "Sign Up auth order",
+        );
         return "pass";
       },
     },

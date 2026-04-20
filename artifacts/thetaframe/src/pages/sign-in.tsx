@@ -25,8 +25,17 @@ export default function SignInPage() {
             Continue with Google, or use your ThetaFrame email and account credentials.
           </p>
         </div>
-        <MarketingThetaPositioning compact className="w-full max-w-md" />
-        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={homeRedirectUrl} />
+        <div className="w-full max-w-md" data-testid="auth-clerk-panel-sign-in">
+          <SignIn
+            routing="path"
+            path={`${basePath}/sign-in`}
+            signUpUrl={`${basePath}/sign-up`}
+            fallbackRedirectUrl={homeRedirectUrl}
+          />
+        </div>
+        <div className="w-full max-w-md" data-testid="auth-theta-positioning-sign-in">
+          <MarketingThetaPositioning compact />
+        </div>
       </div>
     </Layout>
   );

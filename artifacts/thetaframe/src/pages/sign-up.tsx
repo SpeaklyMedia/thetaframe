@@ -15,8 +15,17 @@ export default function SignUpPage() {
             Continue with Google, or start with your email address to create or continue your workspace access.
           </p>
         </div>
-        <MarketingThetaPositioning compact className="w-full max-w-md" />
-        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={homeRedirectUrl} />
+        <div className="w-full max-w-md" data-testid="auth-clerk-panel-sign-up">
+          <SignUp
+            routing="path"
+            path={`${basePath}/sign-up`}
+            signInUrl={`${basePath}/sign-in`}
+            fallbackRedirectUrl={homeRedirectUrl}
+          />
+        </div>
+        <div className="w-full max-w-md" data-testid="auth-theta-positioning-sign-up">
+          <MarketingThetaPositioning compact />
+        </div>
       </div>
     </Layout>
   );
