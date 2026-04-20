@@ -1,6 +1,6 @@
 # ThetaFrame Receipt Index
 
-Date: 2026-04-18
+Date: 2026-04-20
 Status: Current high-signal receipt map
 
 ## Current Production Baseline
@@ -98,6 +98,11 @@ Status: Current high-signal receipt map
   - Runs static/build, production browser, isolation, static asset, and focused frontend QA over the C49 state.
   - Redeploys the hardened C49 application commit to production and proves health/root/static assets.
   - Proves post-deploy browser QA with `passes=16`, `skips=0` and focused frontend QA with `17` checks passing.
+
+- `artifacts/receipts/C51-neurodivergent-ux-surface-audit__2026-04-20__R1.md`
+  - Audits public, Basic, Select Authorized, Admin, access-denied, and not-found visual surfaces through a neurodivergent end-user lens.
+  - Classifies always-visible vs callable support content and produces a three-phase simplification roadmap.
+  - Proves production browser QA with `passes=16`, `skips=0`, isolation with `47` checks, and captures `20` focused surface screenshots.
 
 ## AI Draft And Apply Foundation
 
