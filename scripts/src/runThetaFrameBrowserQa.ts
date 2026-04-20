@@ -537,8 +537,13 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByRole("heading", { name: "People to get back to" }).waitFor();
         await page.getByText("People · Next promise · Reminder date · Calendar planning", { exact: true }).waitFor();
         await page.getByTestId("followups-reminder-guidance").waitFor();
-        await page.getByTestId("filter-bar").waitFor();
-        await expectElementBefore(page, "filter-bar", "followups-reminder-guidance", "FollowUps content triage order");
+        if (await page.getByTestId("bizdev-summary").isVisible().catch(() => false)) {
+          await expectElementBefore(page, "bizdev-summary", "followups-reminder-guidance", "FollowUps content triage order");
+        } else if (await page.getByTestId("brands-table").isVisible().catch(() => false)) {
+          await expectElementBefore(page, "brands-table", "followups-reminder-guidance", "FollowUps content triage order");
+        } else {
+          await expectElementBefore(page, "button-empty-new-lead", "followups-reminder-guidance", "FollowUps content triage order");
+        }
         return "pass";
       },
     },
@@ -704,7 +709,9 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("today-canvas").waitFor();
         await page.getByTestId("habit-focus-group-today").waitFor();
         await page.getByTestId("next-step-daily").waitFor();
+        await openDetailsSection(page, "more-ai-drafts-daily");
         await page.getByTestId("ai-time-saver-daily").waitFor();
+        await openDetailsSection(page, "more-help-daily");
         await page.getByTestId("step-order-daily").waitFor();
         await page.getByTestId("workspace-mood-picker").waitFor();
         await page.getByTestId("button-add-daily-must-do").waitFor();
@@ -726,7 +733,9 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("week-canvas").waitFor();
         await page.getByTestId("habit-focus-group-week").waitFor();
         await page.getByTestId("next-step-weekly").waitFor();
+        await openDetailsSection(page, "more-ai-drafts-weekly");
         await page.getByTestId("ai-time-saver-weekly").waitFor();
+        await openDetailsSection(page, "more-help-weekly");
         await page.getByTestId("step-order-weekly").waitFor();
         await page.getByTestId("workspace-mood-picker").waitFor();
         await page.getByTestId("button-add-weekly-step").waitFor();
@@ -744,7 +753,9 @@ function basicOnboardingChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("goals-canvas").waitFor();
         await page.getByTestId("habit-focus-group-goals").waitFor();
         await page.getByTestId("next-step-vision").waitFor();
+        await openDetailsSection(page, "more-ai-drafts-vision");
         await page.getByTestId("ai-time-saver-vision").waitFor();
+        await openDetailsSection(page, "more-help-vision");
         await page.getByTestId("step-order-vision").waitFor();
         await page.getByTestId("workspace-mood-picker").waitFor();
         await page.getByTestId("button-add-vision-goal").waitFor();
