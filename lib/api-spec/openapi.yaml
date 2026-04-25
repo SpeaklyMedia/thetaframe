@@ -931,6 +931,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserMode"
 
+  /user-preferences:
+    get:
+      operationId: getUserPreferences
+      tags: [user-preferences]
+      summary: Get the current user's interface and reminder preferences
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+    put:
+      operationId: upsertUserPreferences
+      tags: [user-preferences]
+      summary: Create or update user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertUserPreferencesBody"
+      responses:
+        "200":
+          description: Upserted user preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
   /me/permissions:
     get:
       operationId: getMyPermissions
@@ -1559,11 +1589,14 @@ components:
           type: string
         text:
           type: string
+        completed:
+          type: boolean
         emoji:
           type: ["string", "null"]
       required:
         - id
         - text
+        - completed
 
     WeeklyFrame:
       type: object
@@ -1728,6 +1761,40 @@ components:
       required:
         - mode
         - colourState
+
+    UserPreferences:
+      type: object
+      properties:
+        reducedStimulation:
+          type: string
+          enum: [default, reduced]
+        density:
+          type: string
+          enum: [comfortable, compact]
+        reminderTone:
+          type: string
+          enum: [gentle, standard]
+      required:
+        - reducedStimulation
+        - density
+        - reminderTone
+
+    UpsertUserPreferencesBody:
+      type: object
+      properties:
+        reducedStimulation:
+          type: string
+          enum: [default, reduced]
+        density:
+          type: string
+          enum: [comfortable, compact]
+        reminderTone:
+          type: string
+          enum: [gentle, standard]
+      required:
+        - reducedStimulation
+        - density
+        - reminderTone
 
     BizdevBrand:
       type: object

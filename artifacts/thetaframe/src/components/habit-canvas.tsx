@@ -67,7 +67,7 @@ export function HabitCanvasSection({
   return (
     <section
       className={cn(
-        "habit-focus-card habit-focus-card-section space-y-4 rounded-lg border border-border/70 bg-background/75 p-4 shadow-sm",
+        "habit-focus-card habit-focus-card-section tf-density-card space-y-4 rounded-lg border border-border/70 bg-background/75 shadow-sm",
         className,
       )}
       data-testid={testId}
@@ -106,7 +106,7 @@ export function HabitCanvasSurface({
 }) {
   return (
     <section
-      className="space-y-5 rounded-lg border border-border/70 bg-muted/20 p-4 shadow-sm md:p-5"
+      className="tf-density-card tf-density-stack space-y-5 rounded-lg border border-border/70 bg-muted/20 shadow-sm"
       data-testid={testId}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -207,7 +207,7 @@ export function AIDraftCanvasBlock({
 
   return (
     <div
-      className="habit-focus-card habit-focus-card-section rounded-lg border border-violet-300/50 bg-violet-50/70 p-4 text-violet-950 dark:border-violet-500/40 dark:bg-violet-950/20 dark:text-violet-100"
+      className="habit-focus-card habit-focus-card-section tf-density-card rounded-lg border border-violet-300/50 bg-violet-50/70 text-violet-950 dark:border-violet-500/40 dark:bg-violet-950/20 dark:text-violet-100"
       data-testid={testId}
       data-habit-focus-card=""
       data-habit-focus-kind="ai"

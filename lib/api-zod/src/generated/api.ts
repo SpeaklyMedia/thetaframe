@@ -332,6 +332,7 @@ export const ListWeeklyFramesResponseItem = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -339,6 +340,7 @@ export const ListWeeklyFramesResponseItem = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -358,6 +360,7 @@ export const CreateWeeklyFrameBody = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -365,6 +368,7 @@ export const CreateWeeklyFrameBody = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -380,6 +384,7 @@ export const CreateWeeklyFrameResponse = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -387,6 +392,7 @@ export const CreateWeeklyFrameResponse = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -411,6 +417,7 @@ export const GetWeeklyFrameResponse = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -418,6 +425,7 @@ export const GetWeeklyFrameResponse = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -439,6 +447,7 @@ export const UpsertWeeklyFrameBody = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -446,6 +455,7 @@ export const UpsertWeeklyFrameBody = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -461,6 +471,7 @@ export const UpsertWeeklyFrameResponse = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -468,6 +479,7 @@ export const UpsertWeeklyFrameResponse = zod.object({
     zod.object({
       id: zod.string(),
       text: zod.string(),
+      completed: zod.boolean(),
       emoji: zod.string().nullish(),
     }),
   ),
@@ -1539,6 +1551,30 @@ export const UpsertUserModeResponse = zod.object({
 });
 
 /**
+ * @summary Get the current user's interface and reminder preferences
+ */
+export const GetUserPreferencesResponse = zod.object({
+  reducedStimulation: zod.enum(["default", "reduced"]),
+  density: zod.enum(["comfortable", "compact"]),
+  reminderTone: zod.enum(["gentle", "standard"]),
+});
+
+/**
+ * @summary Create or update user preferences
+ */
+export const UpsertUserPreferencesBody = zod.object({
+  reducedStimulation: zod.enum(["default", "reduced"]),
+  density: zod.enum(["comfortable", "compact"]),
+  reminderTone: zod.enum(["gentle", "standard"]),
+});
+
+export const UpsertUserPreferencesResponse = zod.object({
+  reducedStimulation: zod.enum(["default", "reduced"]),
+  density: zod.enum(["comfortable", "compact"]),
+  reminderTone: zod.enum(["gentle", "standard"]),
+});
+
+/**
  * @summary Get the current user's permitted modules for the current environment
  */
 export const GetMyPermissionsResponse = zod.object({
@@ -2405,6 +2441,7 @@ export const ApplyAiDraftResponse = zod.object({
         zod.object({
           id: zod.string(),
           text: zod.string(),
+          completed: zod.boolean(),
           emoji: zod.string().nullish(),
         }),
       ),
@@ -2412,6 +2449,7 @@ export const ApplyAiDraftResponse = zod.object({
         zod.object({
           id: zod.string(),
           text: zod.string(),
+          completed: zod.boolean(),
           emoji: zod.string().nullish(),
         }),
       ),

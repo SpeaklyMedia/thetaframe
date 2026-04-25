@@ -144,6 +144,7 @@ export interface UpsertDailyFrameBody {
 export interface WeeklyStep {
   id: string;
   text: string;
+  completed: boolean;
   /** @nullable */
   emoji?: string | null;
 }
@@ -255,6 +256,66 @@ export const UpsertUserModeBodyColourState = {
 export interface UpsertUserModeBody {
   mode: UpsertUserModeBodyMode;
   colourState: UpsertUserModeBodyColourState;
+}
+
+export type UserPreferencesReducedStimulation =
+  (typeof UserPreferencesReducedStimulation)[keyof typeof UserPreferencesReducedStimulation];
+
+export const UserPreferencesReducedStimulation = {
+  default: "default",
+  reduced: "reduced",
+} as const;
+
+export type UserPreferencesDensity =
+  (typeof UserPreferencesDensity)[keyof typeof UserPreferencesDensity];
+
+export const UserPreferencesDensity = {
+  comfortable: "comfortable",
+  compact: "compact",
+} as const;
+
+export type UserPreferencesReminderTone =
+  (typeof UserPreferencesReminderTone)[keyof typeof UserPreferencesReminderTone];
+
+export const UserPreferencesReminderTone = {
+  gentle: "gentle",
+  standard: "standard",
+} as const;
+
+export interface UserPreferences {
+  reducedStimulation: UserPreferencesReducedStimulation;
+  density: UserPreferencesDensity;
+  reminderTone: UserPreferencesReminderTone;
+}
+
+export type UpsertUserPreferencesBodyReducedStimulation =
+  (typeof UpsertUserPreferencesBodyReducedStimulation)[keyof typeof UpsertUserPreferencesBodyReducedStimulation];
+
+export const UpsertUserPreferencesBodyReducedStimulation = {
+  default: "default",
+  reduced: "reduced",
+} as const;
+
+export type UpsertUserPreferencesBodyDensity =
+  (typeof UpsertUserPreferencesBodyDensity)[keyof typeof UpsertUserPreferencesBodyDensity];
+
+export const UpsertUserPreferencesBodyDensity = {
+  comfortable: "comfortable",
+  compact: "compact",
+} as const;
+
+export type UpsertUserPreferencesBodyReminderTone =
+  (typeof UpsertUserPreferencesBodyReminderTone)[keyof typeof UpsertUserPreferencesBodyReminderTone];
+
+export const UpsertUserPreferencesBodyReminderTone = {
+  gentle: "gentle",
+  standard: "standard",
+} as const;
+
+export interface UpsertUserPreferencesBody {
+  reducedStimulation: UpsertUserPreferencesBodyReducedStimulation;
+  density: UpsertUserPreferencesBodyDensity;
+  reminderTone: UpsertUserPreferencesBodyReminderTone;
 }
 
 export type BizdevBrandPhase =

@@ -14,7 +14,7 @@ export function SupportRail({
   return (
     <div
       className={cn(
-        "flex gap-3",
+        "tf-density-stack flex gap-3",
         direction === "col" ? "flex-col" : "flex-row flex-wrap",
         className,
       )}

@@ -62,10 +62,12 @@ import type {
   UpdateAIDraftReviewStateBody,
   UpsertDailyFrameBody,
   UpsertUserModeBody,
+  UpsertUserPreferencesBody,
   UpsertVisionFrameBody,
   UpsertWeeklyFrameBody,
   UserMode,
   UserPermissionsResponse,
+  UserPreferences,
   VisionFrame,
   WeeklyFrame,
 } from "./api.schemas";
@@ -3919,6 +3921,168 @@ export const useUpsertUserMode = <
   TContext
 > => {
   return useMutation(getUpsertUserModeMutationOptions(options));
+};
+
+/**
+ * @summary Get the current user's interface and reminder preferences
+ */
+export const getGetUserPreferencesUrl = () => {
+  return `/api/user-preferences`;
+};
+
+export const getUserPreferences = async (
+  options?: RequestInit,
+): Promise<UserPreferences> => {
+  return customFetch<UserPreferences>(getGetUserPreferencesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserPreferencesQueryKey = () => {
+  return [`/api/user-preferences`] as const;
+};
+
+export const getGetUserPreferencesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserPreferences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUserPreferences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserPreferencesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUserPreferences>>
+  > = ({ signal }) => getUserPreferences({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserPreferences>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserPreferencesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserPreferences>>
+>;
+export type GetUserPreferencesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's interface and reminder preferences
+ */
+
+export function useGetUserPreferences<
+  TData = Awaited<ReturnType<typeof getUserPreferences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUserPreferences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserPreferencesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update user preferences
+ */
+export const getUpsertUserPreferencesUrl = () => {
+  return `/api/user-preferences`;
+};
+
+export const upsertUserPreferences = async (
+  upsertUserPreferencesBody: UpsertUserPreferencesBody,
+  options?: RequestInit,
+): Promise<UserPreferences> => {
+  return customFetch<UserPreferences>(getUpsertUserPreferencesUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertUserPreferencesBody),
+  });
+};
+
+export const getUpsertUserPreferencesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertUserPreferences>>,
+    TError,
+    { data: BodyType<UpsertUserPreferencesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertUserPreferences>>,
+  TError,
+  { data: BodyType<UpsertUserPreferencesBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertUserPreferences"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertUserPreferences>>,
+    { data: BodyType<UpsertUserPreferencesBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertUserPreferences(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertUserPreferencesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertUserPreferences>>
+>;
+export type UpsertUserPreferencesMutationBody =
+  BodyType<UpsertUserPreferencesBody>;
+export type UpsertUserPreferencesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update user preferences
+ */
+export const useUpsertUserPreferences = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertUserPreferences>>,
+    TError,
+    { data: BodyType<UpsertUserPreferencesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertUserPreferences>>,
+  TError,
+  { data: BodyType<UpsertUserPreferencesBody> },
+  TContext
+> => {
+  return useMutation(getUpsertUserPreferencesMutationOptions(options));
 };
 
 /**

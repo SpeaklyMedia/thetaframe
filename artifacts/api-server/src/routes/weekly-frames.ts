@@ -3,12 +3,10 @@ import { eq, and, desc } from "drizzle-orm";
 import { db, weeklyFramesTable } from "@workspace/db";
 import {
   ListWeeklyFramesResponse,
-  CreateWeeklyFrameBody,
   CreateWeeklyFrameResponse,
   GetWeeklyFrameParams,
   GetWeeklyFrameResponse,
   UpsertWeeklyFrameParams,
-  UpsertWeeklyFrameBody,
   UpsertWeeklyFrameResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
@@ -16,6 +14,7 @@ import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates, isValidDateString } from "../lib/serialize.js";
 import { markOnboardingSurfaceComplete } from "../lib/onboarding.js";
 import {
+  normalizeWeeklyFrameRecord,
   WeeklyFrameValidationError,
   upsertWeeklyFrameForUser,
   validateWeeklyFrameUpsertData,
@@ -33,28 +32,33 @@ router.get("/weekly-frames", async (req: Request, res: Response): Promise<void> 
     .where(eq(weeklyFramesTable.userId, userId))
     .orderBy(desc(weeklyFramesTable.weekStart));
 
-  res.json(ListWeeklyFramesResponse.parse(frames.map(serializeDates)));
+  res.json(ListWeeklyFramesResponse.parse(frames.map((frame) => serializeDates(normalizeWeeklyFrameRecord(frame)))));
 });
 
 router.post("/weekly-frames", async (req: Request, res: Response): Promise<void> => {
   const userId = (req as AuthenticatedRequest).userId;
 
-  const body = CreateWeeklyFrameBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).json({ error: body.error.message });
+  const record = req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : null;
+  if (!record) {
+    res.status(400).json({ error: "Request body must be an object." });
+    return;
+  }
+  const weekStart = typeof record.weekStart === "string" ? record.weekStart : "";
+  if (!isValidDateString(weekStart)) {
+    res.status(400).json({ error: "weekStart must be in YYYY-MM-DD format." });
     return;
   }
   let frame;
   try {
     const data = validateWeeklyFrameUpsertData({
-      theme: body.data.theme,
-      steps: body.data.steps,
-      nonNegotiables: body.data.nonNegotiables,
-      recoveryPlan: body.data.recoveryPlan,
+      theme: record.theme,
+      steps: record.steps,
+      nonNegotiables: record.nonNegotiables,
+      recoveryPlan: record.recoveryPlan,
     });
     frame = await upsertWeeklyFrameForUser({
       userId,
-      weekStart: body.data.weekStart,
+      weekStart,
       data,
     });
   } catch (error) {
@@ -97,7 +101,7 @@ router.get("/weekly-frames/:weekStart", async (req: Request, res: Response): Pro
     return;
   }
 
-  res.json(GetWeeklyFrameResponse.parse(serializeDates(frame)));
+  res.json(GetWeeklyFrameResponse.parse(serializeDates(normalizeWeeklyFrameRecord(frame))));
 });
 
 router.put("/weekly-frames/:weekStart", async (req: Request, res: Response): Promise<void> => {
@@ -113,14 +117,9 @@ router.put("/weekly-frames/:weekStart", async (req: Request, res: Response): Pro
     return;
   }
 
-  const body = UpsertWeeklyFrameBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).json({ error: body.error.message });
-    return;
-  }
   let frame;
   try {
-    const data = validateWeeklyFrameUpsertData(body.data);
+    const data = validateWeeklyFrameUpsertData(req.body);
     frame = await upsertWeeklyFrameForUser({
       userId,
       weekStart: params.data.weekStart,

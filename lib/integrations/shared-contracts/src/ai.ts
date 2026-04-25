@@ -141,6 +141,7 @@ const thetaAppliedDailyFrameSchema = z.object({
 const thetaWeeklyFrameStepSchema = z.object({
   id: z.string().min(1),
   text: z.string(),
+  completed: z.boolean().default(false),
   emoji: z.string().nullable().optional(),
 });
 

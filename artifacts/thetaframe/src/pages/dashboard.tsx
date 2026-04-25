@@ -33,6 +33,8 @@ import {
 } from "@/lib/ai-draft-review";
 import { getEmotionColorClass, type WorkspaceColourState } from "@/lib/colors";
 import { getMondayOfCurrentWeek, getTodayDateString } from "@/lib/dates";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { getReminderToneCopy } from "@/lib/user-preferences";
 
 const DASHBOARD_MODE_OPTIONS: readonly {
   label: string;
@@ -78,7 +80,7 @@ function DashboardSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-lg border bg-card/90 p-4 shadow-sm" data-testid={testId}>
+    <section className="tf-density-card rounded-lg border bg-card/90 shadow-sm" data-testid={testId}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">{title}</h2>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
@@ -112,6 +114,7 @@ export default function DashboardPage() {
   const upsertUserMode = useUpsertUserMode();
   const currentColour = isWorkspaceColour(userMode?.colourState) ? userMode.colourState : null;
   const currentMode = userMode?.mode as UserModeMode | undefined;
+  const { preferences } = useUserPreferences();
 
   const dailyDrafts = useListAiDrafts(dailyAIDraftListParams, {
     query: {
@@ -201,7 +204,7 @@ export default function DashboardPage() {
   return (
     <Layout>
       <main
-        className="container mx-auto max-w-6xl space-y-6 p-4 md:p-8"
+        className="tf-density-page tf-density-page-spacious container mx-auto max-w-6xl"
         data-testid="dashboard-control-center"
       >
         <LaneHero
@@ -260,7 +263,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold">{item.label}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                           {item.count > 0 ? `${item.count} draft${item.count === 1 ? "" : "s"} to review.` : "No drafts need review."}
                         </p>
                       </div>
@@ -281,17 +284,17 @@ export default function DashboardPage() {
 
             <DashboardSection
               title="Coming up"
-              description={canLifeLedger ? "Events and reminders stay in your assigned advanced lane." : "Use Today and This Week to plan what is next."}
+              description={canLifeLedger ? getReminderToneCopy(preferences.reminderTone, "dashboardComingUp") : "Use Today and This Week to plan what is next."}
               testId="dashboard-coming-up"
             >
               {canLifeLedger ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80 p-4">
+                <div className="tf-density-card flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80">
                   <div className="flex items-start gap-3">
                     <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
                       <p className="text-sm font-semibold">Life Ledger events</p>
                       <p className="text-sm text-muted-foreground">
-                        Review dated plans, reminders, and appointments.
+                        {getReminderToneCopy(preferences.reminderTone, "dashboardLifeLedger")}
                       </p>
                     </div>
                   </div>
@@ -300,7 +303,7 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-start gap-3 rounded-lg border bg-background/80 p-4">
+                <div className="tf-density-card flex items-start gap-3 rounded-lg border bg-background/80">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
                   <p className="text-sm text-muted-foreground">
                     Start with one action for today, then protect one step for the week.
@@ -314,7 +317,7 @@ export default function DashboardPage() {
               description="Calendar planning is a workspace note right now. Real calendar sync is not on yet."
               testId="dashboard-calendar-planning"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80 p-4">
+              <div className="tf-density-card flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80">
                 <div className="flex items-start gap-3">
                   <ClipboardCheck className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
@@ -371,7 +374,7 @@ export default function DashboardPage() {
                   <Smartphone className="mt-0.5 h-4 w-4 text-primary" />
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      Device and outbox status live with Life Ledger until real push transport is turned on.
+                      {getReminderToneCopy(preferences.reminderTone, "dashboardPhoneRemindersBody")}
                     </p>
                     <Button asChild type="button" variant="outline" size="sm">
                       <Link href="/life-ledger?tab=events">Open reminders</Link>

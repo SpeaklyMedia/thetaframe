@@ -1,7 +1,7 @@
 # ThetaFrame Current Truth
 
-Date: 2026-04-20
-Status: Canonical current-state summary after C52
+Date: 2026-04-25
+Status: Canonical current-state summary after C75 current-contract completion
 
 ## What ThetaFrame Does Now
 
@@ -12,7 +12,7 @@ The signed-out marketing surface now presents ThetaFrame as a stress-to-calm hab
 Current lanes:
 
 - Daily: current-day execution, energy state, Tier A/Tier B tasks, time blocks, micro-win, Daily quick capture, Daily AI draft review/apply.
-- Weekly: weekly rhythm, theme, protected steps, non-negotiables, recovery plan, Weekly AI draft review/apply.
+- Weekly: weekly rhythm, protected-step completion, theme, non-negotiables, recovery plan, Weekly AI draft review/apply.
 - Vision: long-horizon goals plus next visible steps, Vision AI draft review/apply.
 - FollowUps: optional user-facing follow-up lane for people or organizations the user said they would get back to. Internal route/API/module identifiers remain `bizdev` for compatibility.
 - Life Ledger: optional people, events, financial, subscriptions, travel lane; Baby KB is admin-only inside this lane.
@@ -20,6 +20,73 @@ Current lanes:
 - Admin: governance lane for user access, presets, imports, Baby KB admin workflows, and AI review/apply tooling.
 
 Signed-in `/` redirects to `/dashboard`. The dashboard is a navigation and summary surface, not a new analytics database. It shows a Basic brain-dump setup lane, allowed-lane next actions, review-first AI draft status, calendar-planning truth, and Life Ledger mobile/reminder links only when the user has Life Ledger.
+
+The ARCH-1 Executive Console research transport is now ingested locally, and `/console` now exists as the authenticated `ThetaFrame Console` preview shell with the full current-contract live module set. ThetaFrame also now has a shared persisted user-preferences surface for reduced stimulation, density, and reminder tone.
+
+Current Console truth:
+
+- `/dashboard` remains the canonical default signed-in home.
+- `/console` is a preview shell, not a route replacement.
+- signed-in navigation now exposes both Dashboard and Console.
+- Console ships a dedicated shell atmosphere, responsive preview layout buckets, a live Daily-derived `Now Frame`, a live Weekly-derived `Week Vector`, a live Life Ledger-derived `Constraint Horizon`, a live approval-gated `Assistant Review` queue, a live Vision-derived `Continuity` anchor, a minimal live `System Health` band, and a live permission-aware `Lane Atlas`.
+- `Now Frame` surfaces one real Daily object only, using the fallback order `tierA -> tierB -> time block -> micro-win -> empty state`.
+- `Week Vector` stays read-only and surfaces Weekly theme, up to three steps, up to two non-negotiables, and the saved recovery plan when present.
+- Weekly `steps` now persist real `completed` truth end-to-end; legacy rows and legacy Weekly draft payloads normalize forward with `completed=false`.
+- `/weekly` is now the authority for mutating Weekly step completion through inline protected-step checkboxes.
+- `Constraint Horizon` stays read-only and surfaces Life Ledger reminder queue truth first, then upcoming dated Events as a fallback when the queue is quiet.
+- `Constraint Horizon` now also includes one calm read-only urgency strip above the existing rows, bucketed as `due_now`, `near`, and `staged` from reminder queue truth first, then fallback upcoming dated Events when the queue is quiet.
+- `Assistant Review` stays read-only and surfaces one compact actionable AI draft queue across the session's allowed lanes, with provenance plus lane CTAs and no transcript-home behavior.
+- `Continuity` stays read-only and surfaces one Vision goal plus one next visible step when available, with calm fallback states when Vision is sparse or empty.
+- `System Health` stays deliberately conservative: AI review pressure plus safe status chips only.
+- `Lane Atlas` remains live and only exposes permission-aware links to allowed lanes.
+- `Lane Atlas` now also includes one compact read-only core-lane readiness row for `Today`, `This Week`, and `Goals`, using current live Console truth only and staying visually subordinate to the lane links.
+- `REACH Capture` is now a conditional read-only optional-lane support signal below `Continuity`, using existing REACH file truth plus actionable REACH draft truth only.
+- `REACH Capture` stays hidden when the current session cannot access REACH or when REACH has no recent files and no actionable draft pressure.
+- `FollowUps Motion` is now a conditional read-only optional-lane support signal below `REACH Capture`, using existing FollowUps list and summary truth only.
+- `FollowUps Motion` stays hidden when the current session cannot access FollowUps or when FollowUps has no live rows and no summary total.
+- C65 adds the first calm Console progress visuals without changing routes, APIs, or module ownership:
+  - a read-only `Today completion` bar inside `Now Frame`, derived from saved non-empty Daily Tier A tasks;
+  - a compact read-only `Weekly steps` completion ring inside `Week Vector`, now driven by saved non-empty Weekly steps with real persisted completion truth;
+  - a read-only segmented `Review pressure shape` bar inside `System Health`, segmented by `draft`, `needs_review`, and `approval_gated`.
+- C65 keeps those signals subordinate to the existing module hierarchy and does not turn Console into a KPI or chart wall.
+- C66 hardens Weekly truth without adding new routes: `WeeklyStep` now includes `completed`, Weekly routes normalize legacy payloads forward, Weekly AI draft apply preserves compatibility, and the Console ring now reflects actual Weekly completion instead of best-effort optional truth.
+- C59 captured and passed the full Console P0 screenshot proof matrix at `360x800`, `390x844`, `414x896`, `820x1180`, `2752x2064`, `1920x1080`, `5120x2160`, and `5120x1440`.
+- C59 added only bounded responsive remediation: signed-in nav now keeps the mobile menu through tablet widths, and the Console shell now becomes a true two-pane surface starting at the `820x1180` representative tablet breakpoint.
+- C59 proof confirms Console fit and hierarchy on the target surfaces, but it does not approve Console as a replacement for Dashboard as the default signed-in home.
+- C60 adds premium-tablet and ultrawide polish without changing module behavior: `Now Frame` stays more visually dominant, the support rail stays calmer, large-surface reading measure is tighter, and decorative/support chrome is de-emphasized.
+- C61 hardens Console styling against ThetaFrame brand implementation drift: Console shell, panel, chip, text, CTA, and provenance surfaces now resolve through shared semantic Console tokens and utility classes in `src/index.css` instead of page-local raw `slate`/`cyan` branding utilities.
+- C62 keeps the tokenized Console centered-first and passes the refreshed viewport proof at `360x800`, `390x844`, `414x896`, `820x1180`, `2752x2064`, `1920x1080`, `5120x2160`, `5120x1440`, and the added stretch validation surface `6400x1800`.
+- C63 closes the current home-decision gate with no home switch approved: `/dashboard` remains the default signed-in home and `/console` remains an additive orientation surface.
+- Console does not ship calendar projection, inline edits, review/apply controls, reminder transport state, or a Dashboard-to-Console home switch in this slice.
+
+Current shared user-preference truth:
+
+- ThetaFrame now persists one `user_preferences` row per user, separate from `user_modes`.
+- Authenticated `GET /api/user-preferences` and `PUT /api/user-preferences` are live.
+- If a user has no saved row yet, the read contract returns stable defaults instead of `404`.
+- Current preference enums are:
+  - `reducedStimulation`: `default`, `reduced`
+  - `density`: `comfortable`, `compact`
+  - `reminderTone`: `gentle`, `standard`
+- Current default values are:
+  - `reducedStimulation=default`
+  - `density=comfortable`
+  - `reminderTone=gentle`
+- Signed-in header now exposes a `Display + reminders` entry point for these preferences.
+- Shared signed-in shell now carries:
+  - `data-density`
+  - `data-reduced-stimulation`
+  - `data-reminder-tone`
+- Current preference application scope is:
+  - `/dashboard`
+  - `/console`
+  - `/daily`
+  - `/weekly`
+  - `/vision`
+- `reducedStimulation` currently softens non-essential atmosphere, blur, hover-lift, and Canvas emphasis without changing core contrast.
+- `density` currently tightens shared signed-in page and shell spacing modestly without changing reading order.
+- `reminderTone` currently changes reminder-oriented helper copy only; it does not change reminder truth, counts, permissions, or urgency logic.
+- `userMode.mode` and `userMode.colourState` remain separate and unchanged; `user_modes` is not the shared settings bucket.
 
 ## Access Levels
 
@@ -63,7 +130,7 @@ There is no general admin support view for private lane browsing yet. If one is 
 Basic onboarding is repeatable, plain-language, and low-friction:
 
 - the signed-in header has a persistent Start Here button;
-- the signed-in header has a Dashboard link and no longer exposes Explore/Build/Release as a primary badge;
+- the signed-in header has Dashboard and Console links and no longer exposes Explore/Build/Release as a primary badge;
 - Start Here is route-aware: opening it from Daily focuses Today, Weekly focuses This Week, Vision focuses Goals, and Dashboard shows the full Basic path;
 - Start Here has visible Daily/Weekly/Vision tabs and a restart-current-surface action that replays guidance without deleting saved data;
 - Basic Guide shows Daily, Weekly, Vision only;
@@ -152,7 +219,7 @@ THETAFRAME_BROWSER_OUTPUT_DIR=test-results/thetaframe-browser-qa/<slice-name> \
 pnpm run qa:browser
 ```
 
-Expected browser QA result after C52: `passes=16`, `skips=0`.
+Expected browser QA result after C75: `passes=19`, `skips=0`.
 
 Expected isolation proof:
 
@@ -191,15 +258,19 @@ Do not treat these as already implemented:
 - real push transport beyond simulated/local reminder proof;
 - full Select Authorized onboarding for every optional lane;
 - Admin onboarding beyond current governance surfaces;
-- compact/spacious/reduced-stimulation preference settings;
 - production-grade AI generation for every Basic time-saver use case beyond the Dashboard brain-dump batch.
+- reminder/mobile/outbox/device signals inside Console `System Health`;
+- calendar projection inside Console `Constraint Horizon`;
+- 32:9 orbit-edge secondaries, near/far display modes, and deeper Console motion/material passes beyond the current tokenized centered premium polish;
 - persisted per-task feeling color fields or task-level color API/schema changes.
+- per-surface preference overrides, admin-managed preference presets, fullscreen presentation modes, and richer multi-setting personalization beyond the current three shared user preferences.
 
 ## Current High-Value Next Work
 
 Recommended next slices:
 
-1. Implement the C51 Phase B shared surface contract: "Where am I?", "What do I do next?", "What is saved or waiting?", then callable support.
-2. Harden and observe the Dashboard brain-dump setup lane in production.
-3. Add user preference controls for reduced stimulation, density, and reminder tone.
-4. Design explicit audited support/admin views only if cross-user support becomes necessary.
+1. Keep `/dashboard` as the default signed-in home until a separate, proof-backed home-switch experiment is explicitly planned.
+2. If more Console work is needed after C75, keep it narrow and read-only before any broader module family, graph surface, or home-switch experiment.
+3. Prefer similarly calm orientation and support surfaces over any KPI-shaped or route-replacing Console expansion.
+4. Treat 32:9 orbit-edge secondaries or near/far display modes as later proof work only if real usage shows the centered-first Console is insufficient.
+5. Design explicit audited support/admin views only if cross-user support becomes necessary.

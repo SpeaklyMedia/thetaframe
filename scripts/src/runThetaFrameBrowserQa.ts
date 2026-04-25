@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { chromium, type Page } from "playwright";
@@ -25,6 +26,41 @@ type ApiFetchResult = {
   json: unknown;
 };
 
+type ConsoleProofViewport = {
+  key: string;
+  width: number;
+  height: number;
+  kind: "compact" | "tablet" | "desktop" | "ultrawide" | "stretch";
+};
+
+type ConsoleViewportManifestEntry = {
+  viewport: string;
+  filename: string;
+  status: "pass";
+  remediation: string;
+};
+
+type ExpectedUserPreferences = {
+  reducedStimulation: "default" | "reduced";
+  density: "comfortable" | "compact";
+  reminderTone: "gentle" | "standard";
+};
+
+type ReachCaptureExpectation = {
+  hasAccess: boolean;
+  fileCount: number;
+  actionableDraftCount: number;
+};
+
+type BizdevMotionExpectation = {
+  hasAccess: boolean;
+  total: number;
+  rowCount: number;
+  hotCount: number;
+  warmCount: number;
+  coldCount: number;
+};
+
 const headed = process.argv.includes("--headed");
 const baseUrl = process.env.THETAFRAME_BROWSER_BASE_URL ?? "http://127.0.0.1:4173";
 const storageStatePath = resolveStorageStatePath(
@@ -45,6 +81,18 @@ const selectAuthorizedStorageStatePath = resolveStorageStatePath(
 );
 const outputDir = process.env.THETAFRAME_BROWSER_OUTPUT_DIR ?? qaOutputDir;
 const enableAIGenerationQa = process.env.THETAFRAME_BROWSER_ENABLE_AI_GENERATION_QA === "1";
+const consoleProofManifestPath = path.join(outputDir, "c70-console-viewport-manifest.json");
+const consoleProofViewports: readonly ConsoleProofViewport[] = [
+  { key: "360x800", width: 360, height: 800, kind: "compact" },
+  { key: "390x844", width: 390, height: 844, kind: "compact" },
+  { key: "414x896", width: 414, height: 896, kind: "compact" },
+  { key: "820x1180", width: 820, height: 1180, kind: "tablet" },
+  { key: "2752x2064", width: 2752, height: 2064, kind: "tablet" },
+  { key: "1920x1080", width: 1920, height: 1080, kind: "desktop" },
+  { key: "5120x2160", width: 5120, height: 2160, kind: "ultrawide" },
+  { key: "5120x1440", width: 5120, height: 1440, kind: "ultrawide" },
+  { key: "6400x1800", width: 6400, height: 1800, kind: "stretch" },
+] as const;
 
 function sanitizeLabel(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -78,12 +126,20 @@ async function expectWorkspaceColour(page: Page, colour: "green" | "yellow" | "r
 
 async function dismissOnboardingIfVisible(page: Page) {
   const modal = page.getByTestId("signed-in-onboarding-modal");
+  const button = page.getByTestId("button-dismiss-onboarding-modal");
+
+  if (!(await modal.isVisible().catch(() => false))) {
+    await page.waitForTimeout(400);
+  }
+
   if (await modal.isVisible().catch(() => false)) {
-    const button = page.getByTestId("button-dismiss-onboarding-modal");
-    if (await button.isVisible().catch(() => false)) {
-      await button.click();
-      await modal.waitFor({ state: "hidden" }).catch(() => undefined);
-    }
+    await button.waitFor();
+    await button.click();
+    await modal.waitFor({ state: "hidden", timeout: 10000 }).catch(() => undefined);
+  }
+
+  if (await modal.isVisible().catch(() => false)) {
+    throw new Error("Signed-in onboarding modal remained open after dismissal.");
   }
 }
 
@@ -226,6 +282,87 @@ function getJsonRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function getJsonArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function assertUserPreferences(result: ApiFetchResult, expected: ExpectedUserPreferences, label: string) {
+  assertStatus(result, [200], label);
+  const body = getJsonRecord(result.json);
+
+  for (const [key, value] of Object.entries(expected)) {
+    if (body[key] !== value) {
+      throw new Error(`${label} ${key}=${String(body[key])}; expected ${value}.`);
+    }
+  }
+}
+
+function getUserPreferencesFromResult(result: ApiFetchResult, label: string): ExpectedUserPreferences {
+  assertStatus(result, [200], label);
+  const body = getJsonRecord(result.json);
+
+  const reducedStimulation = body.reducedStimulation;
+  const density = body.density;
+  const reminderTone = body.reminderTone;
+
+  if (
+    (reducedStimulation !== "default" && reducedStimulation !== "reduced") ||
+    (density !== "comfortable" && density !== "compact") ||
+    (reminderTone !== "gentle" && reminderTone !== "standard")
+  ) {
+    throw new Error(`${label} returned an invalid preference payload: ${JSON.stringify(body)}.`);
+  }
+
+  return {
+    reducedStimulation,
+    density,
+    reminderTone,
+  };
+}
+
+async function expectShellPreferenceAttributes(page: Page, expected: ExpectedUserPreferences, label: string) {
+  const shell = page.locator(".workspace-shell").first();
+  await shell.waitFor();
+
+  const density = await shell.getAttribute("data-density");
+  const reducedStimulation = await shell.getAttribute("data-reduced-stimulation");
+  const reminderTone = await shell.getAttribute("data-reminder-tone");
+
+  if (density !== expected.density) {
+    throw new Error(`${label} density attribute=${String(density)}; expected ${expected.density}.`);
+  }
+  if (reducedStimulation !== expected.reducedStimulation) {
+    throw new Error(
+      `${label} reduced stimulation attribute=${String(reducedStimulation)}; expected ${expected.reducedStimulation}.`,
+    );
+  }
+  if (reminderTone !== expected.reminderTone) {
+    throw new Error(`${label} reminder tone attribute=${String(reminderTone)}; expected ${expected.reminderTone}.`);
+  }
+}
+
+async function openUserPreferencesDialog(page: Page) {
+  const dialog = page.getByTestId("dialog-user-preferences");
+  if (await dialog.isVisible().catch(() => false)) {
+    return;
+  }
+
+  await dismissOnboardingIfVisible(page);
+  const trigger = page.getByTestId("button-open-user-preferences");
+  await trigger.waitFor();
+  await trigger.click();
+  await dialog.waitFor();
+}
+
+async function saveUserPreferences(page: Page, preferences: ExpectedUserPreferences) {
+  await openUserPreferencesDialog(page);
+  await page.getByTestId(`button-user-preferences-reduced-stimulation-${preferences.reducedStimulation}`).click();
+  await page.getByTestId(`button-user-preferences-density-${preferences.density}`).click();
+  await page.getByTestId(`button-user-preferences-reminder-tone-${preferences.reminderTone}`).click();
+  await page.getByTestId("button-save-user-preferences").click();
+  await page.getByTestId("dialog-user-preferences").waitFor({ state: "hidden" });
+}
+
 async function expectPermissions(page: Page, expectedModules: readonly string[], expectedIsAdmin: boolean, label: string) {
   const result = await fetchApi(page, "/api/me/permissions");
   assertStatus(result, [200], `${label} permissions`);
@@ -246,6 +383,334 @@ async function expectPermissions(page: Page, expectedModules: readonly string[],
   if (body.isAdmin !== expectedIsAdmin) {
     throw new Error(`${label} permissions isAdmin=${String(body.isAdmin)}; expected ${String(expectedIsAdmin)}.`);
   }
+}
+
+async function expectNoHorizontalOverflow(page: Page, label: string) {
+  const overflow = await page.evaluate(() => {
+    const browserGlobal = globalThis as typeof globalThis & {
+      innerWidth: number;
+      document: {
+        documentElement: { scrollWidth: number };
+        body: { scrollWidth: number };
+      };
+    };
+
+    return {
+      viewportWidth: browserGlobal.innerWidth,
+      docScrollWidth: browserGlobal.document.documentElement.scrollWidth,
+      bodyScrollWidth: browserGlobal.document.body.scrollWidth,
+    };
+  });
+
+  if (
+    overflow.docScrollWidth > overflow.viewportWidth + 1 ||
+    overflow.bodyScrollWidth > overflow.viewportWidth + 1
+  ) {
+    throw new Error(
+      `${label} overflowed horizontally. viewport=${overflow.viewportWidth} docScrollWidth=${overflow.docScrollWidth} bodyScrollWidth=${overflow.bodyScrollWidth}`,
+    );
+  }
+}
+
+async function expectElementFullyVisible(
+  page: Page,
+  selector: string,
+  label: string,
+  options: { requireTopInViewport?: boolean } = {},
+) {
+  const locator = page.getByTestId(selector);
+  await locator.waitFor();
+  await locator.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+
+  const box = await locator.boundingBox();
+  const viewport = page.viewportSize();
+
+  if (!box || !viewport) {
+    throw new Error(`${label} could not read element bounds.`);
+  }
+
+  const viewportRight = viewport.width + 1;
+  const viewportBottom = viewport.height + 1;
+  const topVisible = options.requireTopInViewport === false ? true : box.y >= -1;
+  const fits =
+    topVisible &&
+    box.x >= -1 &&
+    box.x + box.width <= viewportRight &&
+    box.y + box.height <= viewportBottom;
+
+  if (!fits) {
+    throw new Error(
+      `${label} exceeded the viewport. box=${JSON.stringify(box)} viewport=${JSON.stringify(viewport)}`,
+    );
+  }
+}
+
+async function expectElementFitsViewportWidth(page: Page, selector: string, label: string) {
+  const locator = page.getByTestId(selector);
+  await locator.waitFor();
+  await locator.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+
+  const box = await locator.boundingBox();
+  const viewport = page.viewportSize();
+
+  if (!box || !viewport) {
+    throw new Error(`${label} could not read element bounds.`);
+  }
+
+  if (box.x < -1 || box.x + box.width > viewport.width + 1) {
+    throw new Error(
+      `${label} exceeded the viewport width. box=${JSON.stringify(box)} viewport=${JSON.stringify(viewport)}`,
+    );
+  }
+}
+
+async function readPaddingTop(page: Page, testId: string): Promise<number> {
+  const locator = page.getByTestId(testId);
+  await locator.waitFor();
+  return page.evaluate((targetTestId) => {
+    const browserGlobal = globalThis as typeof globalThis & {
+      document: {
+        querySelector: (selector: string) => object | null;
+      };
+      getComputedStyle: (element: object) => {
+        paddingTop: string;
+      };
+    };
+    const element = browserGlobal.document.querySelector(`[data-testid="${targetTestId}"]`);
+    if (!element) {
+      throw new Error(`Could not find ${targetTestId} for padding read.`);
+    }
+
+    return Number.parseFloat(browserGlobal.getComputedStyle(element).paddingTop);
+  }, testId);
+}
+
+async function readHeaderBackdropFilter(page: Page): Promise<string> {
+  const header = page.getByTestId("app-header");
+  await header.waitFor();
+  return page.evaluate(() => {
+    const browserGlobal = globalThis as typeof globalThis & {
+      document: {
+        querySelector: (selector: string) => object | null;
+      };
+      getComputedStyle: (element: object) => {
+        backdropFilter: string;
+      };
+    };
+    const element = browserGlobal.document.querySelector('[data-testid="app-header"]');
+    if (!element) {
+      throw new Error("Could not find app header for backdrop-filter read.");
+    }
+
+    return browserGlobal.getComputedStyle(element).backdropFilter;
+  });
+}
+
+async function expectConsolePrimaryHierarchy(page: Page, label: string, viewport: ConsoleProofViewport) {
+  if (viewport.kind === "compact") {
+    const nowFrameBox = await page.getByTestId("console-region-now-frame").boundingBox();
+    const weekVectorBox = await page.getByTestId("console-region-week-vector").boundingBox();
+    const systemHealthBox = await page.getByTestId("console-region-system-health").boundingBox();
+
+    if (!nowFrameBox || !weekVectorBox || !systemHealthBox) {
+      throw new Error(`${label} could not read compact Console hierarchy bounds.`);
+    }
+
+    if (!(nowFrameBox.y < weekVectorBox.y && nowFrameBox.y < systemHealthBox.y)) {
+      throw new Error(
+        `${label} did not keep Now Frame first in the compact reading order. nowFrame=${JSON.stringify(nowFrameBox)} weekVector=${JSON.stringify(weekVectorBox)} systemHealth=${JSON.stringify(systemHealthBox)}`,
+      );
+    }
+
+    return;
+  }
+
+  const nowFrameBox = await page.getByTestId("console-region-now-frame").boundingBox();
+  const systemHealthBox = await page.getByTestId("console-region-system-health").boundingBox();
+
+  if (!nowFrameBox || !systemHealthBox) {
+    throw new Error(`${label} could not read Console hierarchy bounds.`);
+  }
+
+  const dominanceRatio = nowFrameBox.width / systemHealthBox.width;
+  const minimumRatio =
+    viewport.kind === "tablet" ? 1.2 :
+    viewport.kind === "stretch" ? 1.5 :
+    viewport.kind === "ultrawide" ? 1.45 :
+    viewport.key === "1920x1080" ? 1.32 :
+    1.2;
+
+  if (dominanceRatio <= minimumRatio) {
+    throw new Error(
+      `${label} lost Now Frame dominance and drifted toward equal-priority card walls. ratio=${dominanceRatio.toFixed(2)} minimum=${minimumRatio.toFixed(2)} nowFrame=${JSON.stringify(nowFrameBox)} systemHealth=${JSON.stringify(systemHealthBox)}`,
+    );
+  }
+}
+
+async function expectConsoleCenteredReadingField(page: Page, label: string, viewport: ConsoleProofViewport) {
+  if (viewport.kind !== "ultrawide" && viewport.kind !== "stretch" && viewport.key !== "2752x2064") return;
+
+  const shellBox = await page.getByTestId("console-shell").boundingBox();
+  const contentBandBox = await page.locator('[data-testid="console-shell"] > div').first().boundingBox();
+  const visibleViewport = page.viewportSize();
+
+  if (!shellBox || !contentBandBox || !visibleViewport) {
+    throw new Error(`${label} could not read Console shell bounds.`);
+  }
+
+  const leftGutter = contentBandBox.x;
+  const rightGutter = visibleViewport.width - (contentBandBox.x + contentBandBox.width);
+  const gutterDelta = Math.abs(leftGutter - rightGutter);
+  const minimumGutter =
+    viewport.kind === "stretch" ? 420 :
+    viewport.kind === "ultrawide" ? 300 :
+    140;
+
+  if (leftGutter < minimumGutter || rightGutter < minimumGutter || gutterDelta > 80) {
+    throw new Error(
+      `${label} drifted too close to the viewport edge or lost centered balance. leftGutter=${leftGutter} rightGutter=${rightGutter} gutterDelta=${gutterDelta} shell=${JSON.stringify(shellBox)} contentBand=${JSON.stringify(contentBandBox)} viewport=${JSON.stringify(visibleViewport)}`,
+    );
+  }
+}
+
+async function expectConsoleModuleViewportFit(page: Page, label: string) {
+  await expectElementFitsViewportWidth(page, "console-region-now-frame", `${label} Now Frame module`);
+  await expectElementFitsViewportWidth(page, "console-now-frame-progress", `${label} Now Frame progress`);
+  await expectElementFullyVisible(page, "console-now-frame-primary-cta", `${label} Now Frame CTA`);
+  await expectElementFitsViewportWidth(page, "console-region-system-health", `${label} System Health module`);
+  await expectElementFitsViewportWidth(page, "console-system-health-review-pressure", `${label} System Health review pressure`);
+  await expectElementFitsViewportWidth(page, "console-region-week-vector", `${label} Week Vector module`);
+  await expectElementFitsViewportWidth(page, "console-week-vector-progress-ring", `${label} Week Vector progress ring`);
+  await expectElementFullyVisible(page, "console-week-vector-primary-cta", `${label} Week Vector CTA`);
+  await expectElementFitsViewportWidth(page, "console-region-constraint-horizon", `${label} Constraint Horizon module`);
+  await expectElementFitsViewportWidth(
+    page,
+    "console-constraint-horizon-urgency-strip",
+    `${label} Constraint Horizon urgency strip`,
+  );
+  await expectElementFullyVisible(page, "console-constraint-horizon-primary-cta", `${label} Constraint Horizon CTA`);
+  await expectElementFitsViewportWidth(page, "console-region-lane-atlas", `${label} Lane Atlas module`);
+  await expectElementFitsViewportWidth(page, "console-lane-readiness-row", `${label} Lane readiness row`);
+
+  if (await page.getByTestId("console-assistant-review-queue-present").isVisible().catch(() => false)) {
+    await expectElementFitsViewportWidth(
+      page,
+      "console-region-assistant-review",
+      `${label} Assistant Review module`,
+    );
+    const firstReviewCta = page.locator('[data-testid^="console-assistant-review-row-cta-"]').first();
+    await firstReviewCta.waitFor();
+    await firstReviewCta.scrollIntoViewIfNeeded();
+    const buttonBox = await firstReviewCta.boundingBox();
+    const viewport = page.viewportSize();
+
+    if (!buttonBox || !viewport) {
+      throw new Error(`${label} could not read Assistant Review CTA bounds.`);
+    }
+
+    if (buttonBox.x < -1 || buttonBox.x + buttonBox.width > viewport.width + 1) {
+      throw new Error(
+        `${label} clipped the Assistant Review CTA. box=${JSON.stringify(buttonBox)} viewport=${JSON.stringify(viewport)}`,
+      );
+    }
+  } else {
+    await expectElementFitsViewportWidth(page, "console-region-assistant-review", `${label} Assistant Review module`);
+    await expectElementFullyVisible(page, "console-assistant-review-primary-cta", `${label} Assistant Review CTA`);
+  }
+
+  await expectElementFitsViewportWidth(page, "console-region-continuity", `${label} Continuity module`);
+  await expectElementFullyVisible(page, "console-continuity-primary-cta", `${label} Continuity CTA`);
+
+  if (await page.getByTestId("console-region-reach-capture").isVisible().catch(() => false)) {
+    await expectElementFitsViewportWidth(page, "console-region-reach-capture", `${label} REACH Capture module`);
+    await expectElementFullyVisible(page, "console-reach-capture-primary-cta", `${label} REACH Capture CTA`);
+  }
+
+  if (await page.getByTestId("console-region-bizdev-motion").isVisible().catch(() => false)) {
+    await expectElementFitsViewportWidth(page, "console-region-bizdev-motion", `${label} FollowUps Motion module`);
+    await expectElementFullyVisible(page, "console-bizdev-motion-primary-cta", `${label} FollowUps Motion CTA`);
+  }
+}
+
+async function expectConsoleMobileNavAccess(page: Page, viewport: ConsoleProofViewport) {
+  if (viewport.kind !== "compact") return;
+
+  const mobileNavButton = page.getByTestId("button-mobile-nav");
+  await mobileNavButton.waitFor();
+  await mobileNavButton.click();
+  await page.getByTestId("dropdown-mobile-nav").waitFor();
+  await page.getByTestId("link-dashboard-mobile").waitFor();
+  await page.getByTestId("link-console-mobile").waitFor();
+  await page.keyboard.press("Escape");
+  await page.getByTestId("dropdown-mobile-nav").waitFor({ state: "hidden" }).catch(() => undefined);
+}
+
+function writeConsoleProofManifest(entries: ConsoleViewportManifestEntry[]) {
+  ensureDir(outputDir);
+  fs.writeFileSync(consoleProofManifestPath, `${JSON.stringify(entries, null, 2)}\n`);
+}
+
+async function getReachCaptureExpectation(page: Page): Promise<ReachCaptureExpectation> {
+  const filesResult = await fetchApi(page, "/api/reach/files");
+  if (filesResult.status === 403) {
+    return {
+      hasAccess: false,
+      fileCount: 0,
+      actionableDraftCount: 0,
+    };
+  }
+
+  assertStatus(filesResult, [200], "REACH Capture files API");
+
+  const draftsResult = await fetchApi(
+    page,
+    "/api/ai-drafts?lane=reach&draftKind=reach_file_summary&limit=5",
+  );
+  assertStatus(draftsResult, [200], "REACH Capture drafts API");
+
+  const actionableDraftCount = getJsonArray(draftsResult.json).filter((draft) => {
+    const reviewState = getJsonRecord(draft).reviewState;
+    return reviewState === "draft" || reviewState === "needs_review" || reviewState === "approval_gated";
+  }).length;
+
+  return {
+    hasAccess: true,
+    fileCount: getJsonArray(filesResult.json).length,
+    actionableDraftCount,
+  };
+}
+
+async function getBizdevMotionExpectation(page: Page): Promise<BizdevMotionExpectation> {
+  const brandsResult = await fetchApi(page, "/api/bizdev/brands");
+  if (brandsResult.status === 403) {
+    return {
+      hasAccess: false,
+      total: 0,
+      rowCount: 0,
+      hotCount: 0,
+      warmCount: 0,
+      coldCount: 0,
+    };
+  }
+
+  assertStatus(brandsResult, [200], "FollowUps Motion brands API");
+  const summaryResult = await fetchApi(page, "/api/bizdev/brands/summary");
+  assertStatus(summaryResult, [200], "FollowUps Motion summary API");
+
+  const brands = getJsonArray(brandsResult.json);
+  const summary = getJsonRecord(summaryResult.json);
+  const counts = getJsonRecord(summary.counts);
+
+  return {
+    hasAccess: true,
+    total: typeof summary.total === "number" ? summary.total : brands.length,
+    rowCount: brands.length,
+    hotCount: typeof counts.HOT === "number" ? counts.HOT : 0,
+    warmCount: typeof counts.WARM === "number" ? counts.WARM : 0,
+    coldCount: typeof counts.COLD === "number" ? counts.COLD : 0,
+  };
 }
 
 async function expectLifeLedgerEventsSurface(page: Page) {
@@ -271,8 +736,278 @@ async function expectLifeLedgerEventsSurface(page: Page) {
   throw new Error(`Life Ledger events surface marker was not visible; checked ${markers.join(", ")}.`);
 }
 
+async function expectConsoleShell(page: Page, label: string) {
+  await page.getByTestId("console-shell").waitFor();
+  await page.getByTestId("text-console-title").waitFor();
+  await page.getByTestId("console-region-now-frame").waitFor();
+  await page.getByTestId("console-now-frame-live").waitFor();
+  await page.getByTestId("console-now-frame-progress").waitFor();
+  await page.getByTestId("console-now-frame-progress-label").waitFor();
+  await page.getByTestId("console-now-frame-primary-cta").waitFor();
+  await page.getByTestId("console-region-system-health").waitFor();
+  await page.getByTestId("console-system-health-live").waitFor();
+  await page.getByTestId("console-system-health-chip-review-count").waitFor();
+  await page.getByTestId("console-system-health-chip-lane-access").waitFor();
+  await page.getByTestId("console-system-health-chip-console-state").waitFor();
+  await page.getByTestId("console-system-health-review-pressure").waitFor();
+  await page.getByTestId("console-system-health-review-pressure-segment-draft").waitFor({ state: "attached" });
+  await page.getByTestId("console-system-health-review-pressure-segment-needs-review").waitFor({ state: "attached" });
+  await page.getByTestId("console-system-health-review-pressure-segment-approval-gated").waitFor({ state: "attached" });
+  await page.getByTestId("console-region-week-vector").waitFor();
+  await page.getByTestId("console-week-vector-live").waitFor();
+  await page.getByTestId("console-week-vector-progress-ring").waitFor();
+  await page.getByTestId("console-week-vector-primary-cta").waitFor();
+  await page.getByTestId("console-region-constraint-horizon").waitFor();
+  await page.getByTestId("console-constraint-horizon-live").waitFor();
+  await page.getByTestId("console-constraint-horizon-urgency-strip").waitFor();
+  await page.getByTestId("console-constraint-horizon-urgency-strip-label").waitFor();
+  await page
+    .getByTestId("console-constraint-horizon-urgency-segment-due-now")
+    .waitFor({ state: "attached" });
+  await page.getByTestId("console-constraint-horizon-urgency-segment-near").waitFor({ state: "attached" });
+  await page
+    .getByTestId("console-constraint-horizon-urgency-segment-staged")
+    .waitFor({ state: "attached" });
+  await page.getByTestId("console-constraint-horizon-primary-cta").waitFor();
+  await page.getByTestId("console-region-lane-atlas").waitFor();
+  await page.getByTestId("console-lane-readiness-row").waitFor();
+  await page.getByTestId("console-lane-readiness-daily").waitFor();
+  await page.getByTestId("console-lane-readiness-weekly").waitFor();
+  await page.getByTestId("console-lane-readiness-vision").waitFor();
+  await page.getByTestId("console-region-assistant-review").waitFor();
+  await page.getByTestId("console-assistant-review-live").waitFor();
+  await page.getByTestId("console-region-continuity").waitFor();
+  await page.getByTestId("console-continuity-live").waitFor();
+  await page.getByTestId("console-continuity-primary-cta").waitFor();
+  await page.getByTestId("console-lane-link-daily").waitFor();
+  await page.getByTestId("console-lane-link-weekly").waitFor();
+  await page.getByTestId("console-lane-link-vision").waitFor();
+
+  if (await page.getByTestId("button-mobile-nav").isVisible().catch(() => false)) {
+    await page.getByTestId("button-mobile-nav").waitFor();
+  } else {
+    await page.getByTestId("link-dashboard").waitFor();
+    await page.getByTestId("link-console").waitFor();
+  }
+  const nowFrameSourceMarkers = [
+    "console-now-frame-source-tier-a",
+    "console-now-frame-source-tier-b",
+    "console-now-frame-source-time-block",
+    "console-now-frame-source-micro-win",
+    "console-now-frame-source-empty",
+  ];
+
+  let hasSourceMarker = false;
+  for (const marker of nowFrameSourceMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasSourceMarker = true;
+      break;
+    }
+  }
+
+  if (!hasSourceMarker) {
+    throw new Error(`${label} did not render a Console Now Frame source marker.`);
+  }
+
+  const nowFrameProgressMarkers = [
+    "console-now-frame-progress-fill",
+    "console-now-frame-progress-bar",
+  ];
+  let hasNowFrameProgressMarker = false;
+  for (const marker of nowFrameProgressMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasNowFrameProgressMarker = true;
+      break;
+    }
+  }
+
+  if (!hasNowFrameProgressMarker) {
+    throw new Error(`${label} did not render a Console Now Frame progress marker.`);
+  }
+
+  const constraintHorizonMarkers = [
+    "console-constraint-horizon-due-now",
+    "console-constraint-horizon-coming-up",
+    "console-constraint-horizon-fallback-events",
+    "console-constraint-horizon-empty-state",
+  ];
+  let hasConstraintHorizonMarker = false;
+  for (const marker of constraintHorizonMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasConstraintHorizonMarker = true;
+      break;
+    }
+  }
+
+  if (!hasConstraintHorizonMarker) {
+    throw new Error(`${label} did not render a live Constraint Horizon state marker.`);
+  }
+
+  const urgencyStripMarkers = [
+    "console-constraint-horizon-urgency-segment-due-now",
+    "console-constraint-horizon-urgency-segment-near",
+    "console-constraint-horizon-urgency-segment-staged",
+    "console-constraint-horizon-urgency-strip-empty-state",
+  ];
+  let hasUrgencyStripMarker = false;
+  for (const marker of urgencyStripMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasUrgencyStripMarker = true;
+      break;
+    }
+  }
+
+  if (!hasUrgencyStripMarker) {
+    throw new Error(`${label} did not render a visible Constraint Horizon urgency strip state marker.`);
+  }
+
+  const laneReadinessMarkers = [
+    "console-lane-readiness-daily-ready",
+    "console-lane-readiness-daily-not-ready",
+    "console-lane-readiness-weekly-ready",
+    "console-lane-readiness-weekly-not-ready",
+    "console-lane-readiness-vision-ready",
+    "console-lane-readiness-vision-not-ready",
+  ];
+  let hasLaneReadinessMarker = false;
+  for (const marker of laneReadinessMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasLaneReadinessMarker = true;
+      break;
+    }
+  }
+
+  if (!hasLaneReadinessMarker) {
+    throw new Error(`${label} did not render a visible Console lane readiness state marker.`);
+  }
+
+  const weekVectorProgressMarkers = [
+    "console-week-vector-progress-value",
+    "console-week-vector-progress-empty-state",
+  ];
+  let hasWeekVectorProgressMarker = false;
+  for (const marker of weekVectorProgressMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasWeekVectorProgressMarker = true;
+      break;
+    }
+  }
+
+  if (!hasWeekVectorProgressMarker) {
+    throw new Error(`${label} did not render a Week Vector progress marker.`);
+  }
+
+  const assistantReviewMarkers = [
+    "console-assistant-review-queue-present",
+    "console-assistant-review-empty-state",
+  ];
+  let hasAssistantReviewMarker = false;
+  for (const marker of assistantReviewMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasAssistantReviewMarker = true;
+      break;
+    }
+  }
+
+  if (!hasAssistantReviewMarker) {
+    throw new Error(`${label} did not render a live Assistant Review state marker.`);
+  }
+
+  if (await page.getByTestId("console-assistant-review-queue-present").isVisible().catch(() => false)) {
+    await page.locator('[data-testid^="console-assistant-review-lane-"]').first().waitFor();
+    await page.locator('[data-testid^="console-assistant-review-provenance-chip-"]').first().waitFor();
+    await page.locator('[data-testid^="console-assistant-review-row-cta-"]').first().waitFor();
+  }
+
+  const continuityMarkers = [
+    "console-continuity-goal-present",
+    "console-continuity-next-step-present",
+    "console-continuity-empty-state",
+  ];
+  let hasContinuityMarker = false;
+  for (const marker of continuityMarkers) {
+    if (await page.getByTestId(marker).isVisible().catch(() => false)) {
+      hasContinuityMarker = true;
+      break;
+    }
+  }
+
+  if (!hasContinuityMarker) {
+    throw new Error(`${label} did not render a live Continuity state marker.`);
+  }
+
+  const reachCaptureExpectation = await getReachCaptureExpectation(page);
+  const reachCaptureVisible = await page.getByTestId("console-region-reach-capture").isVisible().catch(() => false);
+
+  if (!reachCaptureExpectation.hasAccess || (reachCaptureExpectation.fileCount === 0 && reachCaptureExpectation.actionableDraftCount === 0)) {
+    if (reachCaptureVisible) {
+      throw new Error(
+        `${label} rendered REACH Capture without a live REACH signal. access=${reachCaptureExpectation.hasAccess} files=${reachCaptureExpectation.fileCount} actionableDrafts=${reachCaptureExpectation.actionableDraftCount}.`,
+      );
+    }
+  } else {
+    if (!reachCaptureVisible) {
+      throw new Error(
+        `${label} hid REACH Capture despite live REACH truth. files=${reachCaptureExpectation.fileCount} actionableDrafts=${reachCaptureExpectation.actionableDraftCount}.`,
+      );
+    }
+
+    await page.getByTestId("console-reach-capture-live").waitFor();
+    await page.getByTestId("console-reach-capture-primary-cta").waitFor();
+
+    if (reachCaptureExpectation.fileCount > 0) {
+      await page.getByTestId("console-reach-capture-chip-files").waitFor();
+      await page.locator('[data-testid^="console-reach-capture-file-row-"]').first().waitFor();
+    }
+
+    if (reachCaptureExpectation.actionableDraftCount > 0) {
+      await page.getByTestId("console-reach-capture-chip-review").waitFor();
+    }
+  }
+
+  const bizdevMotionExpectation = await getBizdevMotionExpectation(page);
+  const bizdevMotionVisible = await page.getByTestId("console-region-bizdev-motion").isVisible().catch(() => false);
+
+  if (!bizdevMotionExpectation.hasAccess || (bizdevMotionExpectation.total === 0 && bizdevMotionExpectation.rowCount === 0)) {
+    if (bizdevMotionVisible) {
+      throw new Error(
+        `${label} rendered FollowUps Motion without a live FollowUps signal. access=${bizdevMotionExpectation.hasAccess} total=${bizdevMotionExpectation.total} rows=${bizdevMotionExpectation.rowCount}.`,
+      );
+    }
+  } else {
+    if (!bizdevMotionVisible) {
+      throw new Error(
+        `${label} hid FollowUps Motion despite live FollowUps truth. total=${bizdevMotionExpectation.total} rows=${bizdevMotionExpectation.rowCount}.`,
+      );
+    }
+
+    await page.getByTestId("console-bizdev-motion-live").waitFor();
+    await page.getByTestId("console-bizdev-motion-primary-cta").waitFor();
+
+    if (bizdevMotionExpectation.hotCount > 0) {
+      await page.getByTestId("console-bizdev-motion-chip-hot").waitFor();
+    }
+    if (bizdevMotionExpectation.warmCount > 0) {
+      await page.getByTestId("console-bizdev-motion-chip-warm").waitFor();
+    }
+    if (bizdevMotionExpectation.coldCount > 0) {
+      await page.getByTestId("console-bizdev-motion-chip-cold").waitFor();
+    }
+    if (bizdevMotionExpectation.rowCount > 0) {
+      await page.locator('[data-testid^="console-bizdev-motion-row-"]').first().waitFor();
+    }
+  }
+
+  if (await page.getByText("Dashboard remains the default signed-in home.", { exact: true }).isVisible().catch(() => false)) {
+    return;
+  }
+
+  throw new Error(`${label} did not render the Console preview-shell home contract copy.`);
+}
+
 async function expectBasicApiAccess(page: Page) {
   await expectPermissions(page, ["daily", "weekly", "vision"], false, "Basic API matrix");
+  await expectApiStatus(page, "/api/user-preferences", [200], "Basic user preferences API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/daily-frames", "Basic daily API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/weekly-frames", "Basic weekly API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/vision-frames", "Basic vision API");
@@ -285,6 +1020,7 @@ async function expectBasicApiAccess(page: Page) {
 
 async function expectSelectAuthorizedApiAccess(page: Page) {
   await expectPermissions(page, ["daily", "weekly", "vision", "life-ledger"], false, "Select Authorized API matrix");
+  await expectApiStatus(page, "/api/user-preferences", [200], "Select Authorized user preferences API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/life-ledger/events", "Select Authorized Life Ledger API");
   await expectApiStatus(page, "/api/bizdev/brands", [403], "Select Authorized FollowUps API");
   await expectApiStatus(page, "/api/reach/files", [403], "Select Authorized REACH API");
@@ -294,6 +1030,7 @@ async function expectSelectAuthorizedApiAccess(page: Page) {
 
 async function expectAdminApiAccess(page: Page) {
   await expectPermissions(page, ["daily", "weekly", "vision", "bizdev", "life-ledger", "reach"], true, "Admin API matrix");
+  await expectApiStatus(page, "/api/user-preferences", [200], "Admin user preferences API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/admin/users", "Admin users API");
   await expectApiNotUnauthorizedOrForbidden(page, "/api/life-ledger/baby", "Admin Baby KB API");
 }
@@ -314,6 +1051,7 @@ async function captureEvidence(page: Page, label: string) {
     path: path.join(outputDir, filename),
     fullPage: true,
   }).catch(() => undefined);
+  return filename;
 }
 
 async function runChecks(page: Page, checks: Check[]) {
@@ -397,6 +1135,14 @@ function signedOutChecks(): Check[] {
         return "pass";
       },
     },
+    {
+      label: "signed-out protected console route falls back to the public home",
+      run: async (page) => {
+        await waitForAppReady(page, "/console");
+        await page.getByRole("heading", { name: "A quiet place for your mind." }).waitFor();
+        return "pass";
+      },
+    },
   ];
 }
 
@@ -406,6 +1152,7 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
       label: "signed-in home lands on control center dashboard",
       run: async (page) => {
         if (!storageState) return "skip";
+
         await waitForAppReady(page, "/");
         await ensureAuthenticatedSession(page, "/dashboard", "Dashboard browser QA");
         await dismissOnboardingIfVisible(page);
@@ -424,8 +1171,141 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await page.getByTestId("ai-draft-canvas-block").waitFor();
         await page.getByTestId("dashboard-calendar-planning").waitFor();
 
+        const initialPreferences = getUserPreferencesFromResult(
+          await fetchApi(page, "/api/user-preferences"),
+          "User preferences initial API",
+        );
+        const updatedPreferences: ExpectedUserPreferences = {
+          reducedStimulation:
+            initialPreferences.reducedStimulation === "default" ? "reduced" : "default",
+          density: initialPreferences.density === "comfortable" ? "compact" : "comfortable",
+          reminderTone: initialPreferences.reminderTone === "gentle" ? "standard" : "gentle",
+        };
+        await expectShellPreferenceAttributes(page, initialPreferences, "Dashboard initial preferences");
+
+        const defaultDashboardPadding = await readPaddingTop(page, "dashboard-control-center");
+        const defaultHeaderBackdropFilter = await readHeaderBackdropFilter(page);
+
         if (await page.getByTestId("button-mode-badge").isVisible().catch(() => false)) {
           throw new Error("Header still exposed the old mode badge.");
+        }
+
+        await saveUserPreferences(page, updatedPreferences);
+        assertUserPreferences(
+          await fetchApi(page, "/api/user-preferences"),
+          updatedPreferences,
+          "User preferences save API",
+        );
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForLoadState("networkidle").catch(() => undefined);
+        await dismissOnboardingIfVisible(page);
+        await page.getByTestId("dashboard-control-center").waitFor();
+        await expectShellPreferenceAttributes(page, updatedPreferences, "Dashboard saved preferences");
+
+        const compactDashboardPadding = await readPaddingTop(page, "dashboard-control-center");
+        const expectedPaddingDelta =
+          updatedPreferences.density === "compact"
+            ? compactDashboardPadding < defaultDashboardPadding
+            : compactDashboardPadding > defaultDashboardPadding;
+        if (!expectedPaddingDelta) {
+          throw new Error(
+            `Density update did not change dashboard spacing in the expected direction. before=${defaultDashboardPadding} after=${compactDashboardPadding} initial=${initialPreferences.density} updated=${updatedPreferences.density}.`,
+          );
+        }
+
+        const reducedHeaderBackdropFilter = await readHeaderBackdropFilter(page);
+        if (
+          (updatedPreferences.reducedStimulation === "reduced" && reducedHeaderBackdropFilter !== "none") ||
+          (updatedPreferences.reducedStimulation === "default" && reducedHeaderBackdropFilter === "none")
+        ) {
+          throw new Error(
+            `Reduced stimulation update did not change header blur in the expected direction. backdropFilter=${reducedHeaderBackdropFilter} initial=${initialPreferences.reducedStimulation} updated=${updatedPreferences.reducedStimulation}.`,
+          );
+        }
+
+        if (await page.getByText("Life Ledger events", { exact: true }).isVisible().catch(() => false)) {
+          await page
+            .getByText(
+              updatedPreferences.reminderTone === "standard"
+                ? "Review dated plans, reminders, and appointments."
+                : "Review dated plans, reminders, and appointments at a calm pace.",
+              { exact: true },
+            )
+            .waitFor();
+        }
+
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Console preferences browser QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Console preferences browser QA");
+        await expectShellPreferenceAttributes(page, updatedPreferences, "Console saved preferences");
+
+        const standardConstraintCopyOptions = [
+          "Overdue or reminding inside the next 24 hours.",
+          "Nothing is due right now. The next reminder-active items are staged below.",
+          "Reminder-active items beyond the immediate window.",
+          "No additional reminder-active items are queued after the due-now window.",
+          "No reminder-active horizon is pressing right now.",
+        ];
+        let hasStandardReminderCopy = false;
+        const updatedConstraintCopyOptions =
+          updatedPreferences.reminderTone === "standard"
+            ? standardConstraintCopyOptions
+            : [
+                "Needs a closer look inside the next 24 hours.",
+                "Nothing urgent is pressing right now. The next reminder-active items are staged below.",
+                "Reminder-active items that can stay in view without taking over the Console.",
+                "No additional reminder-active items are waiting after the near-term window.",
+                "No reminder-active horizon needs attention right now.",
+              ];
+        for (const copy of updatedConstraintCopyOptions) {
+          if (await page.getByText(copy, { exact: true }).isVisible().catch(() => false)) {
+            hasStandardReminderCopy = true;
+            break;
+          }
+        }
+        if (!hasStandardReminderCopy) {
+          throw new Error("Console did not render the updated reminder tone copy after saving preferences.");
+        }
+
+        await waitForAppReady(page, "/dashboard");
+        await ensureAuthenticatedSession(page, "/dashboard", "Dashboard preference restore QA");
+        await dismissOnboardingIfVisible(page);
+        await saveUserPreferences(page, initialPreferences);
+        assertUserPreferences(
+          await fetchApi(page, "/api/user-preferences"),
+          initialPreferences,
+          "User preferences restore API",
+        );
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForLoadState("networkidle").catch(() => undefined);
+        await dismissOnboardingIfVisible(page);
+        await page.getByTestId("dashboard-control-center").waitFor();
+        await expectShellPreferenceAttributes(page, initialPreferences, "Dashboard restored preferences");
+
+        const restoredDashboardPadding = await readPaddingTop(page, "dashboard-control-center");
+        if (restoredDashboardPadding !== defaultDashboardPadding) {
+          throw new Error(
+            `Dashboard spacing did not restore to the original value. initial=${defaultDashboardPadding} restored=${restoredDashboardPadding}.`,
+          );
+        }
+
+        const restoredHeaderBackdropFilter = await readHeaderBackdropFilter(page);
+        if (restoredHeaderBackdropFilter !== defaultHeaderBackdropFilter) {
+          throw new Error(
+            `Header blur did not restore to the original value. initial=${defaultHeaderBackdropFilter} restored=${restoredHeaderBackdropFilter}.`,
+          );
+        }
+
+        if (await page.getByText("Life Ledger events", { exact: true }).isVisible().catch(() => false)) {
+          await page
+            .getByText(
+              initialPreferences.reminderTone === "standard"
+                ? "Review dated plans, reminders, and appointments."
+                : "Review dated plans, reminders, and appointments at a calm pace.",
+              { exact: true },
+            )
+            .waitFor();
         }
 
         await captureEvidence(page, "c37-dashboard-desktop");
@@ -462,6 +1342,46 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
       },
     },
     {
+      label: "console preview shell passes the full P0 viewport proof matrix",
+      run: async (page) => {
+        if (!storageState) return "skip";
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Console browser QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Console browser QA");
+        const manifestEntries: ConsoleViewportManifestEntry[] = [];
+
+        for (const viewport of consoleProofViewports) {
+          await page.setViewportSize({ width: viewport.width, height: viewport.height });
+          await page.waitForTimeout(250);
+          await expectConsoleShell(page, `Console browser QA ${viewport.key}`);
+          await expectNoHorizontalOverflow(page, `Console browser QA ${viewport.key}`);
+          await expectConsoleMobileNavAccess(page, viewport);
+          await expectConsolePrimaryHierarchy(page, `Console browser QA ${viewport.key}`, viewport);
+          await expectConsoleCenteredReadingField(page, `Console browser QA ${viewport.key}`, viewport);
+          await expectConsoleModuleViewportFit(page, `Console browser QA ${viewport.key}`);
+          await page.evaluate(() => {
+            const browserGlobal = globalThis as typeof globalThis & {
+              scrollTo: (x: number, y: number) => void;
+            };
+            browserGlobal.scrollTo(0, 0);
+          });
+          await page.waitForTimeout(150);
+          const filename = await captureEvidence(page, `c70-console-${viewport.key}`);
+          manifestEntries.push({
+            viewport: `${viewport.width}x${viewport.height}`,
+            filename,
+            status: "pass",
+            remediation: "none",
+          });
+          writeConsoleProofManifest(manifestEntries);
+        }
+
+        await page.setViewportSize({ width: 1440, height: 960 });
+        return "pass";
+      },
+    },
+    {
       label: "weekly lane mounts with core step order",
       run: async (page) => {
         if (!storageState) return "skip";
@@ -474,6 +1394,89 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
         await expectElementBefore(page, "week-canvas", "more-help-weekly", "Weekly content triage order");
         await openDetailsSection(page, "more-help-weekly");
         await page.getByTestId("step-order-weekly").waitFor();
+        const stepInputs = page.locator('[data-testid^="input-step-"]');
+        const stepCheckboxes = page.locator('[data-testid^="checkbox-weekly-step-"]');
+        const stepCount = await stepInputs.count();
+        let targetIndex = -1;
+
+        for (let index = 0; index < stepCount; index += 1) {
+          const value = await stepInputs.nth(index).inputValue();
+          if (value.trim().length > 0) {
+            targetIndex = index;
+            break;
+          }
+        }
+
+        let createdTemporaryStep = false;
+        let originalText = "";
+
+        if (targetIndex === -1) {
+          targetIndex = 0;
+          createdTemporaryStep = true;
+          originalText = await stepInputs.nth(targetIndex).inputValue();
+          await stepInputs.nth(targetIndex).fill("C66 QA weekly step");
+          await stepInputs.nth(targetIndex).blur();
+          await page.waitForTimeout(500);
+          await page.reload({ waitUntil: "domcontentloaded" });
+          await page.waitForLoadState("networkidle").catch(() => undefined);
+          await dismissOnboardingIfVisible(page);
+          await page.getByTestId("week-canvas").waitFor();
+        }
+
+        const targetCheckbox = stepCheckboxes.nth(targetIndex);
+        const initialChecked = (await targetCheckbox.getAttribute("data-state")) === "checked";
+
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Weekly-to-console ring QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Weekly-to-console ring QA");
+        const initialRingValue = await page.getByTestId("console-week-vector-progress-value").textContent();
+
+        await waitForAppReady(page, "/weekly");
+        await ensureAuthenticatedSession(page, "/weekly", "Weekly step completion QA");
+        await dismissOnboardingIfVisible(page);
+        await page.getByTestId("week-canvas").waitFor();
+
+        const refreshedCheckbox = page.locator('[data-testid^="checkbox-weekly-step-"]').nth(targetIndex);
+        await refreshedCheckbox.click();
+        await page.waitForTimeout(500);
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForLoadState("networkidle").catch(() => undefined);
+        await dismissOnboardingIfVisible(page);
+        await page.getByTestId("week-canvas").waitFor();
+
+        const persistedChecked =
+          (await page.locator('[data-testid^="checkbox-weekly-step-"]').nth(targetIndex).getAttribute("data-state")) === "checked";
+        if (persistedChecked === initialChecked) {
+          throw new Error("Weekly step completion toggle did not persist across reload.");
+        }
+
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Weekly ring follow-through QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Weekly ring follow-through QA");
+        const updatedRingValue = await page.getByTestId("console-week-vector-progress-value").textContent();
+
+        if (initialRingValue === updatedRingValue) {
+          throw new Error(
+            `Weekly completion did not change the Console Week Vector ring. initial=${initialRingValue} updated=${updatedRingValue}.`,
+          );
+        }
+
+        await waitForAppReady(page, "/weekly");
+        await ensureAuthenticatedSession(page, "/weekly", "Weekly step completion restore QA");
+        await dismissOnboardingIfVisible(page);
+        await page.getByTestId("week-canvas").waitFor();
+        await page.locator('[data-testid^="checkbox-weekly-step-"]').nth(targetIndex).click();
+        await page.waitForTimeout(500);
+
+        if (createdTemporaryStep) {
+          const restoreInput = page.locator('[data-testid^="input-step-"]').nth(targetIndex);
+          await restoreInput.fill(originalText);
+          await restoreInput.blur();
+          await page.waitForTimeout(500);
+        }
+
         await captureEvidence(page, "c42-week-canvas-desktop");
         return "pass";
       },
@@ -553,6 +1556,18 @@ function authenticatedChecks(storageState: string | undefined): Check[] {
 function adminChecks(storageState: string | undefined): Check[] {
   return [
     {
+      label: "console preview shell mounts for admin sessions",
+      run: async (page) => {
+        if (!storageState) return "skip";
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Admin Console browser QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Admin Console browser QA");
+        await page.getByTestId("console-lane-link-admin").waitFor();
+        return "pass";
+      },
+    },
+    {
       label: "life ledger baby tab mounts for admin sessions",
       run: async (page) => {
         if (!storageState) return "skip";
@@ -598,6 +1613,11 @@ function basicRouteMatrixChecks(storageState: string | undefined): Check[] {
         await ensureAuthenticatedSession(page, "/daily", "Basic Daily route-matrix QA");
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("text-daily-title").waitFor();
+
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Basic Console route-matrix QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Basic Console route-matrix QA");
 
         await waitForAppReady(page, "/weekly");
         await ensureAuthenticatedSession(page, "/weekly", "Basic Weekly route-matrix QA");
@@ -830,6 +1850,11 @@ function selectAuthorizedRouteMatrixChecks(storageState: string | undefined): Ch
         await ensureAuthenticatedSession(page, "/daily", "Select Authorized Daily route-matrix QA");
         await dismissOnboardingIfVisible(page);
         await page.getByTestId("text-daily-title").waitFor();
+
+        await waitForAppReady(page, "/console");
+        await ensureAuthenticatedSession(page, "/console", "Select Authorized Console route-matrix QA");
+        await dismissOnboardingIfVisible(page);
+        await expectConsoleShell(page, "Select Authorized Console route-matrix QA");
 
         await waitForAppReady(page, "/weekly");
         await ensureAuthenticatedSession(page, "/weekly", "Select Authorized Weekly route-matrix QA");

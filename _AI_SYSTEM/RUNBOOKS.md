@@ -2,7 +2,7 @@
 
 ## Browser Automation Runbook
 
-Date: 2026-04-15
+Date: 2026-04-25
 Scope: ThetaFrame local and deployed UI verification
 
 ### Canonical Browser Standard
@@ -121,6 +121,8 @@ Env vars still override them when needed.
 3. `pnpm run qa:browser`
 4. authenticated API smoke only for flows that remain browser-blocked or non-visual
 
+Current expected headless browser result after C75: `passes=19`, `skips=0`
+
 ### Route Checklist
 
 Signed-out:
@@ -134,6 +136,7 @@ Authenticated when storage state is provided:
 
 - `/` redirects to `/dashboard`
 - `/dashboard`
+- `/console`
 - `/daily`
 - `/weekly`
 - `/vision`
@@ -146,6 +149,7 @@ Admin-only when admin storage state is provided:
 
 Access matrix when Basic storage state is provided:
 
+- allowed UI: `/console`
 - allowed UI: `/daily`, `/weekly`, `/vision`
 - denied UI: `/bizdev`, `/life-ledger?tab=events`, `/reach`, `/admin`
 - allowed API: `/api/daily-frames`, `/api/weekly-frames`, `/api/vision-frames`
@@ -153,6 +157,7 @@ Access matrix when Basic storage state is provided:
 
 Access matrix when Select Authorized storage state is provided with the default `life-ledger` profile:
 
+- allowed UI: `/console`
 - allowed UI: `/daily`, `/weekly`, `/vision`, `/life-ledger?tab=events`
 - denied UI: `/bizdev`, `/reach`, `/admin`
 - Baby KB tab and Baby KB admin content must remain hidden

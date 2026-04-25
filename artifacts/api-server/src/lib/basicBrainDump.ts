@@ -134,6 +134,7 @@ function generatedSteps(items: string[], max: number) {
   return items.filter((text) => text.trim().length > 0).slice(0, max).map((text) => ({
     id: randomUUID(),
     text,
+    completed: false,
     emoji: null,
   }));
 }
@@ -291,8 +292,18 @@ async function getExistingContext(userId: string, date: string, weekStart: strin
   const weeklyBase = weeklyFrame
     ? {
         theme: weeklyFrame.theme ?? null,
-        steps: existingTextItems(weeklyFrame.steps, 3).map(({ id, text, emoji }) => ({ id, text, emoji: emoji ?? null })),
-        nonNegotiables: existingTextItems(weeklyFrame.nonNegotiables, 5).map(({ id, text, emoji }) => ({ id, text, emoji: emoji ?? null })),
+        steps: existingTextItems(weeklyFrame.steps, 3).map(({ id, text, completed, emoji }) => ({
+          id,
+          text,
+          completed: completed ?? false,
+          emoji: emoji ?? null,
+        })),
+        nonNegotiables: existingTextItems(weeklyFrame.nonNegotiables, 5).map(({ id, text, emoji }) => ({
+          id,
+          text,
+          completed: false,
+          emoji: emoji ?? null,
+        })),
         recoveryPlan: weeklyFrame.recoveryPlan ?? null,
       }
     : {

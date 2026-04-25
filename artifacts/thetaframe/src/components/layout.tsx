@@ -9,12 +9,14 @@ import {
   type WorkspaceColourState,
 } from "@/lib/colors";
 import { useAuthSession } from "@/hooks/use-auth-session";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 type LaneKey =
+  | "console"
   | "daily"
   | "weekly"
   | "vision"
@@ -31,6 +33,11 @@ type LaneAtmosphere = {
 type WorkspaceColourKey = WorkspaceColourState | "neutral";
 
 const LANE_ATMOSPHERES: Record<LaneKey, LaneAtmosphere> = {
+  console: {
+    lane: "console",
+    background:
+      "radial-gradient(circle at 50% 0%, rgb(var(--console-accent-rgb) / 0.22), transparent 34%), radial-gradient(circle at 14% 18%, rgb(var(--console-accent-strong-rgb) / 0.14), transparent 28%), linear-gradient(180deg, rgb(var(--console-shell-ink-rgb) / 0.22), transparent 60%)",
+  },
   daily: {
     lane: "daily",
     background:
@@ -69,6 +76,9 @@ const LANE_ATMOSPHERES: Record<LaneKey, LaneAtmosphere> = {
 };
 
 function resolveLane(pathname: string): LaneAtmosphere | null {
+  if (pathname === "/console" || pathname.startsWith("/console/")) {
+    return LANE_ATMOSPHERES.console;
+  }
   if (pathname === "/daily" || pathname.startsWith("/daily/")) {
     return LANE_ATMOSPHERES.daily;
   }
@@ -138,6 +148,7 @@ export function Layout({ children }: LayoutProps) {
       retry: 0,
     },
   });
+  const { preferences } = useUserPreferences(Boolean(user));
   const pathname = location.split("?")[0] || "/";
   const atmosphere = resolveLane(pathname);
   const workspaceColour = (user && status === "ready" ? userMode?.colourState : null) ?? null;
@@ -149,10 +160,13 @@ export function Layout({ children }: LayoutProps) {
       className="workspace-shell relative isolate min-h-[100dvh] flex flex-col bg-background"
       data-lane={atmosphere?.lane ?? "neutral"}
       data-workspace-colour={workspaceColourKey}
+      data-density={preferences.density}
+      data-reduced-stimulation={preferences.reducedStimulation}
+      data-reminder-tone={preferences.reminderTone}
     >
       {atmosphereStyle ? (
         <div
-          className="pointer-events-none absolute inset-0 z-0"
+          className="workspace-atmosphere pointer-events-none absolute inset-0 z-0"
           style={atmosphereStyle}
           aria-hidden="true"
         />

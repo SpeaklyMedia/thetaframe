@@ -15,7 +15,7 @@ export type BabyPromotionSurface = "daily" | "weekly" | "vision";
 export type BabyBulkOperation = "mark-verified" | "add-tag" | "remove-tag";
 
 type TierTask = { id: string; text: string; completed: boolean };
-type WeeklyStep = { id: string; text: string; emoji?: string | null };
+type WeeklyStep = { id: string; text: string; completed: boolean; emoji?: string | null };
 type VisionGoal = { id: string; text: string };
 type MaterializationMetadata = Record<string, unknown>;
 
@@ -34,12 +34,18 @@ function getTierTasks(value: unknown): TierTask[] {
     : [];
 }
 
-function getWeeklySteps(value: unknown): WeeklyStep[] {
+function getWeeklySteps(value: unknown, preserveCompletion = true): WeeklyStep[] {
   return Array.isArray(value)
     ? value.filter(
-        (item): item is WeeklyStep =>
+        (item): item is Record<string, unknown> =>
           Boolean(item && typeof item === "object" && typeof (item as WeeklyStep).id === "string" && typeof (item as WeeklyStep).text === "string"),
       )
+        .map((item) => ({
+          id: item.id as string,
+          text: item.text as string,
+          completed: preserveCompletion && typeof item.completed === "boolean" ? item.completed : false,
+          emoji: typeof item.emoji === "string" || item.emoji === null ? item.emoji : null,
+        }))
     : [];
 }
 
@@ -119,7 +125,7 @@ function fillFirstBlankStep(steps: WeeklyStep[], text: string): { steps: WeeklyS
 
   const itemId = randomUUID();
   return {
-    steps: [...steps, { id: itemId, text }],
+    steps: [...steps, { id: itemId, text, completed: false, emoji: null }],
     itemId,
     reusedBlank: false,
   };
@@ -367,7 +373,7 @@ export async function promoteBabyKbEntry(
       .from(weeklyFramesTable)
       .where(and(eq(weeklyFramesTable.userId, userId), eq(weeklyFramesTable.weekStart, targetContainerKey)));
 
-    const steps = getWeeklySteps(existingFrame?.steps);
+    const steps = getWeeklySteps(existingFrame?.steps, true);
     const next = fillFirstBlankStep(steps, promotionText);
 
     const [frame] = await db
@@ -377,7 +383,7 @@ export async function promoteBabyKbEntry(
         weekStart: targetContainerKey,
         theme: existingFrame?.theme ?? null,
         steps: next.steps,
-        nonNegotiables: getWeeklySteps(existingFrame?.nonNegotiables),
+        nonNegotiables: getWeeklySteps(existingFrame?.nonNegotiables, false),
         recoveryPlan: existingFrame?.recoveryPlan ?? null,
       })
       .onConflictDoUpdate({
@@ -385,7 +391,7 @@ export async function promoteBabyKbEntry(
         set: {
           theme: existingFrame?.theme ?? null,
           steps: next.steps,
-          nonNegotiables: getWeeklySteps(existingFrame?.nonNegotiables),
+          nonNegotiables: getWeeklySteps(existingFrame?.nonNegotiables, false),
           recoveryPlan: existingFrame?.recoveryPlan ?? null,
           updatedAt: new Date(),
         },

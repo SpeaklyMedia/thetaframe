@@ -1,7 +1,7 @@
 # ThetaFrame Receipt Index
 
-Date: 2026-04-20
-Status: Current high-signal receipt map
+Date: 2026-04-25
+Status: Current high-signal receipt map after C75 current-contract completion
 
 ## Current Production Baseline
 
@@ -113,6 +113,106 @@ Status: Current high-signal receipt map
   - Hardens `_AI_SYSTEM/NEURODIVERGENT_INTERFACE_GUIDE.md` as the canonical UX surface contract.
   - Documents the core-action-first, callable-support-second rule for future UI-facing work.
   - Records that C53 is documentation-only and keeps the latest C52 production/browser QA baseline.
+
+- `artifacts/receipts/C55-console-route-and-layout-foundation__2026-04-23__R1.md`
+  - Adds the first authenticated `/console` route, signed-in nav entry, dedicated Console shell atmosphere, and preview module layout.
+  - Keeps `/dashboard` as the default signed-in home while proving Console access for signed-in, Basic, Select Authorized, and Admin sessions.
+  - Records the verification and deployment baseline for the first Console runtime slice.
+
+- `artifacts/receipts/C56-live-console-now-frame-and-system-health__2026-04-23__R1.md`
+  - Activates a live Daily-derived `Now Frame` and a minimal live `System Health` band inside `/console`.
+  - Keeps `/dashboard` as the default signed-in home and leaves the remaining Console modules as placeholders.
+  - Records production deploy, refreshed browser proof, and the deferred Console follow-on modules.
+
+- `artifacts/receipts/C57-live-console-week-vector-and-constraint-horizon__2026-04-23__R1.md`
+  - Activates a live Weekly-derived `Week Vector` and a live Life Ledger-derived `Constraint Horizon` inside `/console`.
+  - Keeps `/dashboard` as the default signed-in home and leaves `Assistant Review` plus `Continuity` deferred.
+  - Records production deploy, refreshed browser proof, and the no-calendar-projection Console contract for this slice.
+
+- `artifacts/receipts/C58-live-console-assistant-review-and-continuity__2026-04-23__R1.md`
+  - Activates a live compact `Assistant Review` queue and a live Vision-derived `Continuity` anchor inside `/console`.
+  - Keeps `/dashboard` as the default signed-in home and preserves Console as a read-only orientation surface.
+  - Records production deploy, refreshed browser proof, and the no-transcript-home / no-inline-apply Console contract for this slice.
+
+- `artifacts/receipts/C59-console-p0-proof-and-fit-signoff__2026-04-23__R1.md`
+  - Captures the full Console P0 viewport proof matrix and records the per-viewport screenshot manifest.
+  - Fixes the tablet-width signed-in header overflow and promotes Console to a true two-pane tablet layout at the representative `820x1180` surface.
+  - Records final production deploy, browser proof with `passes=19`, `skips=0`, and the explicit decision to keep `/dashboard` as the default signed-in home.
+
+- `artifacts/receipts/C60-premium-console-polish__2026-04-23__R1.md`
+  - Polishes the live Console layout for premium tablet and ultrawide surfaces without changing routes, data behavior, or module inventory.
+  - Tightens the centered reading field, reinforces `Now Frame` dominance, narrows the support rail, and de-emphasizes large-surface support chrome.
+  - Records final production deploy, refreshed C60 viewport evidence, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C61-brand-aligned-console-style-hardening__2026-04-23__R1.md`
+  - Moves Console shell, panel, chip, text, CTA, and provenance styling onto shared semantic Console tokens and utility classes.
+  - Removes raw `slate` and `cyan` brand utilities from the Console page while preserving module structure and test ids.
+  - Records the shared-token implementation baseline for later Console material work.
+
+- `artifacts/receipts/C62-console-stretch-validation-and-wide-surface-tuning__2026-04-23__R1.md`
+  - Re-proves the tokenized Console on the authenticated viewport matrix and adds a centered-first `6400x1800` stretch validation surface.
+  - Keeps `/dashboard` as the default signed-in home and records final production deploy, viewport manifest, and browser proof with `passes=19`, `skips=0`.
+  - Records the sequential env-refresh rebuild that fixed the intermediate blank-shell public home regression.
+
+- `artifacts/receipts/C63-console-home-decision-gate__2026-04-23__R1.md`
+  - Closes the current Console observation gate after C61 and C62.
+  - Explicitly keeps `/dashboard` as the default signed-in home and leaves `/console` additive.
+  - Defers any default-home trial to a separate future plan.
+
+- `artifacts/receipts/C64-shared-user-preference-controls__2026-04-23__R1.md`
+  - Adds the shared persisted `user_preferences` surface, authenticated read/write endpoints, and the signed-in `Display + reminders` settings entry point.
+  - Applies reduced stimulation, density, and reminder-tone preferences across Dashboard, Console, and the core Daily/Weekly/Vision signed-in lanes without changing routes or permissions.
+  - Records production schema push, deploy, browser proof with `passes=19`, `skips=0`, and the resolved hook-memoization fix for the initial preferences-dialog render loop.
+
+- `artifacts/receipts/C65-console-progress-signals__2026-04-24__R1.md`
+  - Adds the first calm Console progress visuals: a Today completion bar in `Now Frame`, a Weekly completion ring in `Week Vector`, and a segmented review-pressure bar in `System Health`.
+  - Keeps `/dashboard` as the default signed-in home, preserves Console as a read-only orientation surface, and defers the `Constraint Horizon` urgency strip.
+  - Records final production deploy, refreshed C65 viewport manifest, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C66-weekly-step-completion-truth__2026-04-24__R1.md`
+  - Hardens Weekly step completion truth end-to-end so `WeeklyStep.completed` persists through storage, API reads/writes, AI draft apply, and Weekly UI toggles.
+  - Makes the Console `Week Vector` completion ring fully truthful while keeping Console read-only and `/dashboard` as the default signed-in home.
+  - Records database push, final production deploy, refreshed C66 viewport manifest, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C67-constraint-horizon-urgency-strip__2026-04-24__R1.md`
+  - Adds one calm read-only urgency strip inside Console `Constraint Horizon`, driven by reminder queue truth first and fallback upcoming dated Events only when the queue is quiet.
+  - Keeps `/dashboard` as the default signed-in home, preserves `Constraint Horizon` as a reminder-first surface, and avoids new routes, APIs, schema changes, or write paths.
+  - Records final production deploy, refreshed C67 viewport manifest, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C68-console-lane-readiness-and-plan-resolution__2026-04-24__R1.md`
+  - Adds one compact read-only core-lane readiness row inside Console `Lane Atlas` using only current Daily, Weekly, and Vision truth.
+  - Resolves stale Console execution docs so they match the shipped C55-C68 baseline and keep `/dashboard` as the default signed-in home.
+  - Records final production deploy, refreshed C68 viewport manifest, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C69-console-reach-capture-signal__2026-04-24__R1.md`
+  - Adds one conditional read-only `REACH Capture` module to Console using existing REACH file truth plus actionable REACH draft truth only.
+  - Keeps `/dashboard` as the default signed-in home, preserves Console hierarchy, and collapses the module when REACH is inaccessible or empty.
+  - Records final production deploy, refreshed C69 viewport manifest, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C70-console-bizdev-motion-signal__2026-04-24__R1.md`
+  - Adds one conditional read-only `FollowUps Motion` module to Console using existing FollowUps list and phase-summary truth only.
+  - Keeps `/dashboard` as the default signed-in home, preserves Console hierarchy, and collapses the module when FollowUps is inaccessible or empty.
+  - Records final production deploy, refreshed C70 viewport manifest, and browser proof with `passes=19`, `skips=0`.
+
+- `artifacts/receipts/C71-current-contract-baseline-normalization__2026-04-25__R1.md`
+  - Freezes the local C55-C70 worktree as the true current-contract baseline and corrects stale SSOT docs that still pointed at C68 or pre-Console product truth.
+  - Records the verified local baseline, refreshed roadmap/runbook/verification docs, and the file set that becomes authoritative for the completion program.
+
+- `artifacts/receipts/C72-core-lane-current-contract-closeout__2026-04-25__R1.md`
+  - Audits Dashboard, Daily, Weekly, and Vision against the current product contract and confirms no runtime gap remains beyond the already-shipped C55-C70 baseline.
+  - Records the proof bar for core-lane hierarchy, review-first behavior, shared preferences, and persisted Weekly completion truth.
+
+- `artifacts/receipts/C73-support-lane-current-contract-closeout__2026-04-25__R1.md`
+  - Audits FollowUps, Life Ledger, REACH, and Admin against the current product contract and confirms the current runtime matches the required lane posture.
+  - Records proof for primary-work-first ordering, permission boundaries, and admin-only governance behavior with no new product expansion.
+
+- `artifacts/receipts/C74-console-current-contract-closeout__2026-04-25__R1.md`
+  - Hardens `/console` copy so Assistant Review, Continuity, and System Notes describe the shipped C70 module set instead of future-only placeholder behavior.
+  - Keeps `/dashboard` as the default signed-in home and preserves Console as a read-only orientation surface.
+
+- `artifacts/receipts/C75-current-contract-completion-rebaseline__2026-04-25__R1.md`
+  - Rebaselines current truth, planning docs, preference/Console contracts, and receipt indexes around the verified C55-C75 state.
+  - Closes the current-contract completion program while explicitly preserving the deferred backlog.
 
 ## AI Draft And Apply Foundation
 

@@ -401,7 +401,7 @@ export default function DailyPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto p-4 md:p-8 space-y-8">
+        <div className="tf-density-page tf-density-page-spacious container mx-auto space-y-8">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-64 w-full" />
@@ -576,7 +576,7 @@ export default function DailyPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
+      <div className="tf-density-page tf-density-page-narrow tf-density-page-spacious container mx-auto max-w-4xl space-y-10">
         <LaneHero
           label="Today"
           title={new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}

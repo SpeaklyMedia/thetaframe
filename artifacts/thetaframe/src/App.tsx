@@ -16,6 +16,7 @@ import Home from "@/pages/home";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import DashboardPage from "@/pages/dashboard";
+import ConsolePage from "@/pages/console";
 import DailyPage from "@/pages/daily";
 import WeeklyPage from "@/pages/weekly";
 import VisionPage from "@/pages/vision";
@@ -93,6 +94,28 @@ function DashboardRoute() {
           <PageSkeleton />
         ) : (
           <DashboardPage />
+        )}
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
+function ConsoleRoute() {
+  const { status } = useAuthSession();
+  const { isLoading } = usePermissions();
+
+  return (
+    <>
+      <Show when="signed-in">
+        {status === "loading" ? (
+          <ThetaFrameStartup />
+        ) : isLoading ? (
+          <PageSkeleton />
+        ) : (
+          <ConsolePage />
         )}
       </Show>
       <Show when="signed-out">
@@ -216,6 +239,9 @@ function ClerkProviderWithRoutes() {
 
                 <Route path="/dashboard">
                   <DashboardRoute />
+                </Route>
+                <Route path="/console">
+                  <ConsoleRoute />
                 </Route>
                 <Route path="/daily">
                   <ModuleRoute component={DailyPage} module="daily" />

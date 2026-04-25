@@ -3,6 +3,7 @@ export * from "./weekly-frames";
 export * from "./vision-frames";
 export * from "./ai-drafts";
 export * from "./user-modes";
+export * from "./user-preferences";
 export * from "./bizdev";
 export * from "./life-ledger";
 export * from "./reach";

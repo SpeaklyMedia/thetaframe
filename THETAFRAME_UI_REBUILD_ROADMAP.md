@@ -2,12 +2,34 @@
 
 Date: 2026-04-13
 
-Status sync: 2026-04-16
+Status sync: 2026-04-25
 
 ## Objective
 Rebuild the local ThetaFrame interface toward the Replit `ThetaFrame 2.0` visual direction without drifting from the accepted product contract already validated in production.
 
 This roadmap remains locked behind the ARCH-1 assimilation gate. It is the implementation target only after the design-selection pass is reviewed and normalized locally.
+
+## Executive Console Intake Update
+
+On 2026-04-23, the ARCH-1 Executive Console research transport was ingested locally.
+
+That packet adds a signed-in orientation-surface workstream:
+- product name remains `ThetaFrame`
+- current signed-in orientation surface is `ThetaFrame Console`
+- Daily / Now Frame remains the dominant object
+- `/console` now exists as a preview orientation shell, not a lane replacement
+- the current `/dashboard` surface remains the shipped default home until later Console proof justifies a change
+
+Current repo-native planning references:
+- `_AI_SYSTEM/EXECUTIVE_CONSOLE_CONTRACT.md`
+- `THETAFRAME_ARCH1_EXECUTIVE_CONSOLE_RESEARCH_INGEST__2026-04-23__R1.md`
+- `THETAFRAME_EXECUTIVE_CONSOLE_EXECUTION_PLAN__2026-04-23__R1.md`
+- `artifacts/receipts/C55-console-route-and-layout-foundation__2026-04-23__R1.md`
+
+Current repo-native Console implementation baseline:
+- C55 through C70 are now shipped locally and in production
+- `/console` remains additive and read-only for orientation; it is not the default signed-in home
+- current-contract completion work after C70 is baseline normalization, lane-audit closeout, and proof-backed SSOT sync rather than a new graph family or home-switch pass
 
 ## Pre-Implementation Gate
 Do not begin any UI rebuild work until all of the following are true:
@@ -163,9 +185,9 @@ This phase remains downstream of the accepted shell and lane hierarchy. It shoul
 - `C13B` through `C13E`: complete
 - Baby KB `Baby-1`, `Baby-2`, and `Baby-3`: complete
 - `C14` through `C28`: complete
-- Canonical browser QA gate: complete at `12` routes with `0` skips
+- Canonical browser QA gate: complete at the current `passes=19`, `skips=0` production baseline
 - Production surface cleanup: complete
-- Active implementation track: `4D` / `C29` complete; `C30` access lane hardening complete with Basic default, Select Authorized module grants, and Admin all-access semantics
+- Active implementation track: `C55` through `C70` Console and shared-preference baseline shipped; `C71` through `C75` current-contract completion and SSOT rebaseline active locally
 
 ### 4A: Artwork Introduction And Brand-System Completion
 - introduce the remaining approved brand assets only where they improve identity, onboarding, or positioning
@@ -222,6 +244,7 @@ Once the gate is passed, the first implementation planning turn should produce:
 - explicit acceptance criteria per phase tied back to current product purpose
 
 ## Current Next Sequence
-1. `4E` explainer media using real product screenshots now that Baby-4 is real enough to demo
-2. real push transport or broader mobile capture only if later justified and explicitly selected
-3. preserve the C29 OpenRouter provider mapping and fenced-JSON parser hardening
+1. freeze and verify the local C55-C70 baseline before treating any later doc as authoritative
+2. close only current-contract gaps across Dashboard, Console, core lanes, support lanes, and Admin
+3. rebaseline SSOT docs, runbooks, and receipts so they match the shipped product truth
+4. keep `4E` explainer media, broader mobile capture, real push transport, and any Console home-switch work as separate later slices unless explicitly selected

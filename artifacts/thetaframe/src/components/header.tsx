@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useState } from "react";
 import { useUser, useClerk } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Compass, LayoutDashboard, Menu } from "lucide-react";
+import { Compass, LayoutDashboard, Menu, PanelTopOpen, SlidersHorizontal } from "lucide-react";
 import { openThetaFrameGuide } from "@/lib/guide-events";
+import { UserPreferencesDialog } from "@/components/user-preferences-dialog";
 
 const MODULE_NAV = [
   { module: "daily", href: "/daily", label: "Today", testId: "link-daily" },
@@ -21,6 +23,7 @@ const MODULE_NAV = [
 ];
 
 export function Header() {
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { hasModule, isAdmin } = usePermissions();
@@ -39,7 +42,7 @@ export function Header() {
           </Link>
 
           {user && (
-            <nav className="hidden md:flex items-center gap-1" data-testid="main-nav">
+            <nav className="hidden lg:flex items-center gap-1" data-testid="main-nav">
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
@@ -47,6 +50,14 @@ export function Header() {
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
+              </Link>
+              <Link
+                href="/console"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                data-testid="link-console"
+              >
+                <PanelTopOpen className="h-4 w-4" />
+                Console
               </Link>
               {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
                 <Link
@@ -83,26 +94,45 @@ export function Header() {
           )}
 
           {user && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => setPreferencesOpen(true)}
+              data-testid="button-open-user-preferences"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="hidden md:inline">Display + reminders</span>
+            </Button>
+          )}
+
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="md:hidden"
+                  className="lg:hidden"
                   aria-label="Open navigation menu"
                   data-testid="button-mobile-nav"
                 >
                   <Menu className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 md:hidden" data-testid="dropdown-mobile-nav">
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="w-full">
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-                {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
-                  <DropdownMenuItem asChild key={item.module}>
+                <DropdownMenuContent align="end" className="w-56 lg:hidden" data-testid="dropdown-mobile-nav">
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="w-full" data-testid="link-dashboard-mobile">
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/console" className="w-full" data-testid="link-console-mobile">
+                      Console
+                    </Link>
+                  </DropdownMenuItem>
+                  {MODULE_NAV.filter((item) => hasModule(item.module)).map((item) => (
+                    <DropdownMenuItem asChild key={item.module}>
                     <Link href={item.href} className="w-full">
                       {item.label}
                     </Link>
@@ -144,6 +174,12 @@ export function Header() {
           ) : null}
         </div>
       </div>
+      {user ? (
+        <UserPreferencesDialog
+          open={preferencesOpen}
+          onOpenChange={setPreferencesOpen}
+        />
+      ) : null}
     </header>
   );
 }

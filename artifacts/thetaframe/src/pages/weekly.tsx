@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { ONBOARDING_QUERY_KEY, useOnboardingProgress } from "@/hooks/use-onboarding";
 import { SurfaceOnboardingCard } from "@/components/surface-onboarding-card";
@@ -97,6 +98,33 @@ function EmojiPicker({ value, onChange }: { value?: string | null; onChange: (e:
   );
 }
 
+function createEmptyWeeklyStep(): WeeklyStep {
+  return {
+    id: crypto.randomUUID(),
+    text: "",
+    completed: false,
+    emoji: null,
+  };
+}
+
+function normalizeWeeklyStep(step: WeeklyStep): WeeklyStep {
+  return {
+    id: step.id,
+    text: step.text,
+    completed: Boolean(step.completed),
+    emoji: step.emoji ?? null,
+  };
+}
+
+function normalizeWeeklySupportStep(step: WeeklyStep): WeeklyStep {
+  return {
+    id: step.id,
+    text: step.text,
+    completed: false,
+    emoji: step.emoji ?? null,
+  };
+}
+
 export default function WeeklyPage() {
   const weekStart = getMondayOfCurrentWeek();
   const queryClient = useQueryClient();
@@ -133,13 +161,13 @@ export default function WeeklyPage() {
 
   const [theme, setTheme] = useState("");
   const [steps, setSteps] = useState<WeeklyStep[]>([
-    { id: crypto.randomUUID(), text: "" },
-    { id: crypto.randomUUID(), text: "" },
-    { id: crypto.randomUUID(), text: "" }
+    createEmptyWeeklyStep(),
+    createEmptyWeeklyStep(),
+    createEmptyWeeklyStep(),
   ]);
   const [nonNegotiables, setNonNegotiables] = useState<WeeklyStep[]>([
-    { id: crypto.randomUUID(), text: "" },
-    { id: crypto.randomUUID(), text: "" }
+    createEmptyWeeklyStep(),
+    createEmptyWeeklyStep(),
   ]);
   const [recoveryPlan, setRecoveryPlan] = useState("");
   const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
@@ -158,12 +186,12 @@ export default function WeeklyPage() {
     initRef.current = nextFrame.id;
     setTheme(nextFrame.theme || "");
     if (nextFrame.steps && Array.isArray(nextFrame.steps) && nextFrame.steps.length > 0) {
-      setSteps(nextFrame.steps as WeeklyStep[]);
+      setSteps((nextFrame.steps as WeeklyStep[]).map(normalizeWeeklyStep));
     } else {
       setSteps([
-        { id: crypto.randomUUID(), text: "" },
-        { id: crypto.randomUUID(), text: "" },
-        { id: crypto.randomUUID(), text: "" },
+        createEmptyWeeklyStep(),
+        createEmptyWeeklyStep(),
+        createEmptyWeeklyStep(),
       ]);
     }
     if (
@@ -171,11 +199,11 @@ export default function WeeklyPage() {
       Array.isArray(nextFrame.nonNegotiables) &&
       nextFrame.nonNegotiables.length > 0
     ) {
-      setNonNegotiables(nextFrame.nonNegotiables as WeeklyStep[]);
+      setNonNegotiables((nextFrame.nonNegotiables as WeeklyStep[]).map(normalizeWeeklySupportStep));
     } else {
       setNonNegotiables([
-        { id: crypto.randomUUID(), text: "" },
-        { id: crypto.randomUUID(), text: "" },
+        createEmptyWeeklyStep(),
+        createEmptyWeeklyStep(),
       ]);
     }
     setRecoveryPlan(nextFrame.recoveryPlan || "");
@@ -285,7 +313,7 @@ export default function WeeklyPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto p-4 md:p-8 space-y-8">
+        <div className="tf-density-page tf-density-page-spacious container mx-auto space-y-8">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-32 w-full" />
         </div>
@@ -314,6 +342,12 @@ export default function WeeklyPage() {
     save({ steps: updated });
   };
 
+  const toggleStepCompleted = (id: string, completed: boolean) => {
+    const updated = steps.map((step) => (step.id === id ? { ...step, completed } : step));
+    setSteps(updated);
+    save({ steps: updated });
+  };
+
   const updateStepEmoji = (id: string, emoji: string | null) => {
     const updated = steps.map(s => s.id === id ? { ...s, emoji } : s);
     setSteps(updated);
@@ -321,19 +355,19 @@ export default function WeeklyPage() {
   };
 
   const updateNonNegotiable = (id: string, text: string) => {
-    const updated = nonNegotiables.map(s => s.id === id ? { ...s, text } : s);
+    const updated = nonNegotiables.map(s => s.id === id ? { ...s, text, completed: false } : s);
     setNonNegotiables(updated);
     save({ nonNegotiables: updated });
   };
 
   const addWeeklyStep = () => {
-    const updated = [...steps, { id: crypto.randomUUID(), text: "" }];
+    const updated = [...steps, createEmptyWeeklyStep()];
     setSteps(updated);
     save({ steps: updated });
   };
 
   const addMustKeep = () => {
-    const updated = [...nonNegotiables, { id: crypto.randomUUID(), text: "" }];
+    const updated = [...nonNegotiables, createEmptyWeeklyStep()];
     setNonNegotiables(updated);
     save({ nonNegotiables: updated });
   };
@@ -371,7 +405,7 @@ export default function WeeklyPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
+      <div className="tf-density-page tf-density-page-narrow tf-density-page-spacious container mx-auto max-w-4xl space-y-10">
         <LaneHero
           label="This Week"
           title="This Week"
@@ -428,6 +462,12 @@ export default function WeeklyPage() {
             <div className="space-y-3" data-testid="weekly-steps">
               {steps.map((step, i) => (
                 <div key={step.id} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={step.completed}
+                    onCheckedChange={(checked) => toggleStepCompleted(step.id, checked === true)}
+                    className="mt-0.5"
+                    data-testid={`checkbox-weekly-step-${step.id}`}
+                  />
                   <span className="text-muted-foreground text-sm font-medium w-4 shrink-0">{i + 1}.</span>
                   <EmojiPicker
                     value={step.emoji}
@@ -438,7 +478,7 @@ export default function WeeklyPage() {
                     onChange={(e) => updateStep(step.id, e.target.value)}
                     onBlur={() => save({ steps })}
                     placeholder="One week step..."
-                    className="flex-1 bg-transparent"
+                    className={`flex-1 bg-transparent ${step.completed ? "line-through text-muted-foreground" : ""}`}
                     data-testid={`input-step-${i}`}
                   />
                 </div>

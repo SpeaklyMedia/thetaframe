@@ -220,6 +220,320 @@
     --button-outline: rgb(var(--workspace-colour-rgb) / 0.34);
   }
 
+  .workspace-shell[data-lane="console"] {
+    --console-shell-midnight-rgb: 9 38 64;
+    --console-shell-ink-rgb: 3 33 53;
+    --console-deep-backdrop-rgb: 0 16 48;
+    --console-accent-rgb: 0 166 199;
+    --console-accent-strong-rgb: 46 127 232;
+    --console-accent-foreground-rgb: 234 250 255;
+    --console-signal-gold-rgb: 208 176 106;
+    --console-surface-rgb: 7 27 44;
+    --console-surface-strong-rgb: 9 38 64;
+    --console-surface-muted-rgb: 16 42 65;
+    --console-border-rgb: 118 164 197;
+    --console-border-strong-rgb: 0 166 199;
+    --console-text-primary-rgb: 241 248 255;
+    --console-text-secondary-rgb: 201 221 237;
+    --console-text-muted-rgb: 146 177 204;
+    --console-shadow-hero: 0 32px 110px rgb(2 12 27 / 0.34);
+    --console-shadow-panel: 0 24px 80px rgb(2 12 27 / 0.28);
+  }
+
+  .tf-density-page {
+    padding: 1rem;
+    transition: padding 160ms ease, gap 160ms ease;
+  }
+
+  .tf-density-page-narrow {
+    max-width: 56rem;
+  }
+
+  .tf-density-page-spacious {
+    gap: 2.5rem;
+  }
+
+  .tf-density-console-shell {
+    padding-inline: 1rem;
+    padding-top: 1rem;
+    padding-bottom: 2.5rem;
+    transition: padding 160ms ease;
+  }
+
+  .tf-density-card {
+    transition: padding 160ms ease, gap 160ms ease;
+  }
+
+  .tf-density-stack {
+    transition: gap 160ms ease;
+  }
+
+  .tf-console-shell-glow {
+    background:
+      radial-gradient(circle at 50% 0%, rgb(var(--console-accent-rgb) / 0.24), transparent 44%),
+      radial-gradient(circle at 12% 18%, rgb(var(--console-accent-strong-rgb) / 0.14), transparent 30%),
+      linear-gradient(180deg, rgb(var(--console-shell-ink-rgb) / 0.72), transparent 72%);
+  }
+
+  .tf-console-panel {
+    border: 1px solid rgb(var(--console-border-rgb) / 0.18);
+    background:
+      linear-gradient(180deg, rgb(var(--console-surface-rgb) / 0.86), rgb(var(--console-shell-ink-rgb) / 0.78));
+    box-shadow: var(--console-shadow-panel);
+    backdrop-filter: blur(20px);
+    color: rgb(var(--console-text-primary-rgb));
+  }
+
+  .tf-console-panel-hero-shell {
+    background:
+      linear-gradient(180deg, rgb(var(--console-shell-midnight-rgb) / 0.92), rgb(var(--console-shell-ink-rgb) / 0.84));
+    border-color: rgb(var(--console-border-rgb) / 0.2);
+    box-shadow: var(--console-shadow-hero);
+  }
+
+  .tf-console-panel-hero {
+    border: 1px solid rgb(var(--console-border-strong-rgb) / 0.26);
+    background:
+      linear-gradient(180deg, rgb(var(--console-accent-rgb) / 0.14), rgb(var(--console-surface-muted-rgb) / 0.34));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.04),
+      0 16px 42px rgb(2 12 27 / 0.22);
+  }
+
+  .tf-console-panel-muted {
+    border: 1px solid rgb(var(--console-border-rgb) / 0.12);
+    background:
+      linear-gradient(180deg, rgb(var(--console-surface-muted-rgb) / 0.6), rgb(var(--console-shell-ink-rgb) / 0.46));
+    box-shadow: 0 18px 48px rgb(2 12 27 / 0.18);
+  }
+
+  .tf-console-surface {
+    border: 1px solid rgb(var(--console-border-rgb) / 0.18);
+    background: rgb(var(--console-surface-muted-rgb) / 0.42);
+    color: rgb(var(--console-text-secondary-rgb));
+  }
+
+  .tf-console-surface-accent {
+    border-color: rgb(var(--console-border-strong-rgb) / 0.22);
+    background:
+      linear-gradient(180deg, rgb(var(--console-accent-rgb) / 0.12), rgb(var(--console-surface-muted-rgb) / 0.38));
+  }
+
+  .tf-console-surface-dashed {
+    border-style: dashed;
+    border-color: rgb(var(--console-border-rgb) / 0.22);
+    background: rgb(var(--console-surface-muted-rgb) / 0.34);
+  }
+
+  .tf-console-chip {
+    border: 1px solid rgb(var(--console-border-rgb) / 0.18);
+    background: rgb(var(--console-surface-muted-rgb) / 0.4);
+    color: rgb(var(--console-text-secondary-rgb));
+  }
+
+  .tf-console-chip-accent {
+    border-color: rgb(var(--console-border-strong-rgb) / 0.24);
+    background:
+      linear-gradient(180deg, rgb(var(--console-accent-rgb) / 0.14), rgb(var(--console-surface-muted-rgb) / 0.28));
+    color: rgb(var(--console-accent-foreground-rgb));
+  }
+
+  .tf-console-chip-signal {
+    border-color: rgb(var(--console-signal-gold-rgb) / 0.24);
+    background:
+      linear-gradient(180deg, rgb(var(--console-signal-gold-rgb) / 0.12), rgb(var(--console-surface-muted-rgb) / 0.28));
+    color: rgb(247 232 198);
+  }
+
+  .tf-console-eyebrow {
+    color: rgb(var(--console-accent-foreground-rgb) / 0.92);
+  }
+
+  .tf-console-title {
+    color: rgb(var(--console-text-primary-rgb));
+  }
+
+  .tf-console-body {
+    color: rgb(var(--console-text-secondary-rgb));
+  }
+
+  .tf-console-copy-muted {
+    color: rgb(var(--console-text-muted-rgb));
+  }
+
+  .tf-console-cta-primary {
+    border-color: rgb(var(--console-accent-strong-rgb) / 0.92);
+    background: rgb(var(--console-accent-rgb));
+    color: rgb(4 27 40);
+  }
+
+  .tf-console-cta-primary:hover {
+    background: rgb(var(--console-accent-strong-rgb));
+    color: rgb(240 248 255);
+  }
+
+  .tf-console-cta-secondary {
+    border-color: rgb(var(--console-border-rgb) / 0.24);
+    background: rgb(var(--console-surface-muted-rgb) / 0.44);
+    color: rgb(var(--console-text-primary-rgb));
+  }
+
+  .tf-console-cta-secondary:hover {
+    background: rgb(var(--console-surface-muted-rgb) / 0.6);
+  }
+
+  .tf-console-provenance-chip {
+    border: 1px solid rgb(var(--console-border-rgb) / 0.18);
+    background: rgb(var(--console-surface-muted-rgb) / 0.34);
+    color: rgb(var(--console-text-secondary-rgb));
+  }
+
+  .tf-console-progress-track {
+    height: 0.5rem;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
+    border: 1px solid rgb(var(--console-border-rgb) / 0.16);
+    background: rgb(var(--console-surface-muted-rgb) / 0.52);
+    box-shadow: inset 0 1px 2px rgb(2 12 27 / 0.18);
+  }
+
+  .tf-console-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg, rgb(var(--console-accent-rgb) / 0.92), rgb(var(--console-accent-strong-rgb) / 0.94));
+    box-shadow: 0 0 18px rgb(var(--console-accent-rgb) / 0.18);
+    transition: width 220ms ease;
+  }
+
+  .tf-console-progress-ring-shell {
+    position: relative;
+    display: inline-flex;
+    height: 5rem;
+    width: 5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 1px solid rgb(var(--console-border-rgb) / 0.18);
+    background:
+      linear-gradient(180deg, rgb(var(--console-surface-muted-rgb) / 0.58), rgb(var(--console-shell-ink-rgb) / 0.52));
+    box-shadow: 0 14px 32px rgb(2 12 27 / 0.16);
+  }
+
+  .tf-console-progress-ring-track {
+    stroke: rgb(var(--console-border-rgb) / 0.22);
+  }
+
+  .tf-console-progress-ring-fill {
+    stroke: rgb(var(--console-accent-rgb));
+    stroke-linecap: round;
+    transition: stroke-dashoffset 220ms ease;
+  }
+
+  .tf-console-segmented-bar {
+    display: flex;
+    height: 0.75rem;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
+    border: 1px solid rgb(var(--console-border-rgb) / 0.16);
+    background: rgb(var(--console-surface-muted-rgb) / 0.44);
+    box-shadow: inset 0 1px 2px rgb(2 12 27 / 0.18);
+  }
+
+  .tf-console-segmented-bar-segment {
+    height: 100%;
+    min-width: 0;
+    transition: width 220ms ease;
+  }
+
+  .tf-console-segmented-bar-segment-draft {
+    background: rgb(var(--console-accent-rgb) / 0.58);
+  }
+
+  .tf-console-segmented-bar-segment-needs-review {
+    background: rgb(var(--console-accent-strong-rgb) / 0.78);
+  }
+
+  .tf-console-segmented-bar-segment-approval-gated {
+    background: rgb(var(--console-signal-gold-rgb) / 0.92);
+  }
+
+  .tf-console-urgency-strip {
+    display: flex;
+    height: 0.625rem;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
+    border: 1px solid rgb(var(--console-border-rgb) / 0.16);
+    background: rgb(var(--console-surface-muted-rgb) / 0.44);
+    box-shadow: inset 0 1px 2px rgb(2 12 27 / 0.18);
+  }
+
+  .tf-console-urgency-strip-segment {
+    height: 100%;
+    min-width: 0;
+    transition: width 220ms ease;
+  }
+
+  .tf-console-urgency-strip-segment-due-now {
+    background: rgb(var(--console-signal-gold-rgb) / 0.9);
+  }
+
+  .tf-console-urgency-strip-segment-near {
+    background: rgb(var(--console-accent-strong-rgb) / 0.76);
+  }
+
+  .tf-console-urgency-strip-segment-staged {
+    background: rgb(var(--console-accent-rgb) / 0.52);
+  }
+
+  .tf-console-lane-link:hover {
+    border-color: rgb(var(--console-border-strong-rgb) / 0.28);
+    background:
+      linear-gradient(180deg, rgb(var(--console-accent-rgb) / 0.10), rgb(var(--console-surface-muted-rgb) / 0.42));
+  }
+
+  .tf-console-lane-link:hover .tf-console-link-icon {
+    color: rgb(var(--console-text-primary-rgb));
+  }
+
+  .tf-console-link-open {
+    color: rgb(var(--console-accent-foreground-rgb) / 0.92);
+  }
+
+  .tf-console-link-open:hover {
+    color: rgb(255 255 255);
+  }
+
+  .workspace-shell[data-reduced-stimulation="reduced"] .workspace-atmosphere {
+    opacity: 0.58;
+  }
+
+  .workspace-shell[data-reduced-stimulation="reduced"] [data-testid="app-header"] {
+    backdrop-filter: none !important;
+    background: hsl(var(--background) / 0.94);
+  }
+
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-shell-glow {
+    opacity: 0.38;
+  }
+
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-panel,
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-panel-hero,
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-panel-muted {
+    backdrop-filter: blur(10px);
+  }
+
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-progress-fill,
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-progress-ring-shell,
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-segmented-bar,
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-console-urgency-strip {
+    box-shadow: none;
+  }
+
   .tf-button {
     border-width: 1px;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.10);
@@ -301,6 +615,11 @@
     transform: none;
   }
 
+  .workspace-shell[data-reduced-stimulation="reduced"] .tf-button:hover {
+    transform: none;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.10);
+  }
+
   .task-feeling-row {
     background-color: rgb(var(--task-feeling-rgb) / 0.12);
     border-color: rgb(var(--task-feeling-rgb) / 0.28);
@@ -363,6 +682,44 @@
     }
   }
 
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card:hover,
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card:focus-within,
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card.is-canvas-focused,
+  .workspace-shell[data-reduced-stimulation="reduced"] .group:focus-visible .habit-focus-card,
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card-map:hover,
+  .workspace-shell[data-reduced-stimulation="reduced"] .group:focus-visible .habit-focus-card-map,
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card-section:hover,
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card-section:focus-within,
+  .workspace-shell[data-reduced-stimulation="reduced"] .habit-focus-card-section.is-canvas-focused {
+    transform: none !important;
+    filter: none;
+    box-shadow:
+      0 6px 18px rgb(0 0 0 / 0.08),
+      0 0 0 1px rgb(var(--workspace-colour-rgb) / 0.08);
+  }
+
+  .workspace-shell[data-density="compact"] .tf-density-page {
+    padding: 0.875rem;
+  }
+
+  .workspace-shell[data-density="compact"] .tf-density-page-spacious {
+    gap: 1.75rem;
+  }
+
+  .workspace-shell[data-density="compact"] .tf-density-console-shell {
+    padding-inline: 0.875rem;
+    padding-top: 0.875rem;
+    padding-bottom: 2rem;
+  }
+
+  .workspace-shell[data-density="compact"] .tf-density-card {
+    padding: 0.875rem;
+  }
+
+  .workspace-shell[data-density="compact"] .tf-density-stack {
+    gap: 0.875rem;
+  }
+
   @media (hover: hover) and (pointer: fine) and (min-width: 640px) {
     .habit-focus-group:has(.habit-focus-card:hover) .habit-focus-card:not(:hover) {
       filter: saturate(0.92);
@@ -420,6 +777,30 @@
     .habit-focus-card.is-canvas-focused,
     .group:focus-visible .habit-focus-card {
       transform: none !important;
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  @layer components {
+    .tf-density-page {
+      padding: 2rem;
+    }
+
+    .tf-density-console-shell {
+      padding-inline: 1.5rem;
+      padding-top: 1.5rem;
+      padding-bottom: 3.5rem;
+    }
+
+    .workspace-shell[data-density="compact"] .tf-density-page {
+      padding: 1.5rem;
+    }
+
+    .workspace-shell[data-density="compact"] .tf-density-console-shell {
+      padding-inline: 1.25rem;
+      padding-top: 1.25rem;
+      padding-bottom: 2.75rem;
     }
   }
 }
