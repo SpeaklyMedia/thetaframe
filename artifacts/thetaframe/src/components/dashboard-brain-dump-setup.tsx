@@ -362,21 +362,21 @@ export function DashboardBrainDumpSetup({
 
   return (
     <section
-      className="rounded-lg border border-violet-300/50 bg-violet-50/60 p-4 shadow-sm dark:border-violet-500/40 dark:bg-violet-950/20 md:p-5"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-violet-500/40 dark:bg-violet-950/20 md:p-5"
       data-testid="dashboard-brain-dump-setup"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-violet-800 dark:text-violet-200">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500 dark:text-violet-200">
             <Sparkles className="h-4 w-4" />
-            Brain Dump Setup
+            Quick capture
           </div>
-          <h2 className="text-xl font-semibold">Drop the messy version here.</h2>
+          <h2 className="text-xl font-semibold">Sort a messy capture.</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            AI makes drafts for Today, This Week, and Goals. You choose what to save.
+            Turn loose notes into reviewable drafts for Today, This Week, and Goals.
           </p>
         </div>
-        <span className="inline-flex rounded-md border border-violet-300/60 bg-background/80 px-2.5 py-1 text-xs font-medium text-violet-900 dark:text-violet-100">
+        <span className="inline-flex rounded-md border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800 dark:text-violet-100">
           Review first
         </span>
       </div>
@@ -385,8 +385,8 @@ export function DashboardBrainDumpSetup({
         <Textarea
           value={rawText}
           onChange={(event) => setRawText(event.target.value)}
-          placeholder="Paste the unorganized version: tasks, worries, ideas, appointments, goals, and anything taking up space."
-          className="min-h-32 resize-y bg-background/90"
+          placeholder="Paste loose tasks, worries, ideas, appointments, goals, or anything taking up space."
+          className="min-h-24 resize-y bg-background/90"
           data-testid="textarea-dashboard-brain-dump"
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -400,7 +400,7 @@ export function DashboardBrainDumpSetup({
             data-testid="button-generate-brain-dump"
           >
             <Wand2 className="mr-2 h-4 w-4" />
-            {isGenerating ? "Drafting..." : "Make setup drafts"}
+            {isGenerating ? "Drafting..." : "Create drafts"}
           </Button>
         </div>
       </div>
@@ -425,19 +425,20 @@ export function DashboardBrainDumpSetup({
 
       {activeBatch ? (
         <div className="mt-5 space-y-4" data-testid="dashboard-brain-dump-batch">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">Latest setup draft batch</p>
+          <div className="flex flex-wrap items-start justify-between gap-4 border-t pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Latest draft batch</p>
               <p className="text-xs text-muted-foreground">
                 Batch {activeBatch.batchId.slice(0, 8)} · {new Date(activeBatch.createdAt).toLocaleString()} · {appliedCount}/3 saved
               </p>
             </div>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2" data-testid="dashboard-brain-dump-batch-actions">
+            <div className="grid w-full min-w-0 grid-cols-2 gap-2 lg:w-80" data-testid="dashboard-brain-dump-batch-actions">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => void approveAll()}
                 disabled={isBusy || approvableDrafts.length === 0}
+                className="w-full"
                 data-testid="button-dashboard-approve-all-brain-dump"
               >
                 Approve all
@@ -446,6 +447,7 @@ export function DashboardBrainDumpSetup({
                 type="button"
                 onClick={() => void applyApproved()}
                 disabled={isBusy || approvedDrafts.length === 0}
+                className="w-full"
                 data-testid="button-dashboard-apply-approved-brain-dump"
               >
                 Save approved
@@ -454,7 +456,7 @@ export function DashboardBrainDumpSetup({
                 value={refinementInstruction}
                 onChange={(event) => setRefinementInstruction(event.target.value)}
                 placeholder="Optional: ask AI to refine this batch..."
-                className="min-h-10 max-h-24 min-w-52 flex-1 resize-y bg-background/90 text-sm"
+                className="col-span-2 min-h-10 max-h-24 resize-y bg-background/90 text-sm"
                 data-testid="textarea-dashboard-brain-dump-refine"
               />
               <Button
@@ -462,6 +464,7 @@ export function DashboardBrainDumpSetup({
                 variant="outline"
                 onClick={() => void refine()}
                 disabled={!rawTextReady || !refinementInstruction.trim() || isBusy}
+                className="col-span-2 w-full"
                 data-testid="button-refine-brain-dump"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -470,14 +473,14 @@ export function DashboardBrainDumpSetup({
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-2">
             {(["daily", "weekly", "vision"] as const).map((lane) => {
               const draft = draftsByLane.get(lane);
               const copy = laneCopy[lane];
               return (
                 <article
                   key={lane}
-                  className="rounded-lg border bg-background/85 p-4 shadow-sm"
+                  className="rounded-md border bg-background/85 p-3"
                   data-testid={copy.testId}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -489,23 +492,10 @@ export function DashboardBrainDumpSetup({
                     </div>
                     {draft ? <DraftStateIcon draft={draft} /> : null}
                   </div>
-                  <p className="mt-3 min-h-12 text-sm text-muted-foreground">
+                  <p className="mt-2 text-sm text-muted-foreground">
                     {draft ? getAIDraftPayloadSummary(draft) : "This lane will appear after AI creates the setup batch."}
                   </p>
-                  {draft?.metadata.summary && typeof draft.metadata.summary === "string" ? (
-                    <p className="mt-2 text-xs text-muted-foreground">{draft.metadata.summary}</p>
-                  ) : null}
-                  {draft ? (
-                    <div className="mt-3 space-y-2 rounded-md border bg-muted/20 p-3" data-testid={`dashboard-brain-dump-preview-${lane}`}>
-                      {previewRows(draft).map((row) => (
-                        <div key={row.label} className="space-y-0.5">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{row.label}</p>
-                          <p className="text-xs text-foreground">{row.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     {draft ? (
                       <>
                         <Button

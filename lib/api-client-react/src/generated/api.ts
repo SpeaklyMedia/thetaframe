@@ -4883,7 +4883,7 @@ export const putAdminUserPermissions = async (
 };
 
 export const getPutAdminUserPermissionsMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4925,13 +4925,13 @@ export type PutAdminUserPermissionsMutationResult = NonNullable<
 >;
 export type PutAdminUserPermissionsMutationBody =
   BodyType<PutUserPermissionsBody>;
-export type PutAdminUserPermissionsMutationError = ErrorType<unknown>;
+export type PutAdminUserPermissionsMutationError = ErrorType<ErrorResponse>;
 
 /**
  * @summary Replace a user's full permissions (admin only)
  */
 export const usePutAdminUserPermissions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5477,7 +5477,7 @@ export const applyAdminPreset = async (
 };
 
 export const getApplyAdminPresetMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5518,13 +5518,13 @@ export type ApplyAdminPresetMutationResult = NonNullable<
   Awaited<ReturnType<typeof applyAdminPreset>>
 >;
 
-export type ApplyAdminPresetMutationError = ErrorType<unknown>;
+export type ApplyAdminPresetMutationError = ErrorType<ErrorResponse>;
 
 /**
  * @summary Apply a preset's permissions to a user (admin only)
  */
 export const useApplyAdminPreset = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<

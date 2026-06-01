@@ -1,7 +1,7 @@
 # ThetaFrame Receipt Index
 
-Date: 2026-04-25
-Status: Current high-signal receipt map after C75 current-contract completion
+Date: 2026-06-01
+Status: Current high-signal receipt map after C76 LifeOS production release closeout
 
 ## Current Production Baseline
 
@@ -213,6 +213,11 @@ Status: Current high-signal receipt map after C75 current-contract completion
 - `artifacts/receipts/C75-current-contract-completion-rebaseline__2026-04-25__R1.md`
   - Rebaselines current truth, planning docs, preference/Console contracts, and receipt indexes around the verified C55-C75 state.
   - Closes the current-contract completion program while explicitly preserving the deferred backlog.
+
+- `artifacts/receipts/C76-lifeos-production-release-and-hygiene-closeout__2026-06-01__R1.md`
+  - Records the June 1 LifeOS / ThetaFrame production release, deploy id `dpl_FhoXCFVYQAmVMVED19TU8My3kKmq`, and production URL `https://thetaframe.mrksylvstr.com`.
+  - Proves post-deploy production health and full browser QA with `passes=22`, `skips=0`, including Basic and Select Authorized role gates.
+  - Records preview-auth bundle hardening, `.vercelignore` research-ingest exclusion, and external working receipt pointers for the release.
 
 ## AI Draft And Apply Foundation
 

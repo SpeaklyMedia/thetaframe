@@ -236,22 +236,25 @@ router.put("/admin/users/:userId/permissions", requireAdmin, async (req: Request
   const targetUser = await clerkClient.users.getUser(userId);
 
   if (isAdminUser(targetUser)) {
-    await ensureOwnerBootstrap(targetUser, req.log);
-  } else {
-    const normalizedPermissions = getEffectivePermissionEntriesForUser(targetUser, body.data.permissions);
+    res.status(409).json({
+      error: "Admin access is role-based and cannot be changed through module grants.",
+    });
+    return;
+  }
 
-    await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+  const normalizedPermissions = getEffectivePermissionEntriesForUser(targetUser, body.data.permissions);
 
-    if (normalizedPermissions.length > 0) {
-      await db.insert(accessPermissionsTable).values(
-        normalizedPermissions.map((p) => ({
-          userId,
-          module: p.module,
-          environment: p.environment,
-          grantedBy,
-        })),
-      );
-    }
+  await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+
+  if (normalizedPermissions.length > 0) {
+    await db.insert(accessPermissionsTable).values(
+      normalizedPermissions.map((p) => ({
+        userId,
+        module: p.module,
+        environment: p.environment,
+        grantedBy,
+      })),
+    );
   }
 
   const updated = await db.select().from(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
@@ -497,17 +500,20 @@ router.post("/admin/presets/:id/apply/:userId", requireAdmin, async (req: Reques
   const perms = (preset.permissions as Array<{ module: string; environment: string }>);
 
   if (isAdminUser(targetUser)) {
-    await ensureOwnerBootstrap(targetUser, req.log);
-  } else {
-    const normalizedPermissions = getEffectivePermissionEntriesForUser(targetUser, perms);
+    res.status(409).json({
+      error: "Admin access is role-based and cannot be changed through module grants.",
+    });
+    return;
+  }
 
-    await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+  const normalizedPermissions = getEffectivePermissionEntriesForUser(targetUser, perms);
 
-    if (normalizedPermissions.length > 0) {
-      await db.insert(accessPermissionsTable).values(
-        normalizedPermissions.map((p) => ({ userId, module: p.module, environment: p.environment, grantedBy })),
-      );
-    }
+  await db.delete(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));
+
+  if (normalizedPermissions.length > 0) {
+    await db.insert(accessPermissionsTable).values(
+      normalizedPermissions.map((p) => ({ userId, module: p.module, environment: p.environment, grantedBy })),
+    );
   }
 
   const updated = await db.select().from(accessPermissionsTable).where(eq(accessPermissionsTable.userId, userId));

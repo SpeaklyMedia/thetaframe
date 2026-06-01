@@ -108,8 +108,8 @@ function getWorkspaceBackground(workspaceColour: WorkspaceColourState | null): s
   if (!rgb) return null;
 
   return [
-    `radial-gradient(circle at 86% 12%, rgb(${rgb} / 0.16), transparent 30%)`,
-    `linear-gradient(180deg, rgb(${rgb} / 0.07), transparent 42%)`,
+    `radial-gradient(circle at 86% 12%, rgb(${rgb} / 0.08), transparent 30%)`,
+    `linear-gradient(180deg, rgb(${rgb} / 0.035), transparent 42%)`,
   ].join(", ");
 }
 

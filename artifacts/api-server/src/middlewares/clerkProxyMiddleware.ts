@@ -4,7 +4,7 @@ import type { ClientRequest, IncomingMessage } from "http";
 
 export const CLERK_PROXY_PATH = "/api/__clerk";
 
-export function clerkProxyMiddleware(): RequestHandler {
+export function clerkProxyMiddleware(proxyPath = CLERK_PROXY_PATH): RequestHandler {
   const target = process.env.CLERK_PROXY_TARGET?.trim();
   if (!target) {
     return (_req: Request, _res: Response, next: (err?: unknown) => void) =>
@@ -21,14 +21,14 @@ export function clerkProxyMiddleware(): RequestHandler {
     target,
     changeOrigin: true,
     pathRewrite: (path: string) =>
-      path.replace(new RegExp(`^${CLERK_PROXY_PATH}`), ""),
+      path.replace(new RegExp(`^${proxyPath}`), ""),
     on: {
       proxyReq: (proxyReq: ClientRequest, req: IncomingMessage) => {
-        const protocol = req.headers["x-forwarded-proto"] || "https";
-        const host = req.headers.host || "";
-        const proxyUrl = `${protocol}://${host}${CLERK_PROXY_PATH}`;
+        const proxyUrl = process.env.CLERK_PROXY_URL_HEADER?.trim();
 
-        proxyReq.setHeader("Clerk-Proxy-Url", proxyUrl);
+        if (proxyUrl) {
+          proxyReq.setHeader("Clerk-Proxy-Url", proxyUrl);
+        }
         proxyReq.setHeader("Clerk-Secret-Key", secretKey);
 
         const xff = req.headers["x-forwarded-for"];

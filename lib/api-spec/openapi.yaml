@@ -1266,6 +1266,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserPermissionsResponse"
+        "409":
+          description: Target user is already an admin and cannot be changed through module grants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/presets:
     get:
@@ -1418,6 +1424,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserPermissionsResponse"
+        "409":
+          description: Target user is already an admin and cannot be changed through module grants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:

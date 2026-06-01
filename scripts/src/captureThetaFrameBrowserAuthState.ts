@@ -193,7 +193,7 @@ async function canSeeAnyTestId(page: import("playwright").Page, testIds: string[
 
 async function capture() {
   if (!isSupportedRole(role)) {
-    throw new Error(`Unsupported role '${role}'. Use --role=user or --role=admin.`);
+    throw new Error(`Unsupported role '${role}'. Use --role=user, --role=admin, --role=basic, or --role=select-authorized.`);
   }
 
   if (!process.stdin.isTTY) {

@@ -11,9 +11,10 @@ import {
   useUpsertUserMode,
 } from "@workspace/api-client-react";
 import { CalendarDays, CheckCircle2, ClipboardCheck, LayoutDashboard, Smartphone, Sparkles } from "lucide-react";
-import { AIDraftCanvasBlock, HabitCanvasMap, type HabitCanvasMapNode } from "@/components/habit-canvas";
+import { HabitCanvasMap, type HabitCanvasMapNode } from "@/components/habit-canvas";
 import { DashboardBrainDumpSetup } from "@/components/dashboard-brain-dump-setup";
 import { Layout } from "@/components/layout";
+import { LifeOSDashboardWidget } from "@/components/lifeos/LifeOSDashboardWidget";
 import { LaneHero } from "@/components/shell/LaneHero";
 import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/hooks/use-auth-session";
@@ -43,17 +44,17 @@ const DASHBOARD_MODE_OPTIONS: readonly {
 }[] = [
   {
     label: "Look Around",
-    description: "Find what needs attention before you choose.",
+    description: "Scan for what needs attention before choosing.",
     mode: "explore",
   },
   {
     label: "Do The Work",
-    description: "Focus on the next saved action.",
+    description: "Protect focus around the next useful action.",
     mode: "build",
   },
   {
     label: "Wrap Up",
-    description: "Review, save, and leave yourself a clear next step.",
+    description: "Save progress and leave a clean next step.",
     mode: "release",
   },
 ];
@@ -204,22 +205,22 @@ export default function DashboardPage() {
   return (
     <Layout>
       <main
-        className="tf-density-page tf-density-page-spacious container mx-auto max-w-6xl"
+        className="tf-density-page tf-density-page-spacious container mx-auto max-w-6xl space-y-6 lg:space-y-8"
         data-testid="dashboard-control-center"
       >
         <LaneHero
           label="Dashboard"
-          title="Control Center"
-          subtitle="One place to see what needs attention and what is next."
+          title="Daily command center"
+          subtitle="Check safety, choose focus, and move one useful lane forward."
         >
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <LayoutDashboard className="h-4 w-4" />
-            <span>Start with one clear action.</span>
+            <span>Review gates before making bigger moves.</span>
           </div>
         </LaneHero>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-          <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)] xl:gap-8">
+          <div className="space-y-5 lg:space-y-6">
             <DashboardBrainDumpSetup
               dailyDrafts={dailyDrafts.data}
               weeklyDrafts={weeklyDrafts.data}
@@ -228,6 +229,8 @@ export default function DashboardPage() {
               weekStart={weekStart}
               canUse={canDaily && canWeekly && canVision}
             />
+
+            <LifeOSDashboardWidget />
 
             <DashboardSection
               title="Start here today"
@@ -253,33 +256,40 @@ export default function DashboardPage() {
 
             <DashboardSection
               title="Needs review"
-              description="AI can make a draft. You choose what to save."
               testId="dashboard-needs-review"
             >
-              <AIDraftCanvasBlock count={totalReviewCount} />
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="text-sm font-semibold">AI review queue</span>
+                </div>
+                <span className="rounded-full border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground">
+                  {totalReviewCount} waiting
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {reviewCounts.map((item) => (
-                  <div key={item.href} className="rounded-lg border bg-background/80 p-4">
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group rounded-lg border bg-background/80 p-3 transition-colors hover:border-primary/50 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                          {item.count > 0 ? `${item.count} draft${item.count === 1 ? "" : "s"} to review.` : "No drafts need review."}
-                        </p>
-                      </div>
-                      <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="min-w-0 truncate text-sm font-semibold">{item.label}</span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.count > 0
+                            ? "bg-violet-100 text-violet-900"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {item.count}
+                      </span>
                     </div>
-                    <Button asChild type="button" variant="outline" size="sm" className="mt-3">
-                      <Link href={item.href}>Review drafts</Link>
-                    </Button>
-                  </div>
+                  </Link>
                 ))}
               </div>
-              {totalReviewCount === 0 ? (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  You do not have review work waiting right now.
-                </p>
-              ) : null}
             </DashboardSection>
 
             <DashboardSection
@@ -288,7 +298,7 @@ export default function DashboardPage() {
               testId="dashboard-coming-up"
             >
               {canLifeLedger ? (
-                <div className="tf-density-card flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80">
+                <div className="tf-density-card flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-background/80">
                   <div className="flex items-start gap-3">
                     <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
@@ -303,7 +313,7 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="tf-density-card flex items-start gap-3 rounded-lg border bg-background/80">
+                <div className="tf-density-card flex items-start gap-4 rounded-lg border bg-background/80">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
                   <p className="text-sm text-muted-foreground">
                     Start with one action for today, then protect one step for the week.
@@ -317,7 +327,7 @@ export default function DashboardPage() {
               description="Calendar planning is a workspace note right now. Real calendar sync is not on yet."
               testId="dashboard-calendar-planning"
             >
-              <div className="tf-density-card flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80">
+              <div className="tf-density-card flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-background/80">
                 <div className="flex items-start gap-3">
                   <ClipboardCheck className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
@@ -334,10 +344,10 @@ export default function DashboardPage() {
             </DashboardSection>
           </div>
 
-          <aside className="space-y-6">
+          <aside className="space-y-5 lg:space-y-6">
             <DashboardSection
-              title="What kind of work is this?"
-              description="Choose a plain helper state. This uses the old mode setting behind the scenes."
+              title="Focus mode"
+              description="Tell the workspace how to support this session."
             >
               <div className="grid gap-2">
                 {DASHBOARD_MODE_OPTIONS.map((option) => {
@@ -366,8 +376,8 @@ export default function DashboardPage() {
 
             {canLifeLedger ? (
               <DashboardSection
-                title="Phone reminders"
-                description="Mobile return tools stay tied to your assigned advanced lane."
+                title="Mobile reminders"
+                description="Return prompts for reminders, events, and follow-up moments."
                 testId="dashboard-mobile-returns"
               >
                 <div className="flex items-start gap-3">
@@ -386,8 +396,8 @@ export default function DashboardPage() {
 
             {(canBizDev || isAdmin) ? (
               <DashboardSection
-                title="Work lanes"
-                description="Only assigned lanes show here."
+                title="Assigned work lanes"
+                description="Open the work areas available to this account."
               >
                 <div className="space-y-2">
                   {canBizDev ? (

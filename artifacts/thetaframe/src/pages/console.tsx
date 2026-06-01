@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import {
   ArrowRight,
@@ -74,15 +75,30 @@ type LaneAtlasItem = {
 
 type ConsoleModuleCardProps = {
   title: string;
-  purpose: string;
+  purpose?: string;
   status: string;
   testId: string;
   accentClassName?: string;
   className?: string;
   contentClassName?: string;
   purposeClassName?: string;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  selectedSummary?: React.ReactNode;
   children?: React.ReactNode;
 };
+
+type ConsoleRegionKey =
+  | "now-frame"
+  | "week-vector"
+  | "constraint-horizon"
+  | "lane-atlas"
+  | "system-health"
+  | "assistant-review"
+  | "continuity"
+  | "reach-capture"
+  | "bizdev-motion"
+  | "system-notes";
 
 type NowFrameSource = "tier-a" | "tier-b" | "time-block" | "micro-win" | "empty";
 
@@ -811,13 +827,17 @@ function ConsoleProgressRing({
   if (stat.total === 0) {
     return (
       <div
-        className="tf-console-progress-ring-shell inline-flex items-center justify-center"
+        className="tf-console-progress-ring-shell inline-flex items-center justify-center overflow-hidden"
         data-testid={testId}
+        aria-label="No weekly steps saved yet"
       >
-        <div className="text-center">
-          <p className="tf-console-copy-muted text-xs font-semibold uppercase tracking-[0.22em]">Weekly steps</p>
-          <p className="tf-console-copy-muted mt-1 text-[11px]" data-testid={emptyStateTestId}>
-            No saved steps yet
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-center">
+          <ListTodo className="h-4 w-4 text-[rgb(var(--console-text-muted-rgb))]" aria-hidden="true" />
+          <p
+            className="tf-console-copy-muted max-w-[3.6rem] text-[9px] font-semibold uppercase leading-[1.05] tracking-[0.12em]"
+            data-testid={emptyStateTestId}
+          >
+            No steps
           </p>
         </div>
       </div>
@@ -1032,6 +1052,14 @@ function getDraftLaneLabel(draft: AIDraft): string {
   return targetSurfaceLabel;
 }
 
+function getConsoleStatusChipClass(status: string): string {
+  const normalizedStatus = status.toLowerCase();
+  if (normalizedStatus.includes("safety") || normalizedStatus.includes("safe")) return "tf-console-chip-safe";
+  if (normalizedStatus.includes("review") || normalizedStatus.includes("manual")) return "tf-console-chip-signal";
+  if (normalizedStatus.includes("live")) return "tf-console-chip-accent";
+  return "tf-console-chip";
+}
+
 function ConsoleModuleCard({
   title,
   purpose,
@@ -1041,28 +1069,65 @@ function ConsoleModuleCard({
   className,
   contentClassName,
   purposeClassName,
+  isSelected,
+  onSelect,
+  selectedSummary,
   children,
 }: ConsoleModuleCardProps) {
+  const hasSelectionState = typeof isSelected === "boolean" && Boolean(onSelect);
+  const showDetail = hasSelectionState ? isSelected : true;
+
   return (
     <section
       className={cn(
-        "tf-console-panel rounded-[1.75rem] p-5",
-        "tf-density-card",
+        "tf-console-panel rounded-[1.75rem] p-5 transition-colors",
+        hasSelectionState && !showDetail ? "cursor-pointer" : null,
         accentClassName,
         className,
       )}
       data-testid={testId}
+      data-selected={showDetail ? "true" : "false"}
+      role={hasSelectionState && !showDetail ? "button" : undefined}
+      tabIndex={hasSelectionState && !showDetail ? 0 : undefined}
+      onClick={hasSelectionState && !showDetail ? onSelect : undefined}
+      onKeyDown={
+        hasSelectionState && !showDetail
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect?.();
+              }
+            }
+          : undefined
+      }
     >
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="tf-console-title text-xl font-semibold tracking-tight">{title}</h2>
-          <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
-            {status}
-          </span>
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="tf-console-title truncate text-xl font-semibold tracking-tight">{title}</h2>
+            {hasSelectionState && showDetail ? (
+              <span className="tf-console-chip-selected rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                Selected
+              </span>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className={cn(getConsoleStatusChipClass(status), "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]")}>
+              {status}
+            </span>
+            {hasSelectionState && showDetail ? null : (
+              <span className="tf-console-chip-select rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                Select
+              </span>
+            )}
+          </div>
         </div>
-        <p className={cn("tf-console-body max-w-3xl text-sm leading-6", purposeClassName)}>{purpose}</p>
+        {showDetail && purpose ? (
+          <p className={cn("tf-console-body max-w-3xl text-sm leading-6", purposeClassName)}>{purpose}</p>
+        ) : null}
       </div>
-      {children ? <div className={cn("mt-5", contentClassName)}>{children}</div> : null}
+      {!showDetail && selectedSummary ? <div className="mt-4">{selectedSummary}</div> : null}
+      {showDetail && children ? <div className={cn("mt-5", contentClassName)}>{children}</div> : null}
     </section>
   );
 }
@@ -1095,6 +1160,7 @@ export default function ConsolePage() {
   const { status } = useAuthSession();
   const { modules, isAdmin, isError: permissionsError } = usePermissions();
   const { preferences } = useUserPreferences();
+  const [selectedConsoleRegion, setSelectedConsoleRegion] = useState<ConsoleRegionKey>("week-vector");
   const laneAtlasItems = getAllowedLaneAtlasItems(modules, isAdmin, permissionsError);
   const hasAllowedModule = (module: string) => isAdmin || (!permissionsError && modules.includes(module));
   const canDaily = hasAllowedModule("daily");
@@ -1301,6 +1367,10 @@ export default function ConsolePage() {
     visionGoals: visionFrame?.goals,
     visionNextSteps: visionFrame?.nextSteps,
   });
+  const getSelectionProps = (region: ConsoleRegionKey) => ({
+    isSelected: selectedConsoleRegion === region,
+    onSelect: () => setSelectedConsoleRegion(region),
+  });
 
   return (
     <Layout>
@@ -1319,34 +1389,29 @@ export default function ConsolePage() {
                 <LaneHero
                   label="ThetaFrame Console"
                   title="Preview Shell"
-                  subtitle="A center-weighted operating surface for orientation, triage, and safe next moves across your allowed lanes."
+                  subtitle="Select one operating surface at a time. Compact cards show signals; selected cards show detail and action."
                   className="space-y-3 min-[1600px]:max-w-[58rem]"
                   headingTestId="text-console-title"
                 >
                   <div className="tf-console-body flex flex-wrap items-center gap-3 text-sm min-[1800px]:max-w-[52rem]">
                     <span className="tf-console-chip-accent inline-flex items-center gap-2 rounded-full px-3 py-1.5">
                       <Compass className="h-4 w-4" />
-                      Dashboard remains the default signed-in home.
+                      Dashboard stays home.
                     </span>
-                    <span className="tf-console-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+                    <span className="tf-console-chip-selected inline-flex items-center gap-2 rounded-full px-3 py-1.5">
                       <Sparkles className="h-4 w-4" />
-                      `Now Frame`, `Week Vector`, `Constraint Horizon`, `Assistant Review`, `Continuity`, and `System Health` are now live in limited form.
+                      One selected panel expands.
                     </span>
                   </div>
                 </LaneHero>
 
                 <div className="tf-console-panel-muted rounded-[1.5rem] p-4 text-[13px] min-[1800px]:p-5">
-                  <p className="tf-console-eyebrow text-[11px] font-semibold uppercase tracking-[0.24em]">Current Console Shape</p>
-                  <ul className="mt-3 space-y-2 leading-6">
-                    <li>Signed-in access to a dedicated `/console` route.</li>
-                    <li>One live Daily-derived `Now Frame` object with a direct route back to Today.</li>
-                    <li>A live `Week Vector` pulled from the saved Weekly theme, steps, supports, and recovery plan.</li>
-                    <li>A live `Constraint Horizon` pulled from reminder queue truth first, then upcoming Life Ledger events.</li>
-                    <li>A live `Assistant Review` queue that keeps AI drafts approval-gated and lane-owned.</li>
-                    <li>A live `Continuity` anchor that reuses Vision without turning Console into a goals wall.</li>
-                    <li>A minimal `System Health` band with review pressure and safe status chips.</li>
-                    <li>Responsive Console layout buckets from phone through first ultrawide pass.</li>
-                  </ul>
+                  <p className="tf-console-eyebrow text-[11px] font-semibold uppercase tracking-[0.24em]">Current Mode</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">Read-only</span>
+                    <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">Lane-owned actions</span>
+                    <span className="tf-console-chip-signal rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">Manual review</span>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1355,23 +1420,34 @@ export default function ConsolePage() {
               <div className="space-y-6">
                 <ConsoleModuleCard
                   title="Now Frame"
-                  purpose="This dominant hero region will surface the single safest next Daily action, current energy posture, and immediate execution context without turning Console into another card wall."
+                  purpose="Use this when you want the safest next move from Today."
                   status={isNowFrameReady ? "Live Daily Reuse" : isDailyFrameLoading ? "Loading Today" : "Calm Empty State"}
                   testId="console-region-now-frame"
                   accentClassName="tf-console-panel-hero-shell"
                   className="min-[1600px]:p-6 min-[2400px]:p-7"
                   contentClassName="min-[1600px]:mt-6"
                   purposeClassName="min-[1600px]:max-w-[44rem]"
+                  {...getSelectionProps("now-frame")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip-accent rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                        {nowFrame.sourceLabel}
+                      </span>
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                        {nowFrameProgress.completed}/{nowFrameProgress.total}
+                      </span>
+                    </div>
+                  }
                 >
                   <div
                     className="tf-console-panel-hero rounded-[1.6rem] p-5 sm:p-6 min-[1600px]:p-7 min-[2400px]:p-8"
                     data-testid="console-now-frame-live"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="tf-console-chip-accent rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
+                      <span className="tf-console-chip-accent rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
                         {nowFrame.sourceLabel}
                       </span>
-                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
                         One dominant object
                       </span>
                       <span className="sr-only" data-testid={`console-now-frame-source-${nowFrame.source}`}>
@@ -1426,18 +1502,30 @@ export default function ConsolePage() {
                 <div className="grid gap-6 md:grid-cols-2">
                   <ConsoleModuleCard
                   title="Week Vector"
-                  purpose="This region will summarize weekly rhythm, protected focus, and trajectory without turning Weekly into a dense planning dashboard."
                   status={weekVectorStatus}
                   testId="console-region-week-vector"
                   className="min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
-                  purposeClassName="min-[1600px]:max-w-[28rem] min-[1600px]:text-[13px]"
+                  {...getSelectionProps("week-vector")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                        {weekVector.steps.length} steps
+                      </span>
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                        {weekVector.nonNegotiables.length} protected
+                      </span>
+                    </div>
+                  }
                 >
                   <div className="space-y-4" data-testid="console-week-vector-live">
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
-                          Weekly orientation
+                          {weekVector.steps.length} steps
+                        </span>
+                        <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
+                          {weekVector.nonNegotiables.length} protected
                         </span>
                         {weekVector.theme ? (
                           <span className="sr-only" data-testid="console-week-vector-theme-present">
@@ -1460,57 +1548,38 @@ export default function ConsolePage() {
                       {hasWeekVectorContent ? (
                         <>
                           {weekVector.theme ? (
-                            <div className="space-y-2">
+                            <div className="tf-console-surface rounded-2xl px-4 py-3">
                               <p className="tf-console-eyebrow text-xs font-semibold uppercase tracking-[0.22em]">Theme</p>
-                              <h3 className="tf-console-title text-2xl font-semibold tracking-tight">{weekVector.theme}</h3>
+                              <h3 className="tf-console-title mt-1 truncate text-lg font-semibold tracking-tight" title={weekVector.theme}>
+                                {weekVector.theme}
+                              </h3>
                             </div>
                           ) : null}
 
-                          {weekVector.steps.length > 0 ? (
-                            <div className="space-y-2">
-                              <p className="tf-console-eyebrow text-xs font-semibold uppercase tracking-[0.22em]">Steps</p>
-                              <div className="space-y-2">
-                                {weekVector.steps.map((step) => (
-                                  <div
-                                    key={step.id}
-                                    className="tf-console-surface rounded-2xl px-4 py-3 text-sm"
-                                  >
-                                    {step.text.trim()}
-                                  </div>
-                                ))}
-                              </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="tf-console-surface rounded-2xl px-3 py-3 text-center">
+                              <p className="tf-console-title text-lg font-semibold">{weekVector.steps.length}</p>
+                              <p className="tf-console-copy-muted text-[10px] uppercase tracking-[0.16em]">steps</p>
                             </div>
-                          ) : null}
-
-                          {weekVector.nonNegotiables.length > 0 ? (
-                            <div className="space-y-2">
-                              <p className="tf-console-eyebrow text-xs font-semibold uppercase tracking-[0.22em]">Must Keep</p>
-                              <div className="flex flex-wrap gap-2">
-                                {weekVector.nonNegotiables.map((item) => (
-                                  <span
-                                    key={item.id}
-                                    className="tf-console-chip rounded-full px-3 py-1.5 text-sm"
-                                  >
-                                    {item.text.trim()}
-                                  </span>
-                                ))}
-                              </div>
+                            <div className="tf-console-surface rounded-2xl px-3 py-3 text-center">
+                              <p className="tf-console-title text-lg font-semibold">{weekVector.nonNegotiables.length}</p>
+                              <p className="tf-console-copy-muted text-[10px] uppercase tracking-[0.16em]">kept</p>
                             </div>
-                          ) : null}
-
-                          {weekVector.recoveryPlan ? (
-                            <div className="tf-console-surface rounded-2xl p-4 text-sm">
-                              <p className="tf-console-eyebrow text-xs font-semibold uppercase tracking-[0.22em]">If Things Get Hard</p>
-                              <p className="mt-2 leading-6">{weekVector.recoveryPlan}</p>
+                            <div className="tf-console-surface rounded-2xl px-3 py-3 text-center">
+                              <p className="tf-console-title text-lg font-semibold">{weekVector.recoveryPlan ? "On" : "Off"}</p>
+                              <p className="tf-console-copy-muted text-[10px] uppercase tracking-[0.16em]">backup</p>
                             </div>
-                          ) : null}
+                          </div>
                         </>
                       ) : (
-                        <div className="space-y-4" data-testid="console-week-vector-empty-state">
-                          <h3 className="tf-console-title text-2xl font-semibold tracking-tight">This week does not have a saved direction yet.</h3>
-                          <p className="tf-console-body text-sm leading-7">
-                            Open This Week to name the week, protect a few real steps, and save a recovery plan before Console starts summarizing it here.
-                          </p>
+                        <div className="tf-console-surface rounded-2xl px-4 py-4" data-testid="console-week-vector-empty-state">
+                          <div className="flex items-center gap-3">
+                            <ListTodo className="tf-console-copy-muted h-5 w-5 shrink-0" />
+                            <div className="min-w-0">
+                              <h3 className="tf-console-title text-base font-semibold tracking-tight">No weekly direction</h3>
+                              <p className="tf-console-copy-muted text-xs">Open This Week to set direction.</p>
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -1529,6 +1598,17 @@ export default function ConsolePage() {
                   className="min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
                   purposeClassName="min-[1600px]:max-w-[28rem] min-[1600px]:text-[13px]"
+                  {...getSelectionProps("constraint-horizon")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {constraintUrgencyCounts.dueNow} due
+                      </span>
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {constraintUrgencyCounts.near} near
+                      </span>
+                    </div>
+                  }
                 >
                     <div className="tf-density-stack space-y-4" data-testid="console-constraint-horizon-live">
                       <ConsoleUrgencyStrip
@@ -1656,6 +1736,17 @@ export default function ConsolePage() {
                   className="min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
                   purposeClassName="min-[1600px]:max-w-[34rem] min-[1600px]:text-[13px]"
+                  {...getSelectionProps("lane-atlas")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {laneAccessCount} lanes
+                      </span>
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        Navigation
+                      </span>
+                    </div>
+                  }
                 >
                   {laneAtlasItems.length > 0 ? (
                     <div className="space-y-4">
@@ -1729,6 +1820,17 @@ export default function ConsolePage() {
                   className="min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
                   purposeClassName="min-[1600px]:max-w-[24rem] min-[1600px]:text-[13px]"
+                  {...getSelectionProps("system-health")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {reviewCount} review
+                      </span>
+                        <span className="tf-console-chip-safe rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                        Safe
+                      </span>
+                    </div>
+                  }
                 >
                     <div className="space-y-4" data-testid="console-system-health-live">
                       <div className="flex flex-wrap gap-3">
@@ -1747,7 +1849,7 @@ export default function ConsolePage() {
                         <span>{laneAccessCount} {laneAccessCount === 1 ? "lane" : "lanes"} available</span>
                       </div>
                       <div
-                        className="tf-console-chip-accent inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm min-[1600px]:text-[13px]"
+                        className="tf-console-chip-safe inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm min-[1600px]:text-[13px]"
                         data-testid="console-system-health-chip-console-state"
                       >
                         <ShieldCheck className="h-4 w-4" />
@@ -1800,6 +1902,17 @@ export default function ConsolePage() {
                   className="min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
                   purposeClassName="min-[1600px]:max-w-[24rem] min-[1600px]:text-[13px]"
+                  {...getSelectionProps("assistant-review")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {reviewPressureCounts.needsReview} needs review
+                      </span>
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {reviewPressureCounts.approvalGated} gated
+                      </span>
+                    </div>
+                  }
                 >
                   <div className="space-y-4" data-testid="console-assistant-review-live">
                     {assistantReviewRows.length > 0 ? (
@@ -1880,6 +1993,14 @@ export default function ConsolePage() {
                   className="min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
                   purposeClassName="min-[1600px]:max-w-[24rem] min-[1600px]:text-[13px]"
+                  {...getSelectionProps("continuity")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        {continuity.label}
+                      </span>
+                    </div>
+                  }
                 >
                   <div className="space-y-4" data-testid="console-continuity-live">
                     <div className="flex flex-wrap items-center gap-2">
@@ -1935,6 +2056,17 @@ export default function ConsolePage() {
                     className="tf-console-panel-muted p-4 min-[1600px]:p-4"
                     contentClassName="min-[1600px]:mt-4"
                     purposeClassName="tf-console-copy-muted max-w-[24rem] text-[13px]"
+                    {...getSelectionProps("reach-capture")}
+                    selectedSummary={
+                      <div className="flex flex-wrap gap-2">
+                        <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                          {reachFileCount} files
+                        </span>
+                        <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                          {actionableReachDraftCount} review
+                        </span>
+                      </div>
+                    }
                   >
                     <div className="space-y-4" data-testid="console-reach-capture-live">
                       <p className="tf-console-body text-sm leading-6">
@@ -2005,6 +2137,17 @@ export default function ConsolePage() {
                     className="tf-console-panel-muted p-4 min-[1600px]:p-4"
                     contentClassName="min-[1600px]:mt-4"
                     purposeClassName="tf-console-copy-muted max-w-[24rem] text-[13px]"
+                    {...getSelectionProps("bizdev-motion")}
+                    selectedSummary={
+                      <div className="flex flex-wrap gap-2">
+                        <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                          {bizdevTotal} contacts
+                        </span>
+                        <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                          {(bizdevSummary?.counts.HOT ?? 0)} hot
+                        </span>
+                      </div>
+                    }
                   >
                     <div className="space-y-4" data-testid="console-bizdev-motion-live">
                       <p className="tf-console-body text-sm leading-6">
@@ -2076,6 +2219,17 @@ export default function ConsolePage() {
                   className="tf-console-panel-muted p-4 min-[1600px]:p-4"
                   contentClassName="min-[1600px]:mt-4"
                   purposeClassName="tf-console-copy-muted max-w-[24rem] text-[13px]"
+                  {...getSelectionProps("system-notes")}
+                  selectedSummary={
+                    <div className="flex flex-wrap gap-2">
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        Rules
+                      </span>
+                      <span className="tf-console-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        Read-only
+                      </span>
+                    </div>
+                  }
                 >
                   <div className="tf-console-copy-muted space-y-3 text-[13px]">
                     <div className="tf-console-surface rounded-2xl p-3.5">

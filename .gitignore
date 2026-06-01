@@ -62,6 +62,7 @@ replit.nix
 
 # Local transfer/archive drops
 /artifacts/arch1-pm-master-transport/
+/artifacts/arch1-executive-console-research-ingest/
 /artifacts/arch1-pm-return-ingest/
 /artifacts/replit-complete-send-set/
 /artifacts/replit-outbound-handoff/

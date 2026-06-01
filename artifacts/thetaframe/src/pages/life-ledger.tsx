@@ -3422,6 +3422,20 @@ export default function LifeLedgerPage() {
               onRunExecutionAction={handleEventExecutionAction}
               actionState={eventActionState}
             />
+            {!isLoading && entries && entries.length > 0 ? (
+              <EventExecutionBoard
+                entries={entries}
+                editingId={editingId}
+                onEdit={(id) => { setShowForm(false); setEditingId(id); }}
+                onDelete={handleDelete}
+                onRunExecutionAction={handleEventExecutionAction}
+                onUpdateReminderPolicy={handleEventReminderPolicyUpdate}
+                actionState={eventActionState}
+                reminderState={eventReminderState}
+                actionErrorMessage={eventActionError}
+                reminderErrorMessage={eventReminderError}
+              />
+            ) : null}
             {!showAIDraftReviewBeforeLifeLedgerWork ? lifeLedgerAIDraftReviewPanel : null}
             <CalendarLinkStatusCard
               state={lifeLedgerEventsCalendarPlaceholder.state}
@@ -3645,18 +3659,7 @@ export default function LifeLedgerPage() {
             onUpdateAssignmentState={handleUpdateAssignmentState}
           />
         ) : activeTab === "events" && entries && entries.length > 0 ? (
-          <EventExecutionBoard
-            entries={entries}
-            editingId={editingId}
-            onEdit={(id) => { setShowForm(false); setEditingId(id); }}
-            onDelete={handleDelete}
-            onRunExecutionAction={handleEventExecutionAction}
-            onUpdateReminderPolicy={handleEventReminderPolicyUpdate}
-            actionState={eventActionState}
-            reminderState={eventReminderState}
-            actionErrorMessage={eventActionError}
-            reminderErrorMessage={eventReminderError}
-          />
+          null
         ) : entries && entries.length > 0 ? (
           <TabTable
             tab={activeTab}

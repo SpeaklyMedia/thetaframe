@@ -19,7 +19,11 @@ export function resolveStorageStatePath(
   override: string | undefined,
   fallbackPath: string,
 ): string | undefined {
-  if (override?.trim()) return override.trim();
+  if (override?.trim()) {
+    const normalized = override.trim();
+    if (normalized === "skip" || normalized === "none") return undefined;
+    return normalized;
+  }
   return fs.existsSync(fallbackPath) ? fallbackPath : undefined;
 }
 

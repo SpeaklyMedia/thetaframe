@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider, ClerkLoaded, ClerkLoading, Show, useClerk } from "@clerk/react";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout";
 import { ThetaFrameStartup } from "@/components/shell/ThetaFrameStartup";
@@ -32,6 +32,9 @@ const queryClient = new QueryClient();
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const homeRedirectUrl = `${basePath || ""}/`;
+const PreviewAuthConsumeTicketPage = import.meta.env.VITE_LIFEOS_PREVIEW_AUTH_CALLBACK_ENABLED === "true"
+  ? lazy(() => import("@/pages/qa-auth-consume-ticket"))
+  : null;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -232,41 +235,46 @@ function ClerkProviderWithRoutes() {
               <Show when="signed-in">
                 <SignedInOnboardingModal />
               </Show>
-              <Switch>
-                <Route path="/" component={HomeRedirect} />
-                <Route path="/sign-in/*?" component={SignInPage} />
-                <Route path="/sign-up/*?" component={SignUpPage} />
+              <Suspense fallback={<PageSkeleton />}>
+                <Switch>
+                  <Route path="/" component={HomeRedirect} />
+                  <Route path="/sign-in/*?" component={SignInPage} />
+                  <Route path="/sign-up/*?" component={SignUpPage} />
+                  {PreviewAuthConsumeTicketPage ? (
+                    <Route path="/qa-auth/consume-ticket" component={PreviewAuthConsumeTicketPage} />
+                  ) : null}
 
-                <Route path="/dashboard">
-                  <DashboardRoute />
-                </Route>
-                <Route path="/console">
-                  <ConsoleRoute />
-                </Route>
-                <Route path="/daily">
-                  <ModuleRoute component={DailyPage} module="daily" />
-                </Route>
-                <Route path="/weekly">
-                  <ModuleRoute component={WeeklyPage} module="weekly" />
-                </Route>
-                <Route path="/vision">
-                  <ModuleRoute component={VisionPage} module="vision" />
-                </Route>
-                <Route path="/bizdev">
-                  <ModuleRoute component={BizdevPage} module="bizdev" />
-                </Route>
-                <Route path="/life-ledger">
-                  <ModuleRoute component={LifeLedgerPage} module="life-ledger" />
-                </Route>
-                <Route path="/reach">
-                  <ModuleRoute component={ReachPage} module="reach" />
-                </Route>
-                <Route path="/admin">
-                  <AdminRoute />
-                </Route>
+                  <Route path="/dashboard">
+                    <DashboardRoute />
+                  </Route>
+                  <Route path="/console">
+                    <ConsoleRoute />
+                  </Route>
+                  <Route path="/daily">
+                    <ModuleRoute component={DailyPage} module="daily" />
+                  </Route>
+                  <Route path="/weekly">
+                    <ModuleRoute component={WeeklyPage} module="weekly" />
+                  </Route>
+                  <Route path="/vision">
+                    <ModuleRoute component={VisionPage} module="vision" />
+                  </Route>
+                  <Route path="/bizdev">
+                    <ModuleRoute component={BizdevPage} module="bizdev" />
+                  </Route>
+                  <Route path="/life-ledger">
+                    <ModuleRoute component={LifeLedgerPage} module="life-ledger" />
+                  </Route>
+                  <Route path="/reach">
+                    <ModuleRoute component={ReachPage} module="reach" />
+                  </Route>
+                  <Route path="/admin">
+                    <AdminRoute />
+                  </Route>
 
-                <Route component={NotFound} />
-              </Switch>
+                  <Route component={NotFound} />
+                </Switch>
+              </Suspense>
             </ClerkLoaded>
             <Toaster />
           </TooltipProvider>

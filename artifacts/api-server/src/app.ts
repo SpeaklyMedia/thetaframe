@@ -27,9 +27,8 @@ const httpLogger = pinoHttp({
 });
 app.use(httpLogger);
 
-if (process.env.NODE_ENV !== "production") {
-  app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-}
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+app.use("/__clerk", clerkProxyMiddleware("/__clerk"));
 
 const allowedOrigins: (string | RegExp)[] = [
   /^http:\/\/localhost(:\d+)?$/,
