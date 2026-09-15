@@ -47,6 +47,7 @@ export async function upsertDailyFrameForUser({
       tierA: data.tierA,
       tierB: data.tierB,
       timeBlocks: data.timeBlocks,
+      firstAction: data.firstAction?.trim() || null,
       microWin: data.microWin ?? null,
       skipProtocolUsed: data.skipProtocolUsed,
       skipProtocolChoice: data.skipProtocolChoice ?? null,
@@ -58,6 +59,7 @@ export async function upsertDailyFrameForUser({
         tierA: data.tierA,
         tierB: data.tierB,
         timeBlocks: data.timeBlocks,
+        firstAction: data.firstAction?.trim() || null,
         microWin: data.microWin ?? null,
         skipProtocolUsed: data.skipProtocolUsed,
         skipProtocolChoice: data.skipProtocolChoice ?? null,
@@ -75,6 +77,7 @@ export function buildDefaultDailyFrameUpsertData() {
     tierA: [],
     tierB: [],
     timeBlocks: [],
+    firstAction: null,
     microWin: null,
     skipProtocolUsed: false,
     skipProtocolChoice: null,
@@ -110,6 +113,7 @@ export async function captureDailyQuickTaskForUser(args: {
         timeBlocks: Array.isArray(existingFrame.timeBlocks)
           ? (existingFrame.timeBlocks as UpsertDailyFrameBodyType["timeBlocks"])
           : [],
+        firstAction: existingFrame.firstAction ?? null,
         microWin: existingFrame.microWin ?? null,
         skipProtocolUsed: existingFrame.skipProtocolUsed,
         skipProtocolChoice: existingFrame.skipProtocolChoice as UpsertDailyFrameBodyType["skipProtocolChoice"],

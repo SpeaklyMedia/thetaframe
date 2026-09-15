@@ -53,6 +53,7 @@ import type {
   MyPermissionsResponse,
   Next90DaysResponse,
   ParentPacketImportRun,
+  PatchDailyReflectionBody,
   PutUserPermissionsBody,
   ReachFile,
   ReachFileBody,
@@ -65,7 +66,6 @@ import type {
   SubscriptionAuditResponse,
   UpdateAIDraftReviewStateBody,
   UpsertDailyFrameBody,
-  UpsertDailyReflectionBody,
   UpsertRoutineSessionBody,
   UpsertUserModeBody,
   UpsertUserPreferencesBody,
@@ -778,41 +778,41 @@ export const useUpsertRoutineSession = <
 /**
  * @summary Create or update a daily reflection
  */
-export const getUpsertDailyReflectionUrl = (date: string) => {
+export const getPatchDailyReflectionUrl = (date: string) => {
   return `/api/daily-rhythm/${date}/reflection`;
 };
 
-export const upsertDailyReflection = async (
+export const patchDailyReflection = async (
   date: string,
-  upsertDailyReflectionBody: UpsertDailyReflectionBody,
+  patchDailyReflectionBody: PatchDailyReflectionBody,
   options?: RequestInit,
 ): Promise<DailyReflection> => {
-  return customFetch<DailyReflection>(getUpsertDailyReflectionUrl(date), {
+  return customFetch<DailyReflection>(getPatchDailyReflectionUrl(date), {
     ...options,
-    method: "PUT",
+    method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(upsertDailyReflectionBody),
+    body: JSON.stringify(patchDailyReflectionBody),
   });
 };
 
-export const getUpsertDailyReflectionMutationOptions = <
+export const getPatchDailyReflectionMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof upsertDailyReflection>>,
+    Awaited<ReturnType<typeof patchDailyReflection>>,
     TError,
-    { date: string; data: BodyType<UpsertDailyReflectionBody> },
+    { date: string; data: BodyType<PatchDailyReflectionBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof upsertDailyReflection>>,
+  Awaited<ReturnType<typeof patchDailyReflection>>,
   TError,
-  { date: string; data: BodyType<UpsertDailyReflectionBody> },
+  { date: string; data: BodyType<PatchDailyReflectionBody> },
   TContext
 > => {
-  const mutationKey = ["upsertDailyReflection"];
+  const mutationKey = ["patchDailyReflection"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -822,45 +822,45 @@ export const getUpsertDailyReflectionMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof upsertDailyReflection>>,
-    { date: string; data: BodyType<UpsertDailyReflectionBody> }
+    Awaited<ReturnType<typeof patchDailyReflection>>,
+    { date: string; data: BodyType<PatchDailyReflectionBody> }
   > = (props) => {
     const { date, data } = props ?? {};
 
-    return upsertDailyReflection(date, data, requestOptions);
+    return patchDailyReflection(date, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type UpsertDailyReflectionMutationResult = NonNullable<
-  Awaited<ReturnType<typeof upsertDailyReflection>>
+export type PatchDailyReflectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof patchDailyReflection>>
 >;
-export type UpsertDailyReflectionMutationBody =
-  BodyType<UpsertDailyReflectionBody>;
-export type UpsertDailyReflectionMutationError = ErrorType<unknown>;
+export type PatchDailyReflectionMutationBody =
+  BodyType<PatchDailyReflectionBody>;
+export type PatchDailyReflectionMutationError = ErrorType<unknown>;
 
 /**
  * @summary Create or update a daily reflection
  */
-export const useUpsertDailyReflection = <
+export const usePatchDailyReflection = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof upsertDailyReflection>>,
+    Awaited<ReturnType<typeof patchDailyReflection>>,
     TError,
-    { date: string; data: BodyType<UpsertDailyReflectionBody> },
+    { date: string; data: BodyType<PatchDailyReflectionBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof upsertDailyReflection>>,
+  Awaited<ReturnType<typeof patchDailyReflection>>,
   TError,
-  { date: string; data: BodyType<UpsertDailyReflectionBody> },
+  { date: string; data: BodyType<PatchDailyReflectionBody> },
   TContext
 > => {
-  return useMutation(getUpsertDailyReflectionMutationOptions(options));
+  return useMutation(getPatchDailyReflectionMutationOptions(options));
 };
 
 /**

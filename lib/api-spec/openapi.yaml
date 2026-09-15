@@ -196,8 +196,8 @@ paths:
                 $ref: "#/components/schemas/RoutineSession"
 
   /daily-rhythm/{date}/reflection:
-    put:
-      operationId: upsertDailyReflection
+    patch:
+      operationId: patchDailyReflection
       tags: [daily-frames]
       summary: Create or update a daily reflection
       parameters:
@@ -212,7 +212,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpsertDailyReflectionBody"
+              $ref: "#/components/schemas/PatchDailyReflectionBody"
       responses:
         "200":
           description: Upserted daily reflection
@@ -1602,6 +1602,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimeBlock"
+        firstAction:
+          type: ["string", "null"]
         microWin:
           type: ["string", "null"]
         skipProtocolUsed:
@@ -1644,6 +1646,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimeBlock"
+        firstAction:
+          type: ["string", "null"]
         microWin:
           type: ["string", "null"]
         skipProtocolUsed:
@@ -1677,6 +1681,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimeBlock"
+        firstAction:
+          type: ["string", "null"]
         microWin:
           type: ["string", "null"]
         skipProtocolUsed:
@@ -1752,8 +1758,6 @@ components:
         date:
           type: string
           description: YYYY-MM-DD
-        win:
-          type: ["string", "null"]
         slipped:
           type: ["string", "null"]
         learned:
@@ -1812,11 +1816,9 @@ components:
         - completedStepKeys
         - completionState
 
-    UpsertDailyReflectionBody:
+    PatchDailyReflectionBody:
       type: object
       properties:
-        win:
-          type: ["string", "null"]
         slipped:
           type: ["string", "null"]
         learned:

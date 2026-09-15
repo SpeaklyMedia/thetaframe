@@ -6,11 +6,12 @@ import {
 import { requireModuleAccess } from "../middlewares/requireModuleAccess.js";
 import { serializeDates } from "../lib/serialize.js";
 import {
+  DailyRhythmValidationError,
   dailyRhythmDateParamsSchema,
   getDailyRhythmForUser,
+  patchDailyReflectionBodySchema,
+  patchDailyReflectionForUser,
   routineSessionParamsSchema,
-  upsertDailyReflectionBodySchema,
-  upsertDailyReflectionForUser,
   upsertRoutineSessionBodySchema,
   upsertRoutineSessionForUser,
 } from "../lib/dailyRhythm.js";
@@ -29,8 +30,16 @@ router.get(
       return;
     }
 
-    const rhythm = await getDailyRhythmForUser(userId, params.data.date);
-    res.json(serializeDates(rhythm));
+    try {
+      const rhythm = await getDailyRhythmForUser(userId, params.data.date);
+      res.json(serializeDates(rhythm));
+    } catch (error) {
+      if (error instanceof DailyRhythmValidationError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
   },
 );
 
@@ -52,18 +61,26 @@ router.put(
       return;
     }
 
-    const session = await upsertRoutineSessionForUser({
-      userId,
-      date: params.data.date,
-      routineKey: params.data.routineKey,
-      data: body.data,
-    });
+    try {
+      const session = await upsertRoutineSessionForUser({
+        userId,
+        date: params.data.date,
+        routineKey: params.data.routineKey,
+        data: body.data,
+      });
 
-    res.json(serializeDates(session));
+      res.json(serializeDates(session));
+    } catch (error) {
+      if (error instanceof DailyRhythmValidationError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
   },
 );
 
-router.put(
+router.patch(
   "/daily-rhythm/:date/reflection",
   async (req: Request, res: Response): Promise<void> => {
     const userId = (req as AuthenticatedRequest).userId;
@@ -74,20 +91,28 @@ router.put(
       return;
     }
 
-    const body = upsertDailyReflectionBodySchema.safeParse(req.body);
+    const body = patchDailyReflectionBodySchema.safeParse(req.body);
 
     if (!body.success) {
       res.status(400).json({ error: body.error.message });
       return;
     }
 
-    const reflection = await upsertDailyReflectionForUser({
-      userId,
-      date: params.data.date,
-      data: body.data,
-    });
+    try {
+      const reflection = await patchDailyReflectionForUser({
+        userId,
+        date: params.data.date,
+        data: body.data,
+      });
 
-    res.json(serializeDates(reflection));
+      res.json(serializeDates(reflection));
+    } catch (error) {
+      if (error instanceof DailyRhythmValidationError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
   },
 );
 

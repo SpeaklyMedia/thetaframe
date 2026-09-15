@@ -32,6 +32,7 @@ class DailyRhythmV1StaticTests(unittest.TestCase):
         schema = read("lib/db/src/schema/daily-rhythm.ts")
         self.assertIn('pgTable("routine_sessions"', compact(schema))
         self.assertIn('pgTable("daily_reflections"', compact(schema))
+        self.assertNotIn('text("win")', schema)
         self.assertIn('userId: text("user_id").notNull()', schema)
         self.assertIn('uniqueIndex("routine_sessions_user_date_key_idx").on(table.userId,table.date,table.routineKey', compact(schema))
         self.assertIn('uniqueIndex("daily_reflections_user_date_idx").on(table.userId, table.date)', schema)
@@ -44,7 +45,7 @@ class DailyRhythmV1StaticTests(unittest.TestCase):
         self.assertIn('router.use("/daily-rhythm", requireAuth, requireModuleAccess("daily"));', route)
         self.assertIn('router.get("/daily-rhythm/:date"', compact(route))
         self.assertIn('router.put("/daily-rhythm/:date/routine-sessions/:routineKey"', compact(route))
-        self.assertIn('router.put("/daily-rhythm/:date/reflection"', compact(route))
+        self.assertIn('router.patch("/daily-rhythm/:date/reflection"', compact(route))
 
     def test_dashboard_remains_canonical_and_daily_owns_full_workflow(self) -> None:
         app = read("artifacts/thetaframe/src/App.tsx")

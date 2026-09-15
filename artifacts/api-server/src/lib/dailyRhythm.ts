@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { dailyReflectionsTable, db, routineSessionsTable } from "@workspace/db";
+import { isValidDateString } from "./serialize.js";
 
 export const routineKeySchema = z.enum(["morning", "night"]);
 export const routineModeSchema = z.enum(["full", "short", "minimum"]);
@@ -10,7 +11,51 @@ export const routineCompletionStateSchema = z.enum([
   "complete",
 ]);
 
-const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const dateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(
+    isValidDateString,
+    "Date must be a real calendar date in YYYY-MM-DD format.",
+  );
+
+const MORNING_STEP_KEYS = [
+  "hydrate",
+  "outside_light",
+  "move",
+  "center",
+  "family",
+  "wealth",
+  "command",
+] as const;
+
+const NIGHT_STEP_KEYS = [
+  "capture",
+  "review",
+  "choose",
+  "prepare",
+  "sleep",
+] as const;
+
+const REQUIRED_MORNING_STEPS_BY_MODE: Record<
+  z.infer<typeof routineModeSchema>,
+  readonly string[]
+> = {
+  full: MORNING_STEP_KEYS,
+  short: ["hydrate", "outside_light", "move", "center", "command"],
+  minimum: ["hydrate", "center", "command"],
+};
+
+class DailyRhythmValidationError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export { DailyRhythmValidationError };
 
 export const dailyRhythmDateParamsSchema = z.object({
   date: dateStringSchema,
@@ -27,20 +72,29 @@ export const upsertRoutineSessionBodySchema = z.object({
   completionState: routineCompletionStateSchema,
 });
 
-export const upsertDailyReflectionBodySchema = z.object({
-  win: z.string().max(500).nullable().optional(),
-  slipped: z.string().max(500).nullable().optional(),
-  learned: z.string().max(500).nullable().optional(),
-  firstActionTomorrow: z.string().max(500).nullable().optional(),
-  prepNote: z.string().max(500).nullable().optional(),
-});
+export const patchDailyReflectionBodySchema = z
+  .object({
+    slipped: z.string().max(500).nullable().optional(),
+    learned: z.string().max(500).nullable().optional(),
+    firstActionTomorrow: z.string().max(500).nullable().optional(),
+    prepNote: z.string().max(500).nullable().optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one reflection field is required.",
+  });
 
 type UpsertRoutineSessionBody = z.infer<typeof upsertRoutineSessionBodySchema>;
-type UpsertDailyReflectionBody = z.infer<
-  typeof upsertDailyReflectionBodySchema
->;
+type PatchDailyReflectionBody = z.infer<typeof patchDailyReflectionBodySchema>;
 
 function previousDateString(date: string): string {
+  if (!isValidDateString(date)) {
+    throw new DailyRhythmValidationError(
+      400,
+      "Date must be a real calendar date in YYYY-MM-DD format.",
+    );
+  }
+
   const parsed = new Date(`${date}T00:00:00.000Z`);
   parsed.setUTCDate(parsed.getUTCDate() - 1);
   return parsed.toISOString().slice(0, 10);
@@ -57,6 +111,114 @@ function uniqueStepKeys(values: string[]): string[] {
   return Array.from(
     new Set(values.map((value) => value.trim()).filter(Boolean)),
   );
+}
+
+function requireAllowedStepKeys(args: {
+  completedStepKeys: string[];
+  allowedStepKeys: readonly string[];
+}) {
+  const allowed = new Set(args.allowedStepKeys);
+  const invalid = args.completedStepKeys.filter((key) => !allowed.has(key));
+  if (invalid.length > 0) {
+    throw new DailyRhythmValidationError(
+      422,
+      `Unsupported routine step: ${invalid[0]}.`,
+    );
+  }
+}
+
+function requireRequiredSteps(args: {
+  completedStepKeys: string[];
+  requiredStepKeys: readonly string[];
+  label: string;
+}) {
+  const completed = new Set(args.completedStepKeys);
+  const missing = args.requiredStepKeys.filter((key) => !completed.has(key));
+  if (missing.length > 0) {
+    throw new DailyRhythmValidationError(
+      422,
+      `${args.label} is missing required step: ${missing[0]}.`,
+    );
+  }
+}
+
+function validateRoutineSessionInput(args: {
+  routineKey: z.infer<typeof routineKeySchema>;
+  data: UpsertRoutineSessionBody;
+}) {
+  const completedStepKeys = uniqueStepKeys(args.data.completedStepKeys);
+
+  if (args.routineKey === "morning") {
+    requireAllowedStepKeys({
+      completedStepKeys,
+      allowedStepKeys: MORNING_STEP_KEYS,
+    });
+
+    if (args.data.completionState === "complete") {
+      requireRequiredSteps({
+        completedStepKeys,
+        requiredStepKeys: REQUIRED_MORNING_STEPS_BY_MODE[args.data.mode],
+        label: "Morning routine",
+      });
+    }
+
+    return completedStepKeys;
+  }
+
+  if (args.data.mode !== "full") {
+    throw new DailyRhythmValidationError(
+      422,
+      "Night Reset only supports full mode in V1.",
+    );
+  }
+
+  requireAllowedStepKeys({
+    completedStepKeys,
+    allowedStepKeys: NIGHT_STEP_KEYS,
+  });
+
+  if (args.data.completionState === "complete") {
+    requireRequiredSteps({
+      completedStepKeys,
+      requiredStepKeys: NIGHT_STEP_KEYS,
+      label: "Night Reset",
+    });
+  }
+
+  return completedStepKeys;
+}
+
+function hasOwnReflectionField(
+  data: PatchDailyReflectionBody,
+  key: keyof PatchDailyReflectionBody,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(data, key);
+}
+
+function buildDailyReflectionPatch(data: PatchDailyReflectionBody) {
+  const values: Partial<{
+    slipped: string | null;
+    learned: string | null;
+    firstActionTomorrow: string | null;
+    prepNote: string | null;
+  }> = {};
+
+  if (hasOwnReflectionField(data, "slipped")) {
+    values.slipped = normalizeNullableText(data.slipped);
+  }
+  if (hasOwnReflectionField(data, "learned")) {
+    values.learned = normalizeNullableText(data.learned);
+  }
+  if (hasOwnReflectionField(data, "firstActionTomorrow")) {
+    values.firstActionTomorrow = normalizeNullableText(
+      data.firstActionTomorrow,
+    );
+  }
+  if (hasOwnReflectionField(data, "prepNote")) {
+    values.prepNote = normalizeNullableText(data.prepNote);
+  }
+
+  return values;
 }
 
 export async function getDailyRhythmForUser(userId: string, date: string) {
@@ -107,7 +269,10 @@ export async function upsertRoutineSessionForUser(args: {
 }) {
   const now = new Date();
   const completionState = args.data.completionState;
-  const completedStepKeys = uniqueStepKeys(args.data.completedStepKeys);
+  const completedStepKeys = validateRoutineSessionInput({
+    routineKey: args.routineKey,
+    data: args.data,
+  });
   const completedAt = completionState === "complete" ? now : null;
 
   const [session] = await db
@@ -141,19 +306,13 @@ export async function upsertRoutineSessionForUser(args: {
   return session;
 }
 
-export async function upsertDailyReflectionForUser(args: {
+export async function patchDailyReflectionForUser(args: {
   userId: string;
   date: string;
-  data: UpsertDailyReflectionBody;
+  data: PatchDailyReflectionBody;
 }) {
   const now = new Date();
-  const values = {
-    win: normalizeNullableText(args.data.win),
-    slipped: normalizeNullableText(args.data.slipped),
-    learned: normalizeNullableText(args.data.learned),
-    firstActionTomorrow: normalizeNullableText(args.data.firstActionTomorrow),
-    prepNote: normalizeNullableText(args.data.prepNote),
-  };
+  const values = buildDailyReflectionPatch(args.data);
 
   const [reflection] = await db
     .insert(dailyReflectionsTable)

@@ -47,7 +47,6 @@ export const dailyReflectionsTable = pgTable(
     id: serial("id").primaryKey(),
     userId: text("user_id").notNull(),
     date: text("date").notNull(),
-    win: text("win"),
     slipped: text("slipped"),
     learned: text("learned"),
     firstActionTomorrow: text("first_action_tomorrow"),

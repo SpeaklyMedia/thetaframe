@@ -3,7 +3,6 @@ import type {
   DailyReflection,
   RoutineSession,
   TierTask,
-  TimeBlock,
 } from "@workspace/api-client-react";
 
 export type RoutineMode = "full" | "short" | "minimum";
@@ -232,38 +231,22 @@ export function setCommitmentSlot(
 }
 
 export function getFirstActionValue(
-  timeBlocks: TimeBlock[],
+  firstAction: string | null | undefined,
   previousReflection?: DailyReflection | null,
 ): string {
-  return timeBlocks[0]?.action || previousReflection?.firstActionTomorrow || "";
+  return firstAction || previousReflection?.firstActionTomorrow || "";
 }
 
-export function setFirstAction(
-  timeBlocks: TimeBlock[],
-  value: string,
-): TimeBlock[] {
+export function normalizeFirstAction(value: string): string | null {
   const trimmedValue = value.trim();
-  if (timeBlocks.length === 0) {
-    return [
-      {
-        id: "daily-rhythm-first-action",
-        startTime: "09:00",
-        action: trimmedValue,
-      },
-    ];
-  }
-  const [first, ...rest] = timeBlocks;
-  return [{ ...first, action: trimmedValue }, ...rest];
+  return trimmedValue || null;
 }
 
 export function getDashboardFirstAction(
   frame: DailyFrame | undefined,
   previousReflection?: DailyReflection | null,
 ): string {
-  return getFirstActionValue(
-    (frame?.timeBlocks as TimeBlock[] | undefined) ?? [],
-    previousReflection,
-  );
+  return getFirstActionValue(frame?.firstAction, previousReflection);
 }
 
 export function getDashboardCommitments(

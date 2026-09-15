@@ -3,7 +3,7 @@ import type {
   DailyReflection,
   RoutineSession,
   TierTask,
-  UpsertDailyReflectionBody,
+  PatchDailyReflectionBody,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -369,39 +369,49 @@ export function MorningRhythmPanel({
 export function NightResetPanel({
   session,
   reflection,
+  microWinValue,
   onSessionSave,
   onReflectionSave,
+  onMicroWinSave,
   onCapture,
   isSaving,
 }: {
   session: RoutineSession | null;
   reflection: DailyReflection | null;
+  microWinValue: string;
   onSessionSave: (data: {
     mode: RoutineMode;
     completedStepKeys: string[];
     completionState: RoutineCompletionState;
   }) => void;
-  onReflectionSave: (data: UpsertDailyReflectionBody) => void;
+  onReflectionSave: (data: PatchDailyReflectionBody) => void;
+  onMicroWinSave: (value: string) => void;
   onCapture: (value: string) => void;
   isSaving?: boolean;
 }) {
   const [captureDraft, setCaptureDraft] = useState("");
+  const [microWinDraft, setMicroWinDraft] = useState(microWinValue);
   const [reflectionDraft, setReflectionDraft] =
-    useState<UpsertDailyReflectionBody>({
-      win: "",
+    useState<PatchDailyReflectionBody>({
       slipped: "",
       learned: "",
       firstActionTomorrow: "",
       prepNote: "",
     });
   const completedStepKeys = getCompletedStepKeys(session);
-  const canCompleteNight = NIGHT_STEPS.every((step) =>
-    completedStepKeys.includes(step.key),
+  const nightPrerequisiteStepKeys = NIGHT_STEPS.filter(
+    (step) => step.key !== "sleep",
+  ).map((step) => step.key);
+  const canCompleteNight = nightPrerequisiteStepKeys.every((stepKey) =>
+    completedStepKeys.includes(stepKey),
   );
 
   useEffect(() => {
+    setMicroWinDraft(microWinValue);
+  }, [microWinValue]);
+
+  useEffect(() => {
     setReflectionDraft({
-      win: reflection?.win ?? "",
       slipped: reflection?.slipped ?? "",
       learned: reflection?.learned ?? "",
       firstActionTomorrow: reflection?.firstActionTomorrow ?? "",
@@ -422,10 +432,9 @@ export function NightResetPanel({
     });
   };
 
-  const updateReflection = (patch: UpsertDailyReflectionBody) => {
-    const next = { ...reflectionDraft, ...patch };
-    setReflectionDraft(next);
-    onReflectionSave(next);
+  const updateReflection = (patch: PatchDailyReflectionBody) => {
+    setReflectionDraft((current) => ({ ...current, ...patch }));
+    onReflectionSave(patch);
   };
 
   return (
@@ -490,14 +499,9 @@ export function NightResetPanel({
       >
         <div className="grid gap-3 md:grid-cols-3">
           <Textarea
-            value={reflectionDraft.win ?? ""}
-            onChange={(event) =>
-              setReflectionDraft((current) => ({
-                ...current,
-                win: event.target.value,
-              }))
-            }
-            onBlur={() => updateReflection({ win: reflectionDraft.win })}
+            value={microWinDraft}
+            onChange={(event) => setMicroWinDraft(event.target.value)}
+            onBlur={() => onMicroWinSave(microWinDraft)}
             placeholder="Today's win"
             aria-label="Today's win"
             className="min-h-24 resize-none"
@@ -591,7 +595,13 @@ export function NightResetPanel({
           type="button"
           onClick={() =>
             saveSession(
-              NIGHT_STEPS.map((step) => step.key),
+              Array.from(
+                new Set([
+                  ...completedStepKeys,
+                  ...nightPrerequisiteStepKeys,
+                  "sleep",
+                ]),
+              ),
               "complete",
             )
           }

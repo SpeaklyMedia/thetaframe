@@ -61,6 +61,8 @@ export interface DailyFrame {
   tierB: TierTask[];
   timeBlocks: TimeBlock[];
   /** @nullable */
+  firstAction?: string | null;
+  /** @nullable */
   microWin?: string | null;
   skipProtocolUsed: boolean;
   /** @nullable */
@@ -100,6 +102,8 @@ export interface CreateDailyFrameBody {
   tierB: TierTask[];
   timeBlocks: TimeBlock[];
   /** @nullable */
+  firstAction?: string | null;
+  /** @nullable */
   microWin?: string | null;
   skipProtocolUsed: boolean;
   /** @nullable */
@@ -134,6 +138,8 @@ export interface UpsertDailyFrameBody {
   tierA: TierTask[];
   tierB: TierTask[];
   timeBlocks: TimeBlock[];
+  /** @nullable */
+  firstAction?: string | null;
   /** @nullable */
   microWin?: string | null;
   skipProtocolUsed: boolean;
@@ -188,8 +194,6 @@ export interface DailyReflection {
   /** YYYY-MM-DD */
   date: string;
   /** @nullable */
-  win?: string | null;
-  /** @nullable */
   slipped?: string | null;
   /** @nullable */
   learned?: string | null;
@@ -214,9 +218,7 @@ export interface UpsertRoutineSessionBody {
   completionState: RoutineCompletionState;
 }
 
-export interface UpsertDailyReflectionBody {
-  /** @nullable */
-  win?: string | null;
+export interface PatchDailyReflectionBody {
   /** @nullable */
   slipped?: string | null;
   /** @nullable */
