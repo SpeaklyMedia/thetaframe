@@ -62,6 +62,13 @@ class DailyRhythmV11StaticTests(unittest.TestCase):
         self.assertIn("DailyRhythmValidationError", route)
         self.assertIn("res.status(error.status)", route)
 
+    def test_first_move_clear_uses_explicit_property_presence(self) -> None:
+        daily_page = read("artifacts/thetaframe/src/pages/daily.tsx")
+        self.assertIn('Object.prototype.hasOwnProperty.call(updates, "firstAction")', daily_page)
+        self.assertIn('hasFirstActionUpdate ? updates.firstAction ?? null : normalizeFirstAction(firstAction)', daily_page)
+        self.assertIn('save({ firstAction: normalized })', daily_page)
+        self.assertIn('setFirstAction(normalized ?? "")', daily_page)
+
 
 if __name__ == "__main__":
     unittest.main()

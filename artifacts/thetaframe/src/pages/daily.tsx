@@ -295,12 +295,13 @@ export default function DailyPage() {
       firstAction: string | null;
       microWin: string;
     }>) => {
+      const hasFirstActionUpdate = Object.prototype.hasOwnProperty.call(updates, "firstAction");
       const payload = {
         colourState: updates.colourState ?? colourState,
         tierA: updates.tierA ?? tierA,
         tierB: updates.tierB ?? tierB,
         timeBlocks: updates.timeBlocks ?? timeBlocks,
-        firstAction: updates.firstAction ?? normalizeFirstAction(firstAction),
+        firstAction: hasFirstActionUpdate ? updates.firstAction ?? null : normalizeFirstAction(firstAction),
         microWin: updates.microWin ?? microWin,
         skipProtocolUsed: frame?.skipProtocolUsed ?? false,
         skipProtocolChoice: (frame?.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null,
