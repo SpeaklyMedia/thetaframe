@@ -16,14 +16,19 @@ import {
   getListAiDraftsQueryKey,
   useUpdateAiDraftReviewState,
   useGetDailyFrame,
+  useGetDailyRhythm,
   useUpsertDailyFrame,
   useCreateMobileQuickCapture,
   useGetUserMode,
+  useUpsertDailyReflection,
+  useUpsertRoutineSession,
   useUpsertUserMode,
   getGetDailyFrameQueryKey,
+  getGetDailyRhythmQueryKey,
   getGetUserModeQueryKey,
   type MobileQuickCaptureChannel,
   type UserModeMode,
+  type UpsertDailyReflectionBody,
 } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/react";
 import { getTodayDateString } from "@/lib/dates";
@@ -66,6 +71,16 @@ import { dailyCalendarPlaceholder } from "@/lib/calendar-placeholders";
 import { dailyMobilePlaceholder } from "@/lib/mobile-placeholders";
 import { useBabyKbHeroRollups } from "@/hooks/use-parent-packet-imports";
 import { mobileDeepLinkByLane, resolveQuickCaptureIntentRoute } from "@/lib/mobile-routing";
+import { MorningRhythmPanel, NightResetPanel } from "@/components/daily-rhythm";
+import {
+  getFirstActionValue,
+  getRoutineSession,
+  setCommitmentSlot,
+  setFirstAction,
+  type RoutineCompletionState,
+  type RoutineKey,
+  type RoutineMode,
+} from "@/lib/daily-rhythm";
 
 function getDailyFrameErrorMessage(error: ApiError<unknown>): string {
   if (error.status === 400) {
@@ -209,6 +224,16 @@ export default function DailyPage() {
       retry: 0,
     },
   });
+  const dailyRhythm = useGetDailyRhythm(date, {
+    query: {
+      enabled: isAuthLoaded && Boolean(userId) && authSessionStatus === "ready" && !!date,
+      queryKey: getGetDailyRhythmQueryKey(date),
+      retry: 0,
+      refetchOnWindowFocus: false,
+    },
+  });
+  const upsertRoutineSession = useUpsertRoutineSession();
+  const upsertDailyReflection = useUpsertDailyReflection();
   const isFirstRunDaily = error instanceof ApiError && error.status === 404;
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const remainingSurfaces = surfaces.filter((surface) => surface.surface !== "daily" && !surface.isComplete);
@@ -574,6 +599,57 @@ export default function DailyPage() {
     });
   };
 
+  const rhythmQueryKey = getGetDailyRhythmQueryKey(date);
+  const morningSession = getRoutineSession(dailyRhythm.data?.routineSessions, "morning");
+  const nightSession = getRoutineSession(dailyRhythm.data?.routineSessions, "night");
+  const firstActionValue = getFirstActionValue(timeBlocks, dailyRhythm.data?.previousReflection);
+  const isDailyRhythmSaving = upsert.isPending || upsertRoutineSession.isPending || upsertDailyReflection.isPending;
+
+  const handleRoutineSessionSave = (
+    routineKey: RoutineKey,
+    data: { mode: RoutineMode; completedStepKeys: string[]; completionState: RoutineCompletionState },
+  ) => {
+    upsertRoutineSession.mutate(
+      { date, routineKey, data },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: rhythmQueryKey });
+        },
+      },
+    );
+  };
+
+  const handleReflectionSave = (data: UpsertDailyReflectionBody) => {
+    upsertDailyReflection.mutate(
+      { date, data },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: rhythmQueryKey });
+        },
+      },
+    );
+  };
+
+  const handleCommitmentChange = (index: number, value: string, completed?: boolean, persist = true) => {
+    const updated = setCommitmentSlot(tierA, index, value, completed);
+    setTierA(updated);
+    if (persist) save({ tierA: updated });
+  };
+
+  const handleFirstActionSave = (value: string) => {
+    const updated = setFirstAction(timeBlocks, value);
+    setTimeBlocks(updated);
+    save({ timeBlocks: updated });
+  };
+
+  const handleNightCapture = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const updated = [{ id: crypto.randomUUID(), text: trimmed, completed: false }, ...tierB];
+    setTierB(updated);
+    save({ tierB: updated });
+  };
+
   return (
     <Layout>
       <div className="tf-density-page tf-density-page-narrow tf-density-page-spacious container mx-auto max-w-4xl space-y-10">
@@ -591,6 +667,17 @@ export default function DailyPage() {
         />
 
         <BasicLaneNextStep lane="daily" isComplete={isSurfaceComplete("daily")} />
+
+        <MorningRhythmPanel
+          session={morningSession}
+          previousReflection={dailyRhythm.data?.previousReflection ?? null}
+          firstActionValue={firstActionValue}
+          commitments={tierA}
+          onSessionSave={(data) => handleRoutineSessionSave("morning", data)}
+          onFirstActionSave={handleFirstActionSave}
+          onCommitmentChange={handleCommitmentChange}
+          isSaving={isDailyRhythmSaving}
+        />
 
         <HabitCanvasSurface
           title="Today Canvas"
@@ -763,6 +850,15 @@ export default function DailyPage() {
           />
           </HabitCanvasSection>
         </HabitCanvasSurface>
+
+        <NightResetPanel
+          session={nightSession}
+          reflection={dailyRhythm.data?.reflection ?? null}
+          onSessionSave={(data) => handleRoutineSessionSave("night", data)}
+          onReflectionSave={handleReflectionSave}
+          onCapture={handleNightCapture}
+          isSaving={isDailyRhythmSaving}
+        />
 
         <BasicMoreSection
           title="Review AI drafts"

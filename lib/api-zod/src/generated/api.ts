@@ -321,6 +321,118 @@ export const GetRecentDailyFramesResponse = zod.array(
 );
 
 /**
+ * @summary Get daily rhythm state for a date
+ */
+export const GetDailyRhythmParams = zod.object({
+  date: zod.coerce.string(),
+});
+
+export const GetDailyRhythmResponse = zod.object({
+  date: zod.string(),
+  routineSessions: zod.array(
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      routineKey: zod.enum(["morning", "night"]),
+      mode: zod.enum(["full", "short", "minimum"]),
+      completedStepKeys: zod.array(zod.string()),
+      startedAt: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+      completionState: zod.enum(["not_started", "in_progress", "complete"]),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  reflection: zod.union([
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      win: zod.string().nullish(),
+      slipped: zod.string().nullish(),
+      learned: zod.string().nullish(),
+      firstActionTomorrow: zod.string().nullish(),
+      prepNote: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+    zod.null(),
+  ]),
+  previousReflection: zod.union([
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      win: zod.string().nullish(),
+      slipped: zod.string().nullish(),
+      learned: zod.string().nullish(),
+      firstActionTomorrow: zod.string().nullish(),
+      prepNote: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Create or update a routine session
+ */
+export const UpsertRoutineSessionParams = zod.object({
+  date: zod.coerce.string(),
+  routineKey: zod.enum(["morning", "night"]),
+});
+
+export const UpsertRoutineSessionBody = zod.object({
+  mode: zod.enum(["full", "short", "minimum"]),
+  completedStepKeys: zod.array(zod.string()),
+  completionState: zod.enum(["not_started", "in_progress", "complete"]),
+});
+
+export const UpsertRoutineSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  date: zod.string().describe("YYYY-MM-DD"),
+  routineKey: zod.enum(["morning", "night"]),
+  mode: zod.enum(["full", "short", "minimum"]),
+  completedStepKeys: zod.array(zod.string()),
+  startedAt: zod.string().nullish(),
+  completedAt: zod.string().nullish(),
+  completionState: zod.enum(["not_started", "in_progress", "complete"]),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Create or update a daily reflection
+ */
+export const UpsertDailyReflectionParams = zod.object({
+  date: zod.coerce.string(),
+});
+
+export const UpsertDailyReflectionBody = zod.object({
+  win: zod.string().nullish(),
+  slipped: zod.string().nullish(),
+  learned: zod.string().nullish(),
+  firstActionTomorrow: zod.string().nullish(),
+  prepNote: zod.string().nullish(),
+});
+
+export const UpsertDailyReflectionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  date: zod.string().describe("YYYY-MM-DD"),
+  win: zod.string().nullish(),
+  slipped: zod.string().nullish(),
+  learned: zod.string().nullish(),
+  firstActionTomorrow: zod.string().nullish(),
+  prepNote: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
  * @summary List all weekly frames for the current user
  */
 export const ListWeeklyFramesResponseItem = zod.object({

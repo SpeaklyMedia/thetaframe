@@ -1,6 +1,7 @@
 import { Router } from "express";
 import healthRouter from "./health.js";
 import dailyFramesRouter from "./daily-frames.js";
+import dailyRhythmRouter from "./daily-rhythm.js";
 import weeklyFramesRouter from "./weekly-frames.js";
 import visionFramesRouter from "./vision-frames.js";
 import userModeRouter from "./user-mode.js";
@@ -19,6 +20,7 @@ const router = Router();
 
 router.use(healthRouter);
 router.use(dailyFramesRouter);
+router.use(dailyRhythmRouter);
 router.use(weeklyFramesRouter);
 router.use(visionFramesRouter);
 router.use(userModeRouter);

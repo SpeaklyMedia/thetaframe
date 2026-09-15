@@ -34,6 +34,8 @@ import type {
   CreatePresetBody,
   CreateWeeklyFrameBody,
   DailyFrame,
+  DailyReflection,
+  DailyRhythmResponse,
   ErrorResponse,
   HealthStatus,
   LifeLedgerEntry,
@@ -57,10 +59,14 @@ import type {
   RegisterMobileDeviceBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  RoutineKey,
+  RoutineSession,
   SimulateDispatchMobileNotificationBody,
   SubscriptionAuditResponse,
   UpdateAIDraftReviewStateBody,
   UpsertDailyFrameBody,
+  UpsertDailyReflectionBody,
+  UpsertRoutineSessionBody,
   UpsertUserModeBody,
   UpsertUserPreferencesBody,
   UpsertVisionFrameBody,
@@ -566,6 +572,296 @@ export function useGetRecentDailyFrames<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get daily rhythm state for a date
+ */
+export const getGetDailyRhythmUrl = (date: string) => {
+  return `/api/daily-rhythm/${date}`;
+};
+
+export const getDailyRhythm = async (
+  date: string,
+  options?: RequestInit,
+): Promise<DailyRhythmResponse> => {
+  return customFetch<DailyRhythmResponse>(getGetDailyRhythmUrl(date), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDailyRhythmQueryKey = (date: string) => {
+  return [`/api/daily-rhythm/${date}`] as const;
+};
+
+export const getGetDailyRhythmQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDailyRhythm>>,
+  TError = ErrorType<unknown>,
+>(
+  date: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDailyRhythm>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDailyRhythmQueryKey(date);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyRhythm>>> = ({
+    signal,
+  }) => getDailyRhythm(date, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!date,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDailyRhythm>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDailyRhythmQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDailyRhythm>>
+>;
+export type GetDailyRhythmQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get daily rhythm state for a date
+ */
+
+export function useGetDailyRhythm<
+  TData = Awaited<ReturnType<typeof getDailyRhythm>>,
+  TError = ErrorType<unknown>,
+>(
+  date: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDailyRhythm>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDailyRhythmQueryOptions(date, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update a routine session
+ */
+export const getUpsertRoutineSessionUrl = (
+  date: string,
+  routineKey: RoutineKey,
+) => {
+  return `/api/daily-rhythm/${date}/routine-sessions/${routineKey}`;
+};
+
+export const upsertRoutineSession = async (
+  date: string,
+  routineKey: RoutineKey,
+  upsertRoutineSessionBody: UpsertRoutineSessionBody,
+  options?: RequestInit,
+): Promise<RoutineSession> => {
+  return customFetch<RoutineSession>(
+    getUpsertRoutineSessionUrl(date, routineKey),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(upsertRoutineSessionBody),
+    },
+  );
+};
+
+export const getUpsertRoutineSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertRoutineSession>>,
+    TError,
+    {
+      date: string;
+      routineKey: RoutineKey;
+      data: BodyType<UpsertRoutineSessionBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertRoutineSession>>,
+  TError,
+  {
+    date: string;
+    routineKey: RoutineKey;
+    data: BodyType<UpsertRoutineSessionBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["upsertRoutineSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertRoutineSession>>,
+    {
+      date: string;
+      routineKey: RoutineKey;
+      data: BodyType<UpsertRoutineSessionBody>;
+    }
+  > = (props) => {
+    const { date, routineKey, data } = props ?? {};
+
+    return upsertRoutineSession(date, routineKey, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertRoutineSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertRoutineSession>>
+>;
+export type UpsertRoutineSessionMutationBody =
+  BodyType<UpsertRoutineSessionBody>;
+export type UpsertRoutineSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update a routine session
+ */
+export const useUpsertRoutineSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertRoutineSession>>,
+    TError,
+    {
+      date: string;
+      routineKey: RoutineKey;
+      data: BodyType<UpsertRoutineSessionBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertRoutineSession>>,
+  TError,
+  {
+    date: string;
+    routineKey: RoutineKey;
+    data: BodyType<UpsertRoutineSessionBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpsertRoutineSessionMutationOptions(options));
+};
+
+/**
+ * @summary Create or update a daily reflection
+ */
+export const getUpsertDailyReflectionUrl = (date: string) => {
+  return `/api/daily-rhythm/${date}/reflection`;
+};
+
+export const upsertDailyReflection = async (
+  date: string,
+  upsertDailyReflectionBody: UpsertDailyReflectionBody,
+  options?: RequestInit,
+): Promise<DailyReflection> => {
+  return customFetch<DailyReflection>(getUpsertDailyReflectionUrl(date), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertDailyReflectionBody),
+  });
+};
+
+export const getUpsertDailyReflectionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertDailyReflection>>,
+    TError,
+    { date: string; data: BodyType<UpsertDailyReflectionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertDailyReflection>>,
+  TError,
+  { date: string; data: BodyType<UpsertDailyReflectionBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertDailyReflection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertDailyReflection>>,
+    { date: string; data: BodyType<UpsertDailyReflectionBody> }
+  > = (props) => {
+    const { date, data } = props ?? {};
+
+    return upsertDailyReflection(date, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertDailyReflectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertDailyReflection>>
+>;
+export type UpsertDailyReflectionMutationBody =
+  BodyType<UpsertDailyReflectionBody>;
+export type UpsertDailyReflectionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update a daily reflection
+ */
+export const useUpsertDailyReflection = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertDailyReflection>>,
+    TError,
+    { date: string; data: BodyType<UpsertDailyReflectionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertDailyReflection>>,
+  TError,
+  { date: string; data: BodyType<UpsertDailyReflectionBody> },
+  TContext
+> => {
+  return useMutation(getUpsertDailyReflectionMutationOptions(options));
+};
 
 /**
  * @summary List all weekly frames for the current user
