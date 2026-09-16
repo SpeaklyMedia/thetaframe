@@ -70,3 +70,11 @@ replit.nix
 /artifacts/replit-r3-return/
 /artifacts/receipts/screenshots/
 *.zip
+
+# Baby-KB local/private proof inventory state
+.baby-kb-private/
+baby-kb-private/
+state/baby-kb/active_*
+state/baby-kb/private_*
+**/proof-inventory.local.json
+**/proof-inventory-report.local.json

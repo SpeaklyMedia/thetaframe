@@ -12,7 +12,10 @@
     "qa:browser:auth:capture": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=user",
     "qa:browser:auth:capture:admin": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=admin",
     "qa:browser:auth:capture:basic": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=basic",
-    "qa:browser:auth:capture:select-authorized": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=select-authorized"
+    "qa:browser:auth:capture:select-authorized": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=select-authorized",
+    "baby-kb:proof:validate": "tsx ./src/babyKbProofInventory/validateProofInventory.ts",
+    "baby-kb:proof:report": "tsx ./src/babyKbProofInventory/reportProofInventory.ts",
+    "baby-kb:proof:test": "tsx ./src/babyKbProofInventory/runSelfTest.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

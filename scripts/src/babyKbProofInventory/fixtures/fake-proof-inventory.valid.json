@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-16T00:00:00.000Z",
+  "privateRootClass": "local_private",
+  "entries": [
+    {
+      "sourceId": "public-contract-fixture",
+      "title": "Fake public contract fixture",
+      "sourceClass": "verified_local_proof",
+      "reviewState": "verified",
+      "storageBoundary": "public_repo_contract",
+      "containsPrivateData": false,
+      "redactionStatus": "not_needed",
+      "citationLabel": "Fake Public Contract Fixture",
+      "sourcePath": "scripts/src/babyKbProofInventory/fixtures/fake-public-contract.md",
+      "sourceHash": "sha256:fakepubliccontract"
+    },
+    {
+      "sourceId": "candidate-private-source",
+      "title": "Fake candidate private source",
+      "sourceClass": "candidate_source",
+      "reviewState": "candidate",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": true,
+      "redactionStatus": "pending",
+      "sourcePath": "/tmp/private-proof-source/candidate.pdf",
+      "notes": "PRIVATE SOURCE TEXT is intentionally present in inventory notes to prove reports exclude notes."
+    },
+    {
+      "sourceId": "caregiver-observation-one",
+      "title": "Fake caregiver observation",
+      "sourceClass": "caregiver_observation",
+      "reviewState": "candidate",
+      "storageBoundary": "local_runtime_state",
+      "containsPrivateData": true,
+      "redactionStatus": "not_safe_to_store",
+      "sourcePath": "~/.local/share/thetaframe/baby-kb/observations/fake.json"
+    },
+    {
+      "sourceId": "retired-source-one",
+      "title": "Fake retired source",
+      "sourceClass": "rejected_or_retired",
+      "reviewState": "retired",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": false,
+      "redactionStatus": "not_needed",
+      "sourcePath": "/tmp/private-proof-source/retired.pdf"
+    }
+  ]
+}
