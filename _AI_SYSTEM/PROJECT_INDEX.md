@@ -39,6 +39,8 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
     - `./BABY_KB_PROOF_INVENTORY_CONTRACT__20260916.md`
   - Baby-KB shift handoff model draft:
     - `./BABY_KB_SHIFT_HANDOFF_MODEL_DRAFT__20260916.md`
+  - Baby-KB local-only proof inventory implementation plan:
+    - `./BABY_KB_PROOF_INVENTORY_IMPLEMENTATION_PLAN__20260916.md`
   - September Focus-Lane / Baby-KB reconciliation decision:
     - `./SEPTEMBER_FOCUS_BABY_KB_RECONCILIATION__20260916.md`
 
@@ -79,6 +81,7 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
 - `BABY_KB_PRODUCT_CONTRACT__20260916.md` is the canonical planning/safety contract for future Baby-KB work. Read it before changing baby-care, postpartum, shift-handoff, proof-ingestion, or local RAG behavior.
 - `BABY_KB_PROOF_INVENTORY_CONTRACT__20260916.md` is the canonical local/private proof inventory contract for Baby-KB source admission, review state, redaction, storage boundary, and proof-backed answer eligibility. Read it before changing proof-source ingestion, citation, indexing, or local RAG behavior.
 - `BABY_KB_SHIFT_HANDOFF_MODEL_DRAFT__20260916.md` is the canonical planning draft for future Baby-KB caregiver shift handoff data, ownership, safety copy, Daily Rhythm integration, and MVP boundary. Read it before changing baby-care handoff, caregiver labels, sleep-opportunity, or household-support behavior.
+- `BABY_KB_PROOF_INVENTORY_IMPLEMENTATION_PLAN__20260916.md` is the canonical implementation plan for a future local-only Baby-KB proof inventory validator/reporting slice. Read it before adding proof inventory scripts, schemas, fixtures, reports, or private-root behavior.
 - `SEPTEMBER_FOCUS_BABY_KB_RECONCILIATION__20260916.md` records why the preserved September dirty worktree should not be directly merged and how its concepts should be sliced.
 - Primary project truth is concentrated in `replit.md`.
 - `THETAFRAME_ARCH1_EXECUTIVE_CONSOLE_RESEARCH_INGEST__2026-04-23__R1.md` records the newest Executive Console research packet intake and points to the exact ingested transport paths.
