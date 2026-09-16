@@ -33,6 +33,10 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
     - `./NEURODIVERGENT_INTERFACE_GUIDE.md`
   - Signed-in preference contract note:
     - `./USER_PREFERENCES_CONTRACT.md`
+  - Baby-KB product/safety planning contract:
+    - `./BABY_KB_PRODUCT_CONTRACT__20260916.md`
+  - September Focus-Lane / Baby-KB reconciliation decision:
+    - `./SEPTEMBER_FOCUS_BABY_KB_RECONCILIATION__20260916.md`
 
 - `RISK_REGISTER.md`
   - No dedicated repo document yet. Use `../replit.md` and create this file when risk tracking becomes a stable artifact.
@@ -68,6 +72,8 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
 - `THETAFRAME_CURRENT_TRUTH.md` is the fastest current-state entrypoint after C75. Start there before broad product, access, onboarding, AI, or QA work.
 - `EXECUTIVE_CONSOLE_CONTRACT.md` is the canonical product contract for the implemented `/console` preview shell and future Console slices. Read it before changing signed-in home-shell behavior, large-display layout strategy, or console module hierarchy.
 - `USER_PREFERENCES_CONTRACT.md` is the canonical product and implementation contract for the new shared `user_preferences` surface. Read it before changing signed-in settings UI, display-density behavior, reminder wording behavior, or shell-level preference attributes.
+- `BABY_KB_PRODUCT_CONTRACT__20260916.md` is the canonical planning/safety contract for future Baby-KB work. Read it before changing baby-care, postpartum, shift-handoff, proof-ingestion, or local RAG behavior.
+- `SEPTEMBER_FOCUS_BABY_KB_RECONCILIATION__20260916.md` records why the preserved September dirty worktree should not be directly merged and how its concepts should be sliced.
 - Primary project truth is concentrated in `replit.md`.
 - `THETAFRAME_ARCH1_EXECUTIVE_CONSOLE_RESEARCH_INGEST__2026-04-23__R1.md` records the newest Executive Console research packet intake and points to the exact ingested transport paths.
 - `artifacts/receipts/C71-current-contract-baseline-normalization__2026-04-25__R1.md` is the baseline-freeze receipt for the uncommitted C55-C70 stack and should be read before assuming `main` is the latest product truth.
