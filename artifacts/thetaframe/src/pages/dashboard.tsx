@@ -4,8 +4,12 @@ import type { ReactNode } from "react";
 import {
   type AIDraft,
   type UserModeMode,
+  getGetDailyFrameQueryKey,
+  getGetDailyRhythmQueryKey,
   getGetUserModeQueryKey,
   getListAiDraftsQueryKey,
+  useGetDailyFrame,
+  useGetDailyRhythm,
   useGetUserMode,
   useListAiDrafts,
   useUpsertUserMode,
@@ -36,6 +40,13 @@ import { getEmotionColorClass, type WorkspaceColourState } from "@/lib/colors";
 import { getMondayOfCurrentWeek, getTodayDateString } from "@/lib/dates";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { getReminderToneCopy } from "@/lib/user-preferences";
+import {
+  DAILY_COMMITMENT_SLOTS,
+  getDashboardCommitments,
+  getDashboardFirstAction,
+  getRoutineSession,
+  getRoutineStatusLabel,
+} from "@/lib/daily-rhythm";
 
 const DASHBOARD_MODE_OPTIONS: readonly {
   label: string;
@@ -113,6 +124,22 @@ export default function DashboardPage() {
     },
   });
   const upsertUserMode = useUpsertUserMode();
+  const { data: dailyFrame } = useGetDailyFrame(todayDate, {
+    query: {
+      enabled: status === "ready" && canDaily,
+      queryKey: getGetDailyFrameQueryKey(todayDate),
+      retry: 0,
+      refetchOnWindowFocus: false,
+    },
+  });
+  const dailyRhythm = useGetDailyRhythm(todayDate, {
+    query: {
+      enabled: status === "ready" && canDaily,
+      queryKey: getGetDailyRhythmQueryKey(todayDate),
+      retry: 0,
+      refetchOnWindowFocus: false,
+    },
+  });
   const currentColour = isWorkspaceColour(userMode?.colourState) ? userMode.colourState : null;
   const currentMode = userMode?.mode as UserModeMode | undefined;
   const { preferences } = useUserPreferences();
@@ -173,6 +200,10 @@ export default function DashboardPage() {
     vision: canVision,
   };
   const currentColourLabel = currentColour ? currentColour[0].toUpperCase() + currentColour.slice(1) : "Not set";
+  const morningSession = getRoutineSession(dailyRhythm.data?.routineSessions, "morning");
+  const nightSession = getRoutineSession(dailyRhythm.data?.routineSessions, "night");
+  const dashboardCommitments = getDashboardCommitments(dailyFrame);
+  const dashboardFirstAction = getDashboardFirstAction(dailyFrame, dailyRhythm.data?.previousReflection);
   const basicCanvasNodes: HabitCanvasMapNode[] = BASIC_LANE_ORDER
     .filter((lane) => basicLaneAccess[lane])
     .map((lane) => {
@@ -231,6 +262,44 @@ export default function DashboardPage() {
             />
 
             <LifeOSDashboardWidget />
+
+            <DashboardSection
+              title="Today's rhythm"
+              description="Morning state, three promises, and the next useful action stay visible without duplicating the full Daily workflow."
+              testId="dashboard-today-rhythm"
+            >
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border bg-background/80 p-3" data-testid="dashboard-morning-status">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">🌤️ Morning</p>
+                    <p className="mt-1 text-sm font-semibold">{getRoutineStatusLabel(morningSession)}</p>
+                  </div>
+                  <div className="rounded-lg border bg-background/80 p-3" data-testid="dashboard-night-status">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">🌙 Night</p>
+                    <p className="mt-1 text-sm font-semibold">{nightSession?.completionState === "complete" ? "Reset complete" : "Night Reset ready"}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  {DAILY_COMMITMENT_SLOTS.map((slot, index) => (
+                    <div key={slot.key} className="rounded-lg border bg-background/80 p-3" data-testid={`dashboard-commitment-${slot.key}`}>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{slot.icon} {slot.label}</p>
+                      <p className="mt-1 text-sm font-medium">{dashboardCommitments[index] || "Not chosen yet"}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80 p-3" data-testid="dashboard-first-action">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Next</p>
+                    <p className="mt-1 text-sm font-semibold">{dashboardFirstAction || "Choose a first meaningful action in Today."}</p>
+                  </div>
+                  <Button asChild type="button" variant="outline" size="sm">
+                    <Link href="/daily">Open Today →</Link>
+                  </Button>
+                </div>
+              </div>
+            </DashboardSection>
 
             <DashboardSection
               title="Start here today"

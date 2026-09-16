@@ -46,6 +46,7 @@ export const ListDailyFramesResponseItem = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -89,6 +90,7 @@ export const CreateDailyFrameBody = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -128,6 +130,7 @@ export const CreateDailyFrameResponse = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -176,6 +179,7 @@ export const GetDailyFrameResponse = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -221,6 +225,7 @@ export const UpsertDailyFrameBody = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -260,6 +265,7 @@ export const UpsertDailyFrameResponse = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -304,6 +310,7 @@ export const GetRecentDailyFramesResponseItem = zod.object({
       action: zod.string(),
     }),
   ),
+  firstAction: zod.string().nullish(),
   microWin: zod.string().nullish(),
   skipProtocolUsed: zod.boolean(),
   skipProtocolChoice: zod
@@ -319,6 +326,114 @@ export const GetRecentDailyFramesResponseItem = zod.object({
 export const GetRecentDailyFramesResponse = zod.array(
   GetRecentDailyFramesResponseItem,
 );
+
+/**
+ * @summary Get daily rhythm state for a date
+ */
+export const GetDailyRhythmParams = zod.object({
+  date: zod.coerce.string(),
+});
+
+export const GetDailyRhythmResponse = zod.object({
+  date: zod.string(),
+  routineSessions: zod.array(
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      routineKey: zod.enum(["morning", "night"]),
+      mode: zod.enum(["full", "short", "minimum"]),
+      completedStepKeys: zod.array(zod.string()),
+      startedAt: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+      completionState: zod.enum(["not_started", "in_progress", "complete"]),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  reflection: zod.union([
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      slipped: zod.string().nullish(),
+      learned: zod.string().nullish(),
+      firstActionTomorrow: zod.string().nullish(),
+      prepNote: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+    zod.null(),
+  ]),
+  previousReflection: zod.union([
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      date: zod.string().describe("YYYY-MM-DD"),
+      slipped: zod.string().nullish(),
+      learned: zod.string().nullish(),
+      firstActionTomorrow: zod.string().nullish(),
+      prepNote: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Create or update a routine session
+ */
+export const UpsertRoutineSessionParams = zod.object({
+  date: zod.coerce.string(),
+  routineKey: zod.enum(["morning", "night"]),
+});
+
+export const UpsertRoutineSessionBody = zod.object({
+  mode: zod.enum(["full", "short", "minimum"]),
+  completedStepKeys: zod.array(zod.string()),
+  completionState: zod.enum(["not_started", "in_progress", "complete"]),
+});
+
+export const UpsertRoutineSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  date: zod.string().describe("YYYY-MM-DD"),
+  routineKey: zod.enum(["morning", "night"]),
+  mode: zod.enum(["full", "short", "minimum"]),
+  completedStepKeys: zod.array(zod.string()),
+  startedAt: zod.string().nullish(),
+  completedAt: zod.string().nullish(),
+  completionState: zod.enum(["not_started", "in_progress", "complete"]),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Create or update a daily reflection
+ */
+export const PatchDailyReflectionParams = zod.object({
+  date: zod.coerce.string(),
+});
+
+export const PatchDailyReflectionBody = zod.object({
+  slipped: zod.string().nullish(),
+  learned: zod.string().nullish(),
+  firstActionTomorrow: zod.string().nullish(),
+  prepNote: zod.string().nullish(),
+});
+
+export const PatchDailyReflectionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  date: zod.string().describe("YYYY-MM-DD"),
+  slipped: zod.string().nullish(),
+  learned: zod.string().nullish(),
+  firstActionTomorrow: zod.string().nullish(),
+  prepNote: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
 
 /**
  * @summary List all weekly frames for the current user
@@ -1098,6 +1213,7 @@ export const CreateMobileQuickCaptureResponse = zod.object({
         action: zod.string(),
       }),
     ),
+    firstAction: zod.string().nullish(),
     microWin: zod.string().nullish(),
     skipProtocolUsed: zod.boolean(),
     skipProtocolChoice: zod
@@ -2418,6 +2534,7 @@ export const ApplyAiDraftResponse = zod.object({
           action: zod.string(),
         }),
       ),
+      firstAction: zod.string().nullish(),
       microWin: zod.string().nullish(),
       skipProtocolUsed: zod.boolean(),
       skipProtocolChoice: zod

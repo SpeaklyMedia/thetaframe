@@ -61,6 +61,8 @@ export interface DailyFrame {
   tierB: TierTask[];
   timeBlocks: TimeBlock[];
   /** @nullable */
+  firstAction?: string | null;
+  /** @nullable */
   microWin?: string | null;
   skipProtocolUsed: boolean;
   /** @nullable */
@@ -100,6 +102,8 @@ export interface CreateDailyFrameBody {
   tierB: TierTask[];
   timeBlocks: TimeBlock[];
   /** @nullable */
+  firstAction?: string | null;
+  /** @nullable */
   microWin?: string | null;
   skipProtocolUsed: boolean;
   /** @nullable */
@@ -135,10 +139,94 @@ export interface UpsertDailyFrameBody {
   tierB: TierTask[];
   timeBlocks: TimeBlock[];
   /** @nullable */
+  firstAction?: string | null;
+  /** @nullable */
   microWin?: string | null;
   skipProtocolUsed: boolean;
   /** @nullable */
   skipProtocolChoice?: UpsertDailyFrameBodySkipProtocolChoice;
+}
+
+export type RoutineKey = (typeof RoutineKey)[keyof typeof RoutineKey];
+
+export const RoutineKey = {
+  morning: "morning",
+  night: "night",
+} as const;
+
+export type RoutineMode = (typeof RoutineMode)[keyof typeof RoutineMode];
+
+export const RoutineMode = {
+  full: "full",
+  short: "short",
+  minimum: "minimum",
+} as const;
+
+export type RoutineCompletionState =
+  (typeof RoutineCompletionState)[keyof typeof RoutineCompletionState];
+
+export const RoutineCompletionState = {
+  not_started: "not_started",
+  in_progress: "in_progress",
+  complete: "complete",
+} as const;
+
+export interface RoutineSession {
+  id: number;
+  userId: string;
+  /** YYYY-MM-DD */
+  date: string;
+  routineKey: RoutineKey;
+  mode: RoutineMode;
+  completedStepKeys: string[];
+  /** @nullable */
+  startedAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  completionState: RoutineCompletionState;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyReflection {
+  id: number;
+  userId: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** @nullable */
+  slipped?: string | null;
+  /** @nullable */
+  learned?: string | null;
+  /** @nullable */
+  firstActionTomorrow?: string | null;
+  /** @nullable */
+  prepNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyRhythmResponse {
+  date: string;
+  routineSessions: RoutineSession[];
+  reflection: DailyReflection | null;
+  previousReflection: DailyReflection | null;
+}
+
+export interface UpsertRoutineSessionBody {
+  mode: RoutineMode;
+  completedStepKeys: string[];
+  completionState: RoutineCompletionState;
+}
+
+export interface PatchDailyReflectionBody {
+  /** @nullable */
+  slipped?: string | null;
+  /** @nullable */
+  learned?: string | null;
+  /** @nullable */
+  firstActionTomorrow?: string | null;
+  /** @nullable */
+  prepNote?: string | null;
 }
 
 export interface WeeklyStep {

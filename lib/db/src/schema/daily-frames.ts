@@ -10,6 +10,7 @@ export const dailyFramesTable = pgTable("daily_frames", {
   tierA: jsonb("tier_a").notNull().default([]),
   tierB: jsonb("tier_b").notNull().default([]),
   timeBlocks: jsonb("time_blocks").notNull().default([]),
+  firstAction: text("first_action"),
   microWin: text("micro_win"),
   skipProtocolUsed: boolean("skip_protocol_used").notNull().default(false),
   skipProtocolChoice: text("skip_protocol_choice"),

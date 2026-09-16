@@ -16,14 +16,19 @@ import {
   getListAiDraftsQueryKey,
   useUpdateAiDraftReviewState,
   useGetDailyFrame,
+  useGetDailyRhythm,
+  usePatchDailyReflection,
   useUpsertDailyFrame,
   useCreateMobileQuickCapture,
   useGetUserMode,
+  useUpsertRoutineSession,
   useUpsertUserMode,
   getGetDailyFrameQueryKey,
+  getGetDailyRhythmQueryKey,
   getGetUserModeQueryKey,
   type MobileQuickCaptureChannel,
   type UserModeMode,
+  type PatchDailyReflectionBody,
 } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/react";
 import { getTodayDateString } from "@/lib/dates";
@@ -66,6 +71,16 @@ import { dailyCalendarPlaceholder } from "@/lib/calendar-placeholders";
 import { dailyMobilePlaceholder } from "@/lib/mobile-placeholders";
 import { useBabyKbHeroRollups } from "@/hooks/use-parent-packet-imports";
 import { mobileDeepLinkByLane, resolveQuickCaptureIntentRoute } from "@/lib/mobile-routing";
+import { MorningRhythmPanel, NightResetPanel } from "@/components/daily-rhythm";
+import {
+  getFirstActionValue,
+  getRoutineSession,
+  setCommitmentSlot,
+  normalizeFirstAction,
+  type RoutineCompletionState,
+  type RoutineKey,
+  type RoutineMode,
+} from "@/lib/daily-rhythm";
 
 function getDailyFrameErrorMessage(error: ApiError<unknown>): string {
   if (error.status === 400) {
@@ -209,6 +224,16 @@ export default function DailyPage() {
       retry: 0,
     },
   });
+  const dailyRhythm = useGetDailyRhythm(date, {
+    query: {
+      enabled: isAuthLoaded && Boolean(userId) && authSessionStatus === "ready" && !!date,
+      queryKey: getGetDailyRhythmQueryKey(date),
+      retry: 0,
+      refetchOnWindowFocus: false,
+    },
+  });
+  const upsertRoutineSession = useUpsertRoutineSession();
+  const patchDailyReflection = usePatchDailyReflection();
   const isFirstRunDaily = error instanceof ApiError && error.status === 404;
   const frameError = error instanceof ApiError && error.status !== 404 ? error : null;
   const remainingSurfaces = surfaces.filter((surface) => surface.surface !== "daily" && !surface.isComplete);
@@ -224,6 +249,7 @@ export default function DailyPage() {
   const [tierA, setTierA] = useState<TierTask[]>([]);
   const [tierB, setTierB] = useState<TierTask[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
+  const [firstAction, setFirstAction] = useState("");
   const [microWin, setMicroWin] = useState("");
   const [taskFeelingColours, setTaskFeelingColours] = useState<Record<string, TaskFeelingColour>>({});
   const [applyingDraftId, setApplyingDraftId] = useState<number | null>(null);
@@ -242,6 +268,7 @@ export default function DailyPage() {
     tierA: unknown;
     tierB: unknown;
     timeBlocks: unknown;
+    firstAction?: string | null;
     microWin?: string | null;
   }) => {
     initRef.current = nextFrame.id;
@@ -249,6 +276,7 @@ export default function DailyPage() {
     setTierA((nextFrame.tierA as TierTask[]) || []);
     setTierB((nextFrame.tierB as TierTask[]) || []);
     setTimeBlocks((nextFrame.timeBlocks as TimeBlock[]) || []);
+    setFirstAction(nextFrame.firstAction || "");
     setMicroWin(nextFrame.microWin || "");
   }, []);
 
@@ -264,13 +292,16 @@ export default function DailyPage() {
       tierA: TierTask[];
       tierB: TierTask[];
       timeBlocks: TimeBlock[];
+      firstAction: string | null;
       microWin: string;
     }>) => {
+      const hasFirstActionUpdate = Object.prototype.hasOwnProperty.call(updates, "firstAction");
       const payload = {
         colourState: updates.colourState ?? colourState,
         tierA: updates.tierA ?? tierA,
         tierB: updates.tierB ?? tierB,
         timeBlocks: updates.timeBlocks ?? timeBlocks,
+        firstAction: hasFirstActionUpdate ? updates.firstAction ?? null : normalizeFirstAction(firstAction),
         microWin: updates.microWin ?? microWin,
         skipProtocolUsed: frame?.skipProtocolUsed ?? false,
         skipProtocolChoice: (frame?.skipProtocolChoice as "micro-win" | "intentional-recovery" | null) ?? null,
@@ -282,7 +313,7 @@ export default function DailyPage() {
         },
       });
     },
-    [date, colourState, tierA, tierB, timeBlocks, microWin, frame, upsert, queryClient]
+    [date, colourState, tierA, tierB, timeBlocks, firstAction, microWin, frame, upsert, queryClient]
   );
 
   const handleMobileQuickCapture = useCallback(async (captureChannel: MobileQuickCaptureChannel) => {
@@ -561,6 +592,7 @@ export default function DailyPage() {
       tierA,
       tierB,
       timeBlocks,
+      firstAction: normalizeFirstAction(firstAction),
       microWin,
       skipProtocolUsed: used,
       skipProtocolChoice: choice,
@@ -572,6 +604,57 @@ export default function DailyPage() {
         queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
       },
     });
+  };
+
+  const rhythmQueryKey = getGetDailyRhythmQueryKey(date);
+  const morningSession = getRoutineSession(dailyRhythm.data?.routineSessions, "morning");
+  const nightSession = getRoutineSession(dailyRhythm.data?.routineSessions, "night");
+  const firstActionValue = getFirstActionValue(firstAction, dailyRhythm.data?.previousReflection);
+  const isDailyRhythmSaving = upsert.isPending || upsertRoutineSession.isPending || patchDailyReflection.isPending;
+
+  const handleRoutineSessionSave = (
+    routineKey: RoutineKey,
+    data: { mode: RoutineMode; completedStepKeys: string[]; completionState: RoutineCompletionState },
+  ) => {
+    upsertRoutineSession.mutate(
+      { date, routineKey, data },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: rhythmQueryKey });
+        },
+      },
+    );
+  };
+
+  const handleReflectionSave = (data: PatchDailyReflectionBody) => {
+    patchDailyReflection.mutate(
+      { date, data },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: rhythmQueryKey });
+        },
+      },
+    );
+  };
+
+  const handleCommitmentChange = (index: number, value: string, completed?: boolean, persist = true) => {
+    const updated = setCommitmentSlot(tierA, index, value, completed);
+    setTierA(updated);
+    if (persist) save({ tierA: updated });
+  };
+
+  const handleFirstActionSave = (value: string) => {
+    const normalized = normalizeFirstAction(value);
+    setFirstAction(normalized ?? "");
+    save({ firstAction: normalized });
+  };
+
+  const handleNightCapture = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const updated = [{ id: crypto.randomUUID(), text: trimmed, completed: false }, ...tierB];
+    setTierB(updated);
+    save({ tierB: updated });
   };
 
   return (
@@ -591,6 +674,17 @@ export default function DailyPage() {
         />
 
         <BasicLaneNextStep lane="daily" isComplete={isSurfaceComplete("daily")} />
+
+        <MorningRhythmPanel
+          session={morningSession}
+          previousReflection={dailyRhythm.data?.previousReflection ?? null}
+          firstActionValue={firstActionValue}
+          commitments={tierA}
+          onSessionSave={(data) => handleRoutineSessionSave("morning", data)}
+          onFirstActionSave={handleFirstActionSave}
+          onCommitmentChange={handleCommitmentChange}
+          isSaving={isDailyRhythmSaving}
+        />
 
         <HabitCanvasSurface
           title="Today Canvas"
@@ -763,6 +857,20 @@ export default function DailyPage() {
           />
           </HabitCanvasSection>
         </HabitCanvasSurface>
+
+        <NightResetPanel
+          session={nightSession}
+          reflection={dailyRhythm.data?.reflection ?? null}
+          microWinValue={microWin}
+          onSessionSave={(data) => handleRoutineSessionSave("night", data)}
+          onReflectionSave={handleReflectionSave}
+          onMicroWinSave={(value) => {
+            setMicroWin(value);
+            save({ microWin: value });
+          }}
+          onCapture={handleNightCapture}
+          isSaving={isDailyRhythmSaving}
+        />
 
         <BasicMoreSection
           title="Review AI drafts"

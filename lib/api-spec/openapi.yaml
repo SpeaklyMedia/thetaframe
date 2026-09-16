@@ -144,6 +144,83 @@ paths:
                 items:
                   $ref: "#/components/schemas/DailyFrame"
 
+  /daily-rhythm/{date}:
+    get:
+      operationId: getDailyRhythm
+      tags: [daily-frames]
+      summary: Get daily rhythm state for a date
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Date in YYYY-MM-DD format
+      responses:
+        "200":
+          description: Daily rhythm state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyRhythmResponse"
+
+  /daily-rhythm/{date}/routine-sessions/{routineKey}:
+    put:
+      operationId: upsertRoutineSession
+      tags: [daily-frames]
+      summary: Create or update a routine session
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Date in YYYY-MM-DD format
+        - name: routineKey
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoutineKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertRoutineSessionBody"
+      responses:
+        "200":
+          description: Upserted routine session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoutineSession"
+
+  /daily-rhythm/{date}/reflection:
+    patch:
+      operationId: patchDailyReflection
+      tags: [daily-frames]
+      summary: Create or update a daily reflection
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Date in YYYY-MM-DD format
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchDailyReflectionBody"
+      responses:
+        "200":
+          description: Upserted daily reflection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReflection"
+
   /weekly-frames:
     get:
       operationId: listWeeklyFrames
@@ -985,20 +1062,40 @@ paths:
           required: false
           schema:
             type: string
-            enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+            enum:
+              [
+                daily,
+                weekly,
+                vision,
+                bizdev,
+                life-ledger,
+                baby-kb,
+                reach,
+                admin,
+              ]
         - name: draftKind
           in: query
           required: false
           schema:
             type: string
             enum:
-              [daily_frame_draft, weekly_frame_draft, vision_alignment_draft, life_ledger_classification_draft, reach_file_summary, bizdev_followup_draft, baby_kb_promotion_draft, baby_kb_assignment_draft]
+              [
+                daily_frame_draft,
+                weekly_frame_draft,
+                vision_alignment_draft,
+                life_ledger_classification_draft,
+                reach_file_summary,
+                bizdev_followup_draft,
+                baby_kb_promotion_draft,
+                baby_kb_assignment_draft,
+              ]
         - name: reviewState
           in: query
           required: false
           schema:
             type: string
-            enum: [draft, needs_review, approval_gated, approved, applied, rejected]
+            enum:
+              [draft, needs_review, approval_gated, approved, applied, rejected]
         - name: targetSurfaceKey
           in: query
           required: false
@@ -1505,6 +1602,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimeBlock"
+        firstAction:
+          type: ["string", "null"]
         microWin:
           type: ["string", "null"]
         skipProtocolUsed:
@@ -1547,6 +1646,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimeBlock"
+        firstAction:
+          type: ["string", "null"]
         microWin:
           type: ["string", "null"]
         skipProtocolUsed:
@@ -1580,6 +1681,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimeBlock"
+        firstAction:
+          type: ["string", "null"]
         microWin:
           type: ["string", "null"]
         skipProtocolUsed:
@@ -1593,6 +1696,137 @@ components:
         - tierB
         - timeBlocks
         - skipProtocolUsed
+
+    RoutineKey:
+      type: string
+      enum: [morning, night]
+
+    RoutineMode:
+      type: string
+      enum: [full, short, minimum]
+
+    RoutineCompletionState:
+      type: string
+      enum: [not_started, in_progress, complete]
+
+    RoutineSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        date:
+          type: string
+          description: YYYY-MM-DD
+        routineKey:
+          $ref: "#/components/schemas/RoutineKey"
+        mode:
+          $ref: "#/components/schemas/RoutineMode"
+        completedStepKeys:
+          type: array
+          items:
+            type: string
+        startedAt:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        completionState:
+          $ref: "#/components/schemas/RoutineCompletionState"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - date
+        - routineKey
+        - mode
+        - completedStepKeys
+        - completionState
+        - createdAt
+        - updatedAt
+
+    DailyReflection:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        date:
+          type: string
+          description: YYYY-MM-DD
+        slipped:
+          type: ["string", "null"]
+        learned:
+          type: ["string", "null"]
+        firstActionTomorrow:
+          type: ["string", "null"]
+        prepNote:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - date
+        - createdAt
+        - updatedAt
+
+    DailyRhythmResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        routineSessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineSession"
+        reflection:
+          anyOf:
+            - $ref: "#/components/schemas/DailyReflection"
+            - type: "null"
+        previousReflection:
+          anyOf:
+            - $ref: "#/components/schemas/DailyReflection"
+            - type: "null"
+      required:
+        - date
+        - routineSessions
+        - reflection
+        - previousReflection
+
+    UpsertRoutineSessionBody:
+      type: object
+      properties:
+        mode:
+          $ref: "#/components/schemas/RoutineMode"
+        completedStepKeys:
+          type: array
+          items:
+            type: string
+        completionState:
+          $ref: "#/components/schemas/RoutineCompletionState"
+      required:
+        - mode
+        - completedStepKeys
+        - completionState
+
+    PatchDailyReflectionBody:
+      type: object
+      properties:
+        slipped:
+          type: ["string", "null"]
+        learned:
+          type: ["string", "null"]
+        firstActionTomorrow:
+          type: ["string", "null"]
+        prepNote:
+          type: ["string", "null"]
 
     WeeklyStep:
       type: object
@@ -2441,7 +2675,8 @@ components:
       properties:
         lane:
           type: string
-          enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+          enum:
+            [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
         objectType:
           type: string
           enum: [ai-draft]
@@ -2510,10 +2745,24 @@ components:
           enum: [green, yellow, red, blue, purple]
         label:
           type: string
-          enum: [calm/ready, anxious/scattered, overwhelmed, low/flat, creative/energized]
+          enum:
+            [
+              calm/ready,
+              anxious/scattered,
+              overwhelmed,
+              low/flat,
+              creative/energized,
+            ]
         supportMode:
           type: string
-          enum: [steady, reduce_choices, recovery_first, low_energy, capture_then_choose]
+          enum:
+            [
+              steady,
+              reduce_choices,
+              recovery_first,
+              low_energy,
+              capture_then_choose,
+            ]
         source:
           type: string
           enum: [user_mode, daily_frame, fallback]
@@ -2528,7 +2777,16 @@ components:
       properties:
         sourceType:
           type: string
-          enum: [raw_input, reach_file, calendar_event, mobile_capture, message_excerpt, image_capture, existing_theta_object]
+          enum:
+            [
+              raw_input,
+              reach_file,
+              calendar_event,
+              mobile_capture,
+              message_excerpt,
+              image_capture,
+              existing_theta_object,
+            ]
         ref:
           type: string
         label:
@@ -2551,10 +2809,20 @@ components:
         draftKind:
           type: string
           enum:
-            [daily_frame_draft, weekly_frame_draft, vision_alignment_draft, life_ledger_classification_draft, reach_file_summary, bizdev_followup_draft, baby_kb_promotion_draft, baby_kb_assignment_draft]
+            [
+              daily_frame_draft,
+              weekly_frame_draft,
+              vision_alignment_draft,
+              life_ledger_classification_draft,
+              reach_file_summary,
+              bizdev_followup_draft,
+              baby_kb_promotion_draft,
+              baby_kb_assignment_draft,
+            ]
         targetLane:
           type: string
-          enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+          enum:
+            [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
         targetSurfaceKey:
           type: ["string", "null"]
         targetObjectType:
@@ -2567,7 +2835,8 @@ components:
           enum: [none, one_tap, explicit_review, two_step_review]
         reviewState:
           type: string
-          enum: [draft, needs_review, approval_gated, approved, applied, rejected]
+          enum:
+            [draft, needs_review, approval_gated, approved, applied, rejected]
         confidenceMode:
           type: string
           enum: [suggest_only, one_tap_approve, auto_draft]
@@ -2577,7 +2846,16 @@ components:
           type: array
           items:
             type: string
-            enum: [typed_text, voice_transcript, screenshot_or_photo, pasted_message_or_email, share_sheet_capture, calendar_import, reach_upload]
+            enum:
+              [
+                typed_text,
+                voice_transcript,
+                screenshot_or_photo,
+                pasted_message_or_email,
+                share_sheet_capture,
+                calendar_import,
+                reach_upload,
+              ]
         proposedPayload:
           type: object
           additionalProperties: true
@@ -2628,10 +2906,20 @@ components:
         draftKind:
           type: string
           enum:
-            [daily_frame_draft, weekly_frame_draft, vision_alignment_draft, life_ledger_classification_draft, reach_file_summary, bizdev_followup_draft, baby_kb_promotion_draft, baby_kb_assignment_draft]
+            [
+              daily_frame_draft,
+              weekly_frame_draft,
+              vision_alignment_draft,
+              life_ledger_classification_draft,
+              reach_file_summary,
+              bizdev_followup_draft,
+              baby_kb_promotion_draft,
+              baby_kb_assignment_draft,
+            ]
         targetLane:
           type: string
-          enum: [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
+          enum:
+            [daily, weekly, vision, bizdev, life-ledger, baby-kb, reach, admin]
         targetSurfaceKey:
           type: ["string", "null"]
         targetObjectType:
@@ -2648,7 +2936,16 @@ components:
           type: array
           items:
             type: string
-            enum: [typed_text, voice_transcript, screenshot_or_photo, pasted_message_or_email, share_sheet_capture, calendar_import, reach_upload]
+            enum:
+              [
+                typed_text,
+                voice_transcript,
+                screenshot_or_photo,
+                pasted_message_or_email,
+                share_sheet_capture,
+                calendar_import,
+                reach_upload,
+              ]
         proposedPayload:
           type: object
           additionalProperties: true
@@ -2717,7 +3014,8 @@ components:
       properties:
         reviewState:
           type: string
-          enum: [draft, needs_review, approval_gated, approved, applied, rejected]
+          enum:
+            [draft, needs_review, approval_gated, approved, applied, rejected]
         reviewNotes:
           type: ["string", "null"]
       required:
@@ -2777,10 +3075,30 @@ components:
           type: string
         lifecycleState:
           type: string
-          enum: [captured, verified, assigned, scheduled, due_soon, in_motion, completed, superseded]
+          enum:
+            [
+              captured,
+              verified,
+              assigned,
+              scheduled,
+              due_soon,
+              in_motion,
+              completed,
+              superseded,
+            ]
         effectiveLifecycleState:
           type: string
-          enum: [captured, verified, assigned, scheduled, due_soon, in_motion, completed, superseded]
+          enum:
+            [
+              captured,
+              verified,
+              assigned,
+              scheduled,
+              due_soon,
+              in_motion,
+              completed,
+              superseded,
+            ]
         effectiveDate:
           type: string
         dueDate:
