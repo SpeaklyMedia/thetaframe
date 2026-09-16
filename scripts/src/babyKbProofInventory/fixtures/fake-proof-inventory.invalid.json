@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-16T00:00:00.000Z",
+  "privateRootClass": "local_private",
+  "entries": [
+    {
+      "sourceId": "duplicate-source",
+      "title": "Fake verified source missing citation",
+      "sourceClass": "verified_local_proof",
+      "reviewState": "verified",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": false,
+      "redactionStatus": "not_needed",
+      "sourcePath": "/tmp/private-proof-source/verified.pdf"
+    },
+    {
+      "sourceId": "duplicate-source",
+      "title": "Fake duplicate source",
+      "sourceClass": "candidate_source",
+      "reviewState": "candidate",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": true,
+      "redactionStatus": "pending",
+      "sourcePath": "/tmp/private-proof-source/duplicate.pdf"
+    },
+    {
+      "sourceId": "unknown-class-source",
+      "title": "Fake unknown class source",
+      "sourceClass": "blog_post",
+      "reviewState": "candidate",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": false,
+      "redactionStatus": "not_needed",
+      "sourcePath": "/tmp/private-proof-source/blog.pdf"
+    },
+    {
+      "sourceId": "unknown-review-source",
+      "title": "Fake unknown review source",
+      "sourceClass": "candidate_source",
+      "reviewState": "approved",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": false,
+      "redactionStatus": "not_needed",
+      "sourcePath": "/tmp/private-proof-source/review.pdf"
+    },
+    {
+      "sourceId": "repo-private-path-source",
+      "title": "Fake repo private path source",
+      "sourceClass": "candidate_source",
+      "reviewState": "candidate",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": true,
+      "redactionStatus": "pending",
+      "sourcePath": "state/baby-kb/private-proof.pdf",
+      "answerEligible": true
+    },
+    {
+      "sourceId": "credential-like-source",
+      "title": "Fake source mentioning CLERK_SECRET_KEY",
+      "sourceClass": "candidate_source",
+      "reviewState": "candidate",
+      "storageBoundary": "private_local_source",
+      "containsPrivateData": false,
+      "redactionStatus": "not_needed",
+      "sourcePath": "/tmp/private-proof-source/credential.txt"
+    }
+  ]
+}
