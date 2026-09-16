@@ -35,6 +35,8 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
     - `./USER_PREFERENCES_CONTRACT.md`
   - Baby-KB product/safety planning contract:
     - `./BABY_KB_PRODUCT_CONTRACT__20260916.md`
+  - Baby-KB private proof inventory contract:
+    - `./BABY_KB_PROOF_INVENTORY_CONTRACT__20260916.md`
   - September Focus-Lane / Baby-KB reconciliation decision:
     - `./SEPTEMBER_FOCUS_BABY_KB_RECONCILIATION__20260916.md`
 
@@ -73,6 +75,7 @@ This file maps the generic AI-system naming convention onto the current ThetaFra
 - `EXECUTIVE_CONSOLE_CONTRACT.md` is the canonical product contract for the implemented `/console` preview shell and future Console slices. Read it before changing signed-in home-shell behavior, large-display layout strategy, or console module hierarchy.
 - `USER_PREFERENCES_CONTRACT.md` is the canonical product and implementation contract for the new shared `user_preferences` surface. Read it before changing signed-in settings UI, display-density behavior, reminder wording behavior, or shell-level preference attributes.
 - `BABY_KB_PRODUCT_CONTRACT__20260916.md` is the canonical planning/safety contract for future Baby-KB work. Read it before changing baby-care, postpartum, shift-handoff, proof-ingestion, or local RAG behavior.
+- `BABY_KB_PROOF_INVENTORY_CONTRACT__20260916.md` is the canonical local/private proof inventory contract for Baby-KB source admission, review state, redaction, storage boundary, and proof-backed answer eligibility. Read it before changing proof-source ingestion, citation, indexing, or local RAG behavior.
 - `SEPTEMBER_FOCUS_BABY_KB_RECONCILIATION__20260916.md` records why the preserved September dirty worktree should not be directly merged and how its concepts should be sliced.
 - Primary project truth is concentrated in `replit.md`.
 - `THETAFRAME_ARCH1_EXECUTIVE_CONSOLE_RESEARCH_INGEST__2026-04-23__R1.md` records the newest Executive Console research packet intake and points to the exact ingested transport paths.
