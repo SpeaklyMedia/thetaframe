@@ -2891,3 +2891,245 @@ export const ApplyAdminPresetResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Get the current user's private Family Care state
+ */
+export const getFamilyCareResponseContextNightStartMinuteMin = 0;
+export const getFamilyCareResponseContextNightStartMinuteMax = 1439;
+
+export const getFamilyCareResponseContextHandoffMinuteMin = 0;
+export const getFamilyCareResponseContextHandoffMinuteMax = 1439;
+
+export const getFamilyCareResponseContextMorningWakeMinuteMin = 0;
+export const getFamilyCareResponseContextMorningWakeMinuteMax = 1439;
+
+export const GetFamilyCareResponse = zod.object({
+  context: zod.object({
+    id: zod.number().nullable(),
+    displayLabel: zod.string(),
+    timezone: zod.string(),
+    caregiverALabel: zod.string(),
+    caregiverBLabel: zod.string(),
+    nightStartMinute: zod
+      .number()
+      .min(getFamilyCareResponseContextNightStartMinuteMin)
+      .max(getFamilyCareResponseContextNightStartMinuteMax),
+    handoffMinute: zod
+      .number()
+      .min(getFamilyCareResponseContextHandoffMinuteMin)
+      .max(getFamilyCareResponseContextHandoffMinuteMax),
+    morningWakeMinute: zod
+      .number()
+      .min(getFamilyCareResponseContextMorningWakeMinuteMin)
+      .max(getFamilyCareResponseContextMorningWakeMinuteMax),
+    createdAt: zod.coerce.date().nullable(),
+    updatedAt: zod.coerce.date().nullable(),
+  }),
+  events: zod.array(
+    zod.object({
+      id: zod.number(),
+      clientEventId: zod.string(),
+      kind: zod.enum(["feed", "diaper", "sleep", "pump", "note"]),
+      observedAt: zod.coerce.date(),
+      endedAt: zod.coerce.date().nullable(),
+      sourceClass: zod.enum(["caregiver_observation"]),
+      data: zod.record(zod.string(), zod.unknown()),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+      deletedAt: zod.coerce.date().nullable(),
+    }),
+  ),
+  handoff: zod.object({
+    id: zod.number().nullable(),
+    currentCaregiverLabel: zod.string().nullable(),
+    lastConfirmedAction: zod.string().nullable(),
+    nextAction: zod.string().nullable(),
+    watchFor: zod.string().nullable(),
+    canWait: zod.string().nullable(),
+    supportNeeded: zod.string().nullable(),
+    createdAt: zod.coerce.date().nullable(),
+    updatedAt: zod.coerce.date().nullable(),
+  }),
+  accessNotice: zod.string(),
+});
+
+/**
+ * @summary Save private Family Care labels, timezone, and Tonight plan
+ */
+export const upsertFamilyCareContextBodyDisplayLabelMax = 80;
+
+export const upsertFamilyCareContextBodyTimezoneMax = 80;
+
+export const upsertFamilyCareContextBodyCaregiverALabelMax = 80;
+
+export const upsertFamilyCareContextBodyCaregiverBLabelMax = 80;
+
+export const upsertFamilyCareContextBodyNightStartMinuteMin = 0;
+export const upsertFamilyCareContextBodyNightStartMinuteMax = 1439;
+
+export const upsertFamilyCareContextBodyHandoffMinuteMin = 0;
+export const upsertFamilyCareContextBodyHandoffMinuteMax = 1439;
+
+export const upsertFamilyCareContextBodyMorningWakeMinuteMin = 0;
+export const upsertFamilyCareContextBodyMorningWakeMinuteMax = 1439;
+
+export const UpsertFamilyCareContextBody = zod.object({
+  displayLabel: zod
+    .string()
+    .min(1)
+    .max(upsertFamilyCareContextBodyDisplayLabelMax),
+  timezone: zod.string().min(1).max(upsertFamilyCareContextBodyTimezoneMax),
+  caregiverALabel: zod
+    .string()
+    .min(1)
+    .max(upsertFamilyCareContextBodyCaregiverALabelMax),
+  caregiverBLabel: zod
+    .string()
+    .min(1)
+    .max(upsertFamilyCareContextBodyCaregiverBLabelMax),
+  nightStartMinute: zod
+    .number()
+    .min(upsertFamilyCareContextBodyNightStartMinuteMin)
+    .max(upsertFamilyCareContextBodyNightStartMinuteMax),
+  handoffMinute: zod
+    .number()
+    .min(upsertFamilyCareContextBodyHandoffMinuteMin)
+    .max(upsertFamilyCareContextBodyHandoffMinuteMax),
+  morningWakeMinute: zod
+    .number()
+    .min(upsertFamilyCareContextBodyMorningWakeMinuteMin)
+    .max(upsertFamilyCareContextBodyMorningWakeMinuteMax),
+});
+
+export const upsertFamilyCareContextResponseNightStartMinuteMin = 0;
+export const upsertFamilyCareContextResponseNightStartMinuteMax = 1439;
+
+export const upsertFamilyCareContextResponseHandoffMinuteMin = 0;
+export const upsertFamilyCareContextResponseHandoffMinuteMax = 1439;
+
+export const upsertFamilyCareContextResponseMorningWakeMinuteMin = 0;
+export const upsertFamilyCareContextResponseMorningWakeMinuteMax = 1439;
+
+export const UpsertFamilyCareContextResponse = zod.object({
+  id: zod.number().nullable(),
+  displayLabel: zod.string(),
+  timezone: zod.string(),
+  caregiverALabel: zod.string(),
+  caregiverBLabel: zod.string(),
+  nightStartMinute: zod
+    .number()
+    .min(upsertFamilyCareContextResponseNightStartMinuteMin)
+    .max(upsertFamilyCareContextResponseNightStartMinuteMax),
+  handoffMinute: zod
+    .number()
+    .min(upsertFamilyCareContextResponseHandoffMinuteMin)
+    .max(upsertFamilyCareContextResponseHandoffMinuteMax),
+  morningWakeMinute: zod
+    .number()
+    .min(upsertFamilyCareContextResponseMorningWakeMinuteMin)
+    .max(upsertFamilyCareContextResponseMorningWakeMinuteMax),
+  createdAt: zod.coerce.date().nullable(),
+  updatedAt: zod.coerce.date().nullable(),
+});
+
+/**
+ * @summary Record one observed care event with a duplicate-safe client id
+ */
+export const createFamilyCareEventBodyClientEventIdMin = 8;
+export const createFamilyCareEventBodyClientEventIdMax = 120;
+
+export const CreateFamilyCareEventBody = zod.object({
+  clientEventId: zod
+    .string()
+    .min(createFamilyCareEventBodyClientEventIdMin)
+    .max(createFamilyCareEventBodyClientEventIdMax),
+  kind: zod.enum(["feed", "diaper", "sleep", "pump", "note"]),
+  observedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Edit an owned observed care event
+ */
+
+export const UpdateFamilyCareEventParams = zod.object({
+  eventId: zod.coerce.number().min(1),
+});
+
+export const UpdateFamilyCareEventBody = zod.object({
+  kind: zod.enum(["feed", "diaper", "sleep", "pump", "note"]),
+  observedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  data: zod.record(zod.string(), zod.unknown()),
+});
+
+export const UpdateFamilyCareEventResponse = zod.object({
+  id: zod.number(),
+  clientEventId: zod.string(),
+  kind: zod.enum(["feed", "diaper", "sleep", "pump", "note"]),
+  observedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  sourceClass: zod.enum(["caregiver_observation"]),
+  data: zod.record(zod.string(), zod.unknown()),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  deletedAt: zod.coerce.date().nullable(),
+});
+
+/**
+ * @summary Soft-delete an owned observed care event
+ */
+
+export const DeleteFamilyCareEventParams = zod.object({
+  eventId: zod.coerce.number().min(1),
+});
+
+/**
+ * @summary Save the current user's private caregiver handoff
+ */
+export const upsertFamilyCareHandoffBodyCurrentCaregiverLabelMax = 120;
+
+export const upsertFamilyCareHandoffBodyLastConfirmedActionMax = 1000;
+
+export const upsertFamilyCareHandoffBodyNextActionMax = 1000;
+
+export const upsertFamilyCareHandoffBodyWatchForMax = 1000;
+
+export const upsertFamilyCareHandoffBodyCanWaitMax = 1000;
+
+export const upsertFamilyCareHandoffBodySupportNeededMax = 1000;
+
+export const UpsertFamilyCareHandoffBody = zod.object({
+  currentCaregiverLabel: zod
+    .string()
+    .max(upsertFamilyCareHandoffBodyCurrentCaregiverLabelMax)
+    .nullish(),
+  lastConfirmedAction: zod
+    .string()
+    .max(upsertFamilyCareHandoffBodyLastConfirmedActionMax)
+    .nullish(),
+  nextAction: zod
+    .string()
+    .max(upsertFamilyCareHandoffBodyNextActionMax)
+    .nullish(),
+  watchFor: zod.string().max(upsertFamilyCareHandoffBodyWatchForMax).nullish(),
+  canWait: zod.string().max(upsertFamilyCareHandoffBodyCanWaitMax).nullish(),
+  supportNeeded: zod
+    .string()
+    .max(upsertFamilyCareHandoffBodySupportNeededMax)
+    .nullish(),
+});
+
+export const UpsertFamilyCareHandoffResponse = zod.object({
+  id: zod.number().nullable(),
+  currentCaregiverLabel: zod.string().nullable(),
+  lastConfirmedAction: zod.string().nullable(),
+  nextAction: zod.string().nullable(),
+  watchFor: zod.string().nullable(),
+  canWait: zod.string().nullable(),
+  supportNeeded: zod.string().nullable(),
+  createdAt: zod.coerce.date().nullable(),
+  updatedAt: zod.coerce.date().nullable(),
+});

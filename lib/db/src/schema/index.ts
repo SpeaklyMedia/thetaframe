@@ -15,3 +15,4 @@ export * from "./parent-packet-promotions";
 export * from "./baby-kb-assignments";
 export * from "./mobile-notification-outbox";
 export * from "./mobile-devices";
+export * from "./family-care";

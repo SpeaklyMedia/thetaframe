@@ -14,7 +14,7 @@ import {
   useListAiDrafts,
   useUpsertUserMode,
 } from "@workspace/api-client-react";
-import { CalendarDays, CheckCircle2, ClipboardCheck, LayoutDashboard, Smartphone, Sparkles } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardCheck, HeartHandshake, LayoutDashboard, Smartphone, Sparkles } from "lucide-react";
 import { HabitCanvasMap, type HabitCanvasMapNode } from "@/components/habit-canvas";
 import { DashboardBrainDumpSetup } from "@/components/dashboard-brain-dump-setup";
 import { Layout } from "@/components/layout";
@@ -262,6 +262,27 @@ export default function DashboardPage() {
             />
 
             <LifeOSDashboardWidget />
+
+            {canDaily ? (
+              <DashboardSection
+                title="Family Care"
+                description="Open the private single-account coverage plan, care log, handoff, and observed 24-hour summary."
+                testId="dashboard-family-care-launcher"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background/80 p-3">
+                  <div className="flex items-start gap-3">
+                    <HeartHandshake className="mt-0.5 h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-semibold">Private care coordination</p>
+                      <p className="text-sm text-muted-foreground">Shared household access is not enabled yet.</p>
+                    </div>
+                  </div>
+                  <Button asChild type="button" size="sm">
+                    <Link href="/family-care">Open Family Care</Link>
+                  </Button>
+                </div>
+              </DashboardSection>
+            ) : null}
 
             <DashboardSection
               title="Today's rhythm"

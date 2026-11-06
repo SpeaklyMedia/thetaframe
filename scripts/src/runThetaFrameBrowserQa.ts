@@ -1102,6 +1102,17 @@ function signedOutChecks(): Check[] {
       },
     },
     {
+      label: "signed-out protected Family Care route exposes no private shell",
+      run: async (page) => {
+        await waitForAppReady(page, "/family-care");
+        await page.getByRole("heading", { name: "A quiet place for your mind." }).waitFor();
+        if (await page.getByTestId("family-care-page").isVisible().catch(() => false)) {
+          throw new Error("Signed-out Family Care route exposed the private application shell.");
+        }
+        return "pass";
+      },
+    },
+    {
       label: "signed-out protected console route falls back to the public home",
       run: async (page) => {
         await waitForAppReady(page, "/console");

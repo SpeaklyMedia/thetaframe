@@ -18,6 +18,7 @@ import SignUpPage from "@/pages/sign-up";
 import DashboardPage from "@/pages/dashboard";
 import ConsolePage from "@/pages/console";
 import DailyPage from "@/pages/daily";
+import FamilyCarePage from "@/pages/family-care";
 import WeeklyPage from "@/pages/weekly";
 import VisionPage from "@/pages/vision";
 import BizdevPage from "@/pages/bizdev";
@@ -252,6 +253,9 @@ function ClerkProviderWithRoutes() {
                   </Route>
                   <Route path="/daily">
                     <ModuleRoute component={DailyPage} module="daily" />
+                  </Route>
+                  <Route path="/family-care">
+                    <ModuleRoute component={FamilyCarePage} module="daily" />
                   </Route>
                   <Route path="/weekly">
                     <ModuleRoute component={WeeklyPage} module="weekly" />

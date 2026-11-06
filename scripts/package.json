@@ -9,6 +9,8 @@
     "qa:browser": "tsx ./src/runThetaFrameBrowserQa.ts",
     "qa:browser:headed": "tsx ./src/runThetaFrameBrowserQa.ts --headed",
     "qa:isolation": "tsx ./src/runThetaFrameIsolationQa.ts",
+    "qa:family-care:persistence": "tsx ../artifacts/api-server/src/runFamilyCarePersistenceQa.ts",
+    "qa:browser:auth:validate": "tsx ./src/validateThetaFrameBrowserAuthStates.ts",
     "qa:browser:auth:capture": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=user",
     "qa:browser:auth:capture:admin": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=admin",
     "qa:browser:auth:capture:basic": "tsx ./src/captureThetaFrameBrowserAuthState.ts --role=basic",
