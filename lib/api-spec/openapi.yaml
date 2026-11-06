@@ -32,6 +32,8 @@ tags:
     description: Admin user and permission management
   - name: me
     description: Current user context
+  - name: family-care
+    description: Private single-account Family Care operations
 
 paths:
   /healthz:
@@ -1523,6 +1525,145 @@ paths:
                 $ref: "#/components/schemas/UserPermissionsResponse"
         "409":
           description: Target user is already an admin and cannot be changed through module grants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /family-care:
+    get:
+      operationId: getFamilyCare
+      tags: [family-care]
+      summary: Get the current user's private Family Care state
+      responses:
+        "200":
+          description: Family Care state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCareResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /family-care/context:
+    put:
+      operationId: upsertFamilyCareContext
+      tags: [family-care]
+      summary: Save private Family Care labels, timezone, and Tonight plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertFamilyCareContextBody"
+      responses:
+        "200":
+          description: Saved Family Care context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCareContext"
+        "400":
+          description: Invalid context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /family-care/events:
+    post:
+      operationId: createFamilyCareEvent
+      tags: [family-care]
+      summary: Record one observed care event with a duplicate-safe client id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFamilyCareEventBody"
+      responses:
+        "201":
+          description: Recorded care event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCareEvent"
+        "400":
+          description: Invalid care event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /family-care/events/{eventId}:
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    put:
+      operationId: updateFamilyCareEvent
+      tags: [family-care]
+      summary: Edit an owned observed care event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFamilyCareEventBody"
+      responses:
+        "200":
+          description: Updated care event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCareEvent"
+        "404":
+          description: Event not found for current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteFamilyCareEvent
+      tags: [family-care]
+      summary: Soft-delete an owned observed care event
+      responses:
+        "204":
+          description: Event deleted
+        "404":
+          description: Event not found for current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /family-care/handoff:
+    put:
+      operationId: upsertFamilyCareHandoff
+      tags: [family-care]
+      summary: Save the current user's private caregiver handoff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertFamilyCareHandoffBody"
+      responses:
+        "200":
+          description: Saved handoff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyCareHandoff"
+        "400":
+          description: Invalid handoff
           content:
             application/json:
               schema:
@@ -3355,3 +3496,256 @@ components:
         - summary
         - createdAt
         - updatedAt
+
+    FamilyCareContext:
+      type: object
+      properties:
+        id:
+          type: ["integer", "null"]
+        displayLabel:
+          type: string
+        timezone:
+          type: string
+        caregiverALabel:
+          type: string
+        caregiverBLabel:
+          type: string
+        nightStartMinute:
+          type: integer
+          minimum: 0
+          maximum: 1439
+        handoffMinute:
+          type: integer
+          minimum: 0
+          maximum: 1439
+        morningWakeMinute:
+          type: integer
+          minimum: 0
+          maximum: 1439
+        createdAt:
+          type: ["string", "null"]
+          format: date-time
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - displayLabel
+        - timezone
+        - caregiverALabel
+        - caregiverBLabel
+        - nightStartMinute
+        - handoffMinute
+        - morningWakeMinute
+        - createdAt
+        - updatedAt
+
+    UpsertFamilyCareContextBody:
+      type: object
+      additionalProperties: false
+      properties:
+        displayLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 80
+        caregiverALabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+        caregiverBLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+        nightStartMinute:
+          type: integer
+          minimum: 0
+          maximum: 1439
+        handoffMinute:
+          type: integer
+          minimum: 0
+          maximum: 1439
+        morningWakeMinute:
+          type: integer
+          minimum: 0
+          maximum: 1439
+      required:
+        - displayLabel
+        - timezone
+        - caregiverALabel
+        - caregiverBLabel
+        - nightStartMinute
+        - handoffMinute
+        - morningWakeMinute
+
+    FamilyCareEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientEventId:
+          type: string
+        kind:
+          type: string
+          enum: [feed, diaper, sleep, pump, note]
+        observedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        sourceClass:
+          type: string
+          enum: [caregiver_observation]
+        data:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - clientEventId
+        - kind
+        - observedAt
+        - endedAt
+        - sourceClass
+        - data
+        - createdAt
+        - updatedAt
+        - deletedAt
+
+    FamilyCareEventInput:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [feed, diaper, sleep, pump, note]
+        observedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        data:
+          type: object
+          additionalProperties: true
+      required:
+        - kind
+        - observedAt
+        - data
+
+    CreateFamilyCareEventBody:
+      type: object
+      additionalProperties: false
+      properties:
+        clientEventId:
+          type: string
+          minLength: 8
+          maxLength: 120
+        kind:
+          type: string
+          enum: [feed, diaper, sleep, pump, note]
+        observedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        data:
+          type: object
+          additionalProperties: true
+      required:
+        - clientEventId
+        - kind
+        - observedAt
+        - data
+
+    UpdateFamilyCareEventBody:
+      $ref: "#/components/schemas/FamilyCareEventInput"
+
+    FamilyCareHandoff:
+      type: object
+      properties:
+        id:
+          type: ["integer", "null"]
+        currentCaregiverLabel:
+          type: ["string", "null"]
+        lastConfirmedAction:
+          type: ["string", "null"]
+        nextAction:
+          type: ["string", "null"]
+        watchFor:
+          type: ["string", "null"]
+        canWait:
+          type: ["string", "null"]
+        supportNeeded:
+          type: ["string", "null"]
+        createdAt:
+          type: ["string", "null"]
+          format: date-time
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - currentCaregiverLabel
+        - lastConfirmedAction
+        - nextAction
+        - watchFor
+        - canWait
+        - supportNeeded
+        - createdAt
+        - updatedAt
+
+    UpsertFamilyCareHandoffBody:
+      type: object
+      additionalProperties: false
+      properties:
+        currentCaregiverLabel:
+          type: ["string", "null"]
+          maxLength: 120
+        lastConfirmedAction:
+          type: ["string", "null"]
+          maxLength: 1000
+        nextAction:
+          type: ["string", "null"]
+          maxLength: 1000
+        watchFor:
+          type: ["string", "null"]
+          maxLength: 1000
+        canWait:
+          type: ["string", "null"]
+          maxLength: 1000
+        supportNeeded:
+          type: ["string", "null"]
+          maxLength: 1000
+
+    FamilyCareResponse:
+      type: object
+      properties:
+        context:
+          $ref: "#/components/schemas/FamilyCareContext"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/FamilyCareEvent"
+        handoff:
+          $ref: "#/components/schemas/FamilyCareHandoff"
+        accessNotice:
+          type: string
+      required:
+        - context
+        - events
+        - handoff
+        - accessNotice

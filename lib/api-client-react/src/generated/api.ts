@@ -30,6 +30,7 @@ import type {
   CreateBasicBrainDumpDraftsBody,
   CreateBasicBrainDumpDraftsResponse,
   CreateDailyFrameBody,
+  CreateFamilyCareEventBody,
   CreateParentPacketImportBody,
   CreatePresetBody,
   CreateWeeklyFrameBody,
@@ -37,6 +38,11 @@ import type {
   DailyReflection,
   DailyRhythmResponse,
   ErrorResponse,
+  FamilyCareContext,
+  FamilyCareEvent,
+  FamilyCareEventInput,
+  FamilyCareHandoff,
+  FamilyCareResponse,
   HealthStatus,
   LifeLedgerEntry,
   LifeLedgerEntryBody,
@@ -66,6 +72,8 @@ import type {
   SubscriptionAuditResponse,
   UpdateAIDraftReviewStateBody,
   UpsertDailyFrameBody,
+  UpsertFamilyCareContextBody,
+  UpsertFamilyCareHandoffBody,
   UpsertRoutineSessionBody,
   UpsertUserModeBody,
   UpsertUserPreferencesBody,
@@ -5837,4 +5845,511 @@ export const useApplyAdminPreset = <
   TContext
 > => {
   return useMutation(getApplyAdminPresetMutationOptions(options));
+};
+
+/**
+ * @summary Get the current user's private Family Care state
+ */
+export const getGetFamilyCareUrl = () => {
+  return `/api/family-care`;
+};
+
+export const getFamilyCare = async (
+  options?: RequestInit,
+): Promise<FamilyCareResponse> => {
+  return customFetch<FamilyCareResponse>(getGetFamilyCareUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFamilyCareQueryKey = () => {
+  return [`/api/family-care`] as const;
+};
+
+export const getGetFamilyCareQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFamilyCare>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilyCare>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFamilyCareQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getFamilyCare>>> = ({
+    signal,
+  }) => getFamilyCare({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilyCare>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFamilyCareQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFamilyCare>>
+>;
+export type GetFamilyCareQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get the current user's private Family Care state
+ */
+
+export function useGetFamilyCare<
+  TData = Awaited<ReturnType<typeof getFamilyCare>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilyCare>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFamilyCareQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save private Family Care labels, timezone, and Tonight plan
+ */
+export const getUpsertFamilyCareContextUrl = () => {
+  return `/api/family-care/context`;
+};
+
+export const upsertFamilyCareContext = async (
+  upsertFamilyCareContextBody: UpsertFamilyCareContextBody,
+  options?: RequestInit,
+): Promise<FamilyCareContext> => {
+  return customFetch<FamilyCareContext>(getUpsertFamilyCareContextUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertFamilyCareContextBody),
+  });
+};
+
+export const getUpsertFamilyCareContextMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertFamilyCareContext>>,
+    TError,
+    { data: BodyType<UpsertFamilyCareContextBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertFamilyCareContext>>,
+  TError,
+  { data: BodyType<UpsertFamilyCareContextBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertFamilyCareContext"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertFamilyCareContext>>,
+    { data: BodyType<UpsertFamilyCareContextBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertFamilyCareContext(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertFamilyCareContextMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertFamilyCareContext>>
+>;
+export type UpsertFamilyCareContextMutationBody =
+  BodyType<UpsertFamilyCareContextBody>;
+export type UpsertFamilyCareContextMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Save private Family Care labels, timezone, and Tonight plan
+ */
+export const useUpsertFamilyCareContext = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertFamilyCareContext>>,
+    TError,
+    { data: BodyType<UpsertFamilyCareContextBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertFamilyCareContext>>,
+  TError,
+  { data: BodyType<UpsertFamilyCareContextBody> },
+  TContext
+> => {
+  return useMutation(getUpsertFamilyCareContextMutationOptions(options));
+};
+
+/**
+ * @summary Record one observed care event with a duplicate-safe client id
+ */
+export const getCreateFamilyCareEventUrl = () => {
+  return `/api/family-care/events`;
+};
+
+export const createFamilyCareEvent = async (
+  createFamilyCareEventBody: CreateFamilyCareEventBody,
+  options?: RequestInit,
+): Promise<FamilyCareEvent> => {
+  return customFetch<FamilyCareEvent>(getCreateFamilyCareEventUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createFamilyCareEventBody),
+  });
+};
+
+export const getCreateFamilyCareEventMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFamilyCareEvent>>,
+    TError,
+    { data: BodyType<CreateFamilyCareEventBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFamilyCareEvent>>,
+  TError,
+  { data: BodyType<CreateFamilyCareEventBody> },
+  TContext
+> => {
+  const mutationKey = ["createFamilyCareEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFamilyCareEvent>>,
+    { data: BodyType<CreateFamilyCareEventBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createFamilyCareEvent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFamilyCareEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFamilyCareEvent>>
+>;
+export type CreateFamilyCareEventMutationBody =
+  BodyType<CreateFamilyCareEventBody>;
+export type CreateFamilyCareEventMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Record one observed care event with a duplicate-safe client id
+ */
+export const useCreateFamilyCareEvent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFamilyCareEvent>>,
+    TError,
+    { data: BodyType<CreateFamilyCareEventBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createFamilyCareEvent>>,
+  TError,
+  { data: BodyType<CreateFamilyCareEventBody> },
+  TContext
+> => {
+  return useMutation(getCreateFamilyCareEventMutationOptions(options));
+};
+
+/**
+ * @summary Edit an owned observed care event
+ */
+export const getUpdateFamilyCareEventUrl = (eventId: number) => {
+  return `/api/family-care/events/${eventId}`;
+};
+
+export const updateFamilyCareEvent = async (
+  eventId: number,
+  familyCareEventInput: FamilyCareEventInput,
+  options?: RequestInit,
+): Promise<FamilyCareEvent> => {
+  return customFetch<FamilyCareEvent>(getUpdateFamilyCareEventUrl(eventId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(familyCareEventInput),
+  });
+};
+
+export const getUpdateFamilyCareEventMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFamilyCareEvent>>,
+    TError,
+    { eventId: number; data: BodyType<FamilyCareEventInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFamilyCareEvent>>,
+  TError,
+  { eventId: number; data: BodyType<FamilyCareEventInput> },
+  TContext
+> => {
+  const mutationKey = ["updateFamilyCareEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFamilyCareEvent>>,
+    { eventId: number; data: BodyType<FamilyCareEventInput> }
+  > = (props) => {
+    const { eventId, data } = props ?? {};
+
+    return updateFamilyCareEvent(eventId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFamilyCareEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFamilyCareEvent>>
+>;
+export type UpdateFamilyCareEventMutationBody = BodyType<FamilyCareEventInput>;
+export type UpdateFamilyCareEventMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Edit an owned observed care event
+ */
+export const useUpdateFamilyCareEvent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFamilyCareEvent>>,
+    TError,
+    { eventId: number; data: BodyType<FamilyCareEventInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateFamilyCareEvent>>,
+  TError,
+  { eventId: number; data: BodyType<FamilyCareEventInput> },
+  TContext
+> => {
+  return useMutation(getUpdateFamilyCareEventMutationOptions(options));
+};
+
+/**
+ * @summary Soft-delete an owned observed care event
+ */
+export const getDeleteFamilyCareEventUrl = (eventId: number) => {
+  return `/api/family-care/events/${eventId}`;
+};
+
+export const deleteFamilyCareEvent = async (
+  eventId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteFamilyCareEventUrl(eventId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteFamilyCareEventMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFamilyCareEvent>>,
+    TError,
+    { eventId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFamilyCareEvent>>,
+  TError,
+  { eventId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteFamilyCareEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFamilyCareEvent>>,
+    { eventId: number }
+  > = (props) => {
+    const { eventId } = props ?? {};
+
+    return deleteFamilyCareEvent(eventId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteFamilyCareEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteFamilyCareEvent>>
+>;
+
+export type DeleteFamilyCareEventMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Soft-delete an owned observed care event
+ */
+export const useDeleteFamilyCareEvent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFamilyCareEvent>>,
+    TError,
+    { eventId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFamilyCareEvent>>,
+  TError,
+  { eventId: number },
+  TContext
+> => {
+  return useMutation(getDeleteFamilyCareEventMutationOptions(options));
+};
+
+/**
+ * @summary Save the current user's private caregiver handoff
+ */
+export const getUpsertFamilyCareHandoffUrl = () => {
+  return `/api/family-care/handoff`;
+};
+
+export const upsertFamilyCareHandoff = async (
+  upsertFamilyCareHandoffBody: UpsertFamilyCareHandoffBody,
+  options?: RequestInit,
+): Promise<FamilyCareHandoff> => {
+  return customFetch<FamilyCareHandoff>(getUpsertFamilyCareHandoffUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertFamilyCareHandoffBody),
+  });
+};
+
+export const getUpsertFamilyCareHandoffMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertFamilyCareHandoff>>,
+    TError,
+    { data: BodyType<UpsertFamilyCareHandoffBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertFamilyCareHandoff>>,
+  TError,
+  { data: BodyType<UpsertFamilyCareHandoffBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertFamilyCareHandoff"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertFamilyCareHandoff>>,
+    { data: BodyType<UpsertFamilyCareHandoffBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertFamilyCareHandoff(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertFamilyCareHandoffMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertFamilyCareHandoff>>
+>;
+export type UpsertFamilyCareHandoffMutationBody =
+  BodyType<UpsertFamilyCareHandoffBody>;
+export type UpsertFamilyCareHandoffMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Save the current user's private caregiver handoff
+ */
+export const useUpsertFamilyCareHandoff = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertFamilyCareHandoff>>,
+    TError,
+    { data: BodyType<UpsertFamilyCareHandoffBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertFamilyCareHandoff>>,
+  TError,
+  { data: BodyType<UpsertFamilyCareHandoffBody> },
+  TContext
+> => {
+  return useMutation(getUpsertFamilyCareHandoffMutationOptions(options));
 };

@@ -15,6 +15,7 @@ import adminRouter from "./admin.js";
 import meRouter from "./me.js";
 import onboardingRouter from "./onboarding.js";
 import mobileNotificationsRouter from "./mobile-notifications.js";
+import familyCareRouter from "./family-care.js";
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use(adminRouter);
 router.use(meRouter);
 router.use(onboardingRouter);
 router.use(mobileNotificationsRouter);
+router.use(familyCareRouter);
 
 export default router;

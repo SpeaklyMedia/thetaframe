@@ -1514,6 +1514,217 @@ export interface ParentPacketImportRun {
   updatedAt: string;
 }
 
+export interface FamilyCareContext {
+  /** @nullable */
+  id: number | null;
+  displayLabel: string;
+  timezone: string;
+  caregiverALabel: string;
+  caregiverBLabel: string;
+  /**
+   * @minimum 0
+   * @maximum 1439
+   */
+  nightStartMinute: number;
+  /**
+   * @minimum 0
+   * @maximum 1439
+   */
+  handoffMinute: number;
+  /**
+   * @minimum 0
+   * @maximum 1439
+   */
+  morningWakeMinute: number;
+  /** @nullable */
+  createdAt: string | null;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface UpsertFamilyCareContextBody {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  displayLabel: string;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  timezone: string;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  caregiverALabel: string;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  caregiverBLabel: string;
+  /**
+   * @minimum 0
+   * @maximum 1439
+   */
+  nightStartMinute: number;
+  /**
+   * @minimum 0
+   * @maximum 1439
+   */
+  handoffMinute: number;
+  /**
+   * @minimum 0
+   * @maximum 1439
+   */
+  morningWakeMinute: number;
+}
+
+export type FamilyCareEventKind =
+  (typeof FamilyCareEventKind)[keyof typeof FamilyCareEventKind];
+
+export const FamilyCareEventKind = {
+  feed: "feed",
+  diaper: "diaper",
+  sleep: "sleep",
+  pump: "pump",
+  note: "note",
+} as const;
+
+export type FamilyCareEventSourceClass =
+  (typeof FamilyCareEventSourceClass)[keyof typeof FamilyCareEventSourceClass];
+
+export const FamilyCareEventSourceClass = {
+  caregiver_observation: "caregiver_observation",
+} as const;
+
+export type FamilyCareEventData = { [key: string]: unknown };
+
+export interface FamilyCareEvent {
+  id: number;
+  clientEventId: string;
+  kind: FamilyCareEventKind;
+  observedAt: string;
+  /** @nullable */
+  endedAt: string | null;
+  sourceClass: FamilyCareEventSourceClass;
+  data: FamilyCareEventData;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  deletedAt: string | null;
+}
+
+export type FamilyCareEventInputKind =
+  (typeof FamilyCareEventInputKind)[keyof typeof FamilyCareEventInputKind];
+
+export const FamilyCareEventInputKind = {
+  feed: "feed",
+  diaper: "diaper",
+  sleep: "sleep",
+  pump: "pump",
+  note: "note",
+} as const;
+
+export type FamilyCareEventInputData = { [key: string]: unknown };
+
+export interface FamilyCareEventInput {
+  kind: FamilyCareEventInputKind;
+  observedAt: string;
+  /** @nullable */
+  endedAt?: string | null;
+  data: FamilyCareEventInputData;
+}
+
+export type CreateFamilyCareEventBodyKind =
+  (typeof CreateFamilyCareEventBodyKind)[keyof typeof CreateFamilyCareEventBodyKind];
+
+export const CreateFamilyCareEventBodyKind = {
+  feed: "feed",
+  diaper: "diaper",
+  sleep: "sleep",
+  pump: "pump",
+  note: "note",
+} as const;
+
+export type CreateFamilyCareEventBodyData = { [key: string]: unknown };
+
+export interface CreateFamilyCareEventBody {
+  /**
+   * @minLength 8
+   * @maxLength 120
+   */
+  clientEventId: string;
+  kind: CreateFamilyCareEventBodyKind;
+  observedAt: string;
+  /** @nullable */
+  endedAt?: string | null;
+  data: CreateFamilyCareEventBodyData;
+}
+
+export type UpdateFamilyCareEventBody = FamilyCareEventInput;
+
+export interface FamilyCareHandoff {
+  /** @nullable */
+  id: number | null;
+  /** @nullable */
+  currentCaregiverLabel: string | null;
+  /** @nullable */
+  lastConfirmedAction: string | null;
+  /** @nullable */
+  nextAction: string | null;
+  /** @nullable */
+  watchFor: string | null;
+  /** @nullable */
+  canWait: string | null;
+  /** @nullable */
+  supportNeeded: string | null;
+  /** @nullable */
+  createdAt: string | null;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface UpsertFamilyCareHandoffBody {
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  currentCaregiverLabel?: string | null;
+  /**
+   * @maxLength 1000
+   * @nullable
+   */
+  lastConfirmedAction?: string | null;
+  /**
+   * @maxLength 1000
+   * @nullable
+   */
+  nextAction?: string | null;
+  /**
+   * @maxLength 1000
+   * @nullable
+   */
+  watchFor?: string | null;
+  /**
+   * @maxLength 1000
+   * @nullable
+   */
+  canWait?: string | null;
+  /**
+   * @maxLength 1000
+   * @nullable
+   */
+  supportNeeded?: string | null;
+}
+
+export interface FamilyCareResponse {
+  context: FamilyCareContext;
+  events: FamilyCareEvent[];
+  handoff: FamilyCareHandoff;
+  accessNotice: string;
+}
+
 export type ListAiDraftsParams = {
   lane?: ListAiDraftsLane;
   draftKind?: ListAiDraftsDraftKind;
